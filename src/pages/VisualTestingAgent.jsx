@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const VisualTestingAgent = () => {
@@ -6,6 +6,28 @@ const VisualTestingAgent = () => {
   const [selectedDevice, setSelectedDevice] = useState('desktop');
   const [testType, setTestType] = useState('regression');
   const [testResults, setTestResults] = useState(null);
+  const [actualImage, setActualImage] = useState(null);
+  const [developedImage, setDevelopedImage] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [actualPreview, setActualPreview] = useState(null);
+  const [developedPreview, setDevelopedPreview] = useState(null);
+  const [isDraggingActual, setIsDraggingActual] = useState(false);
+  const [isDraggingDeveloped, setIsDraggingDeveloped] = useState(false);
+
+  const actualInputRef = useRef(null);
+  const developedInputRef = useRef(null);
+
+  const assignActual = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setActualImage(file);
+    setActualPreview(URL.createObjectURL(file));
+  };
+
+  const assignDeveloped = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setDevelopedImage(file);
+    setDevelopedPreview(URL.createObjectURL(file));
+  };
 
   const devices = [
     { id: 'desktop', name: 'Desktop', icon: '🖥️', resolution: '1920x1080' },
@@ -22,67 +44,52 @@ const VisualTestingAgent = () => {
   ];
 
   const runVisualTest = () => {
-    // Simulate visual test execution
-    setTestResults({
-      status: 'running',
-      progress: 0,
-      currentStep: 'Capturing baseline images...',
-      duration: '0s'
-    });
+    if (!actualImage || !developedImage) {
+      alert('Please upload both Actual and Developed images');
+      return;
+    }
+    setIsProcessing(true);
+    setTestResults({ status: 'running', progress: 0, currentStep: 'Analyzing differences...', duration: '0s' });
 
-    // Simulate progress
+    const startedAt = Date.now();
     const interval = setInterval(() => {
       setTestResults(prev => {
-        const newProgress = prev.progress + 20;
-        
+        const newProgress = Math.min((prev.progress || 0) + 25, 100);
         if (newProgress >= 100) {
           clearInterval(interval);
+          const durationSec = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+          setIsProcessing(false);
           return {
-            ...prev,
             status: 'completed',
             progress: 100,
-            currentStep: 'Visual test completed',
-            duration: '32s',
+            currentStep: 'Visual comparison completed',
+            duration: `${durationSec}s`,
             results: {
-              totalComparisons: 12,
-              passed: 10,
-              failed: 2,
-              differences: [
-                {
-                  page: 'Homepage',
-                  element: 'Navigation Menu',
-                  difference: '2.3%',
-                  severity: 'Minor'
-                },
-                {
-                  page: 'Product Page',
-                  element: 'Add to Cart Button',
-                  difference: '8.7%',
-                  severity: 'Major'
-                }
-              ]
+              totalComparisons: 1,
+              passed: 0,
+              failed: 1,
+              // Simulated diff percentage
+              diffPercent: '6.4%',
+              // Keep the uploaded images as preview sources
+              actualSrc: actualPreview || URL.createObjectURL(actualImage),
+              developedSrc: developedPreview || URL.createObjectURL(developedImage)
             }
           };
         }
-
-        const steps = [
-          'Capturing baseline images...',
-          'Loading test pages...',
-          'Taking screenshots...',
-          'Comparing images...',
-          'Analyzing differences...'
-        ];
-
-        const stepIndex = Math.floor(newProgress / 20);
-
-        return {
-          ...prev,
-          progress: newProgress,
-          currentStep: steps[stepIndex] || prev.currentStep,
-          duration: `${Math.floor(newProgress * 0.32)}s`
-        };
+        return { ...prev, progress: newProgress };
       });
-    }, 400);
+    }, 500);
+  };
+
+  const downloadVisualReport = () => {
+    const content = `# Visual Test Report\n\n- Status: Completed\n- Differences: ${testResults?.results?.diffPercent || 'N/A'}\n- Total Comparisons: ${testResults?.results?.totalComparisons || 1}`;
+    const element = document.createElement('a');
+    const file = new Blob([content], { type: 'text/markdown' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'visual_test_report.md';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
@@ -104,98 +111,74 @@ const VisualTestingAgent = () => {
         <div className="space-y-6">
           <div className="card">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Visual Test Configuration
+              Visual Diff Configuration
             </h2>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Target Devices
+                  Upload Actual Image (Baseline)
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {devices.map((device) => (
-                    <button
-                      key={device.id}
-                      onClick={() => setSelectedDevice(device.id)}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        selectedDevice === device.id
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{device.icon}</div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {device.name}
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-300">
-                        {device.resolution}
-                      </div>
-                    </button>
-                  ))}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingActual(true); }}
+                  onDragLeave={() => setIsDraggingActual(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDraggingActual(false); const f = e.dataTransfer.files?.[0]; assignActual(f); }}
+                  className={`relative flex items-center justify-center w-full border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer ${
+                    isDraggingActual ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
+                  } ${actualPreview ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-700'}`}
+                  onClick={() => actualInputRef.current?.click()}
+                >
+                  {actualPreview ? (
+                    <div className="w-full">
+                      <img src={actualPreview} alt="Actual preview" className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-600" />
+                      <div className="mt-2 text-center text-xs text-gray-600 dark:text-gray-300">Click to replace</div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Drag & drop image here, or click to upload</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, JPEG</div>
+                    </div>
+                  )}
+                  <input ref={actualInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => assignActual(e.target.files?.[0] || null)} />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Test Type
+                  Upload Developed Image (Current)
                 </label>
-                <div className="space-y-2">
-                  {testTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setTestType(type.id)}
-                      className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                        testType === type.id
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {type.name}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
-                        {type.description}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Sensitivity Level
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                  <option value="low">Low - Major changes only</option>
-                  <option value="medium">Medium - Moderate changes</option>
-                  <option value="high">High - Minor changes</option>
-                  <option value="strict">Strict - Pixel-perfect</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Pages to Test
-                </label>
-                <div className="space-y-2">
-                  {['Homepage', 'Product Page', 'Checkout', 'User Dashboard'].map((page) => (
-                    <label key={page} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        className="mr-3 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-gray-700 dark:text-gray-300">{page}</span>
-                    </label>
-                  ))}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingDeveloped(true); }}
+                  onDragLeave={() => setIsDraggingDeveloped(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDraggingDeveloped(false); const f = e.dataTransfer.files?.[0]; assignDeveloped(f); }}
+                  className={`relative flex items-center justify-center w-full border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer ${
+                    isDraggingDeveloped ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
+                  } ${developedPreview ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-700'}`}
+                  onClick={() => developedInputRef.current?.click()}
+                >
+                  {developedPreview ? (
+                    <div className="w-full">
+                      <img src={developedPreview} alt="Developed preview" className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-600" />
+                      <div className="mt-2 text-center text-xs text-gray-600 dark:text-gray-300">Click to replace</div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Drag & drop image here, or click to upload</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, JPEG</div>
+                    </div>
+                  )}
+                  <input ref={developedInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => assignDeveloped(e.target.files?.[0] || null)} />
                 </div>
               </div>
 
               <button
                 onClick={runVisualTest}
-                className="w-full btn-primary"
+                disabled={!actualImage || !developedImage || isProcessing}
+                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Run Visual Test
+                {isProcessing ? 'Generating Visual Diff...' : 'Generate Visual Diff'}
               </button>
             </div>
           </div>
@@ -235,67 +218,82 @@ const VisualTestingAgent = () => {
           {testResults ? (
             <>
               {/* Progress */}
-              <div className="card">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                  Visual Test Progress
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Progress</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {testResults.progress.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div 
-                      className="bg-orange-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${testResults.progress}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Current Step</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {testResults.currentStep}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Duration</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {testResults.duration}
-                    </span>
+              {testResults.status === 'running' && (
+                <div className="card">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                    Generating Visual Diff
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-300">Progress</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {testResults.progress.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                      <div 
+                        className="bg-orange-500 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${testResults.progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-300">Status</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {testResults.currentStep}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Results */}
               {testResults.status === 'completed' && testResults.results && (
                 <>
                   <div className="card">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                      Visual Test Results
+                      Visual Diff Result
                     </h3>
-                    
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+
+                    {/* Side-by-side preview */}
+                    <div className="grid md:grid-cols-3 gap-4 mb-6">
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Actual (Baseline)</div>
+                        <img src={testResults.results.actualSrc} alt="Actual" className="w-full rounded-lg border border-gray-200 dark:border-gray-700" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developed (Current)</div>
+                        <img src={testResults.results.developedSrc} alt="Developed" className="w-full rounded-lg border border-gray-200 dark:border-gray-700" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Diff Overlay</div>
+                        <div className="relative w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                          <img src={testResults.results.actualSrc} alt="Actual" className="w-full opacity-70" />
+                          <img src={testResults.results.developedSrc} alt="Developed" className="w-full mix-blend-difference opacity-70 absolute inset-0" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {testResults.results.totalComparisons}
                         </div>
-                        <div className="text-sm text-blue-700 dark:text-blue-300">Total</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 dark:bg-green-900 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                          {testResults.results.passed}
-                        </div>
-                        <div className="text-sm text-green-700 dark:text-green-300">Passed</div>
+                        <div className="text-sm text-blue-700 dark:text-blue-300">Comparisons</div>
                       </div>
                       <div className="text-center p-4 bg-red-50 dark:bg-red-900 rounded-lg">
                         <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                           {testResults.results.failed}
                         </div>
-                        <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
+                        <div className="text-sm text-red-700 dark:text-red-300">Mismatches</div>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg">
+                        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                          {testResults.results.diffPercent}
+                        </div>
+                        <div className="text-sm text-yellow-700 dark:text-yellow-300">Diff %</div>
                       </div>
                     </div>
                   </div>
@@ -339,6 +337,9 @@ const VisualTestingAgent = () => {
                       </div>
                     </div>
                   )}
+                  <div className="flex space-x-3">
+                    <button onClick={downloadVisualReport} className="flex-1 btn-secondary">Download Report</button>
+                  </div>
                 </>
               )}
             </>
