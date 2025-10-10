@@ -9,7 +9,7 @@ const UnitTestingAgent = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch reports every 10 seconds
+  // Fetch reports
   useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
@@ -24,11 +24,51 @@ const UnitTestingAgent = () => {
     };
 
     fetchReports();
-    const interval = setInterval(fetchReports, 200000);
-    return () => clearInterval(interval);
+    // Optional: refresh periodically
+    const interval = setInterval(fetchReports, 20000);
+    // return () => clearInterval(interval);
   }, []);
 
   const commits = Object.values(reports);
+
+  // Extract summary from Jest report
+ const getTestSummary = (fileReport) => {
+  if (!fileReport) return null;
+
+  const {
+    numPassedTests,
+    numFailedTests,
+    numTotalTests,
+    numPassedTestSuites,
+    numFailedTestSuites,
+    testResults,
+  } = fileReport;
+
+  const failures = testResults
+    ? testResults
+        .filter((t) => t.status === "failed")
+        .map((t) => ({
+          title: t.fullName || t.title,
+          // Combine failureMessages and fallback to failureDetails
+          messages:
+            (Array.isArray(t.failureMessages) && t.failureMessages.length > 0
+              ? t.failureMessages
+              : t.failureDetails?.map(
+                  (d) => d.matcherResult?.message || ""
+                )) || ["No failure message available."],
+        }))
+    : [];
+
+  return {
+    numPassedTests,
+    numFailedTests,
+    numTotalTests,
+    numPassedTestSuites,
+    numFailedTestSuites,
+    failures,
+  };
+};
+
 
   return (
     <div className="space-y-8">
@@ -45,7 +85,7 @@ const UnitTestingAgent = () => {
         </p>
       </div>
 
-      {/* Commits list */}
+      {/* Commits List */}
       <div className="card">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           Latest Commits
@@ -125,13 +165,14 @@ const UnitTestingAgent = () => {
               </ul>
             </div>
 
-            {/* Right: Code or HTML Report */}
+            {/* Right: Jest Code & Report */}
             <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
               {!selectedFile && (
                 <p className="text-gray-500">
                   Select a file from the left to view its Jest code or report.
                 </p>
               )}
+
               {selectedFile && (
                 <>
                   <h3 className="font-semibold text-lg mb-2 text-gray-900 dark:text-white">
@@ -143,24 +184,76 @@ const UnitTestingAgent = () => {
                     {selectedCommit.files[selectedFile]}
                   </pre>
 
-                  {/* HTML Report */}
+                  {/* Jest Summary */}
                   {selectedCommit.reports[selectedFile] && (
-                    console.log("Report",selectedCommit.reports[selectedFile]),
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-md mb-2 text-gray-700 dark:text-gray-300">
+                        Jest Summary
+                      </h4>
+                      {(() => {
+                        const summary = getTestSummary(
+                          selectedCommit.reports[selectedFile]
+                        );
+                        if (!summary) return <p>No report available.</p>;
+
+                        return (
+                          <div className="space-y-2">
+                            <p>
+                              Passed Tests:{" "}
+                              <strong>{summary.numPassedTests}</strong> /{" "}
+                              {summary.numTotalTests}
+                            </p>
+                            <p>Failed Tests: {summary.numFailedTests}</p>
+                            <p>
+                              Passed Test Suites:{" "}
+                              <strong>{summary.numPassedTestSuites}</strong>
+                            </p>
+                            <p>
+                              Failed Test Suites:{" "}
+                              <strong>{summary.numFailedTestSuites}</strong>
+                            </p>
+
+                            {summary.failures.length > 0 && (
+                              console.log("hgdxsdcx",summary.failures),
+                              <div className="mt-2 p-2 border rounded bg-red-50 dark:bg-red-900">
+                                <h5 className="font-semibold text-red-700 dark:text-red-400 mb-1">
+                                  Failures
+                                </h5>
+                                {summary.failures.map((f, idx) => (
+                                  <div key={idx} className="mb-2">
+                                    <p className="font-medium">{f.title}</p>
+                               <pre className="text-sm text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
+  {f.messages.join("\n")}
+</pre>
+
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Optional HTML Report iframe */}
+                  {selectedCommit.reports[selectedFile]?.html && (
                     <div className="mt-4">
                       <h4 className="font-semibold text-md mb-2 text-gray-700 dark:text-gray-300">
                         Jest HTML Report
                       </h4>
                       <iframe
-  title="Jest Report"
-  srcDoc={selectedCommit.reports[selectedFile]}
-  className="w-full border rounded-lg bg-white"
-  onLoad={(e) => {
-    const iframe = e.target;
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    iframe.style.height = doc.body.scrollHeight + "px";
-  }}
-/>
-
+                        title="Jest Report"
+                        srcDoc={selectedCommit.reports[selectedFile].html}
+                        className="w-full border rounded-lg bg-white"
+                        onLoad={(e) => {
+                          const iframe = e.target;
+                          const doc =
+                            iframe.contentDocument ||
+                            iframe.contentWindow.document;
+                          iframe.style.height = doc.body.scrollHeight + "px";
+                        }}
+                      />
                     </div>
                   )}
                 </>
