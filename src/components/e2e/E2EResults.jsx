@@ -9,6 +9,57 @@ const E2EResults = ({
 }) => {
   return (
     <div className="space-y-6">
+      {/* Setup Logs */}
+      {selectedFlow === 'setup' && (
+        <div className="card">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Setup Logs
+          </h2>
+          <div className="bg-gray-900 text-gray-300 p-4 rounded-lg max-h-96 overflow-y-auto">
+            {testResults && testResults.logs && testResults.logs.length > 0 ? (
+              <div className="space-y-2">
+                {testResults.logs.map((log, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                  >
+                    {log.type === 'success' ? (
+                      <svg className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : log.type === 'error' ? (
+                      <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    <p className={`text-sm flex-1 leading-relaxed ${
+                      log.type === 'success' ? 'text-green-300' : 
+                      log.type === 'error' ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {log.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-700/50 rounded-full mb-3">
+                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500">Waiting for setup to begin...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Agent Processing */}
       {agentRunning && (
         <div className="card">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -48,6 +99,7 @@ const E2EResults = ({
         </div>
       )}
 
+      {/* Manual Script Generation Results */}
       {selectedFlow === 'manual' && testResults && testResults.status === 'completed' && (
         <div className="card">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -66,10 +118,6 @@ const E2EResults = ({
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="text-gray-600 dark:text-gray-300">Test Cases Processed</span>
-                <span className="font-semibold text-gray-900 dark:text-white">12</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-300">Application URL</span>
                 <span className="font-semibold text-gray-900 dark:text-white text-sm truncate ml-2">
                   {applicationUrl}
@@ -85,6 +133,7 @@ const E2EResults = ({
         </div>
       )}
 
+      {/* AI Agent Results */}
       {selectedFlow === 'agent' && testResults && testResults.status === 'completed' && (
         <div className="card">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -103,36 +152,34 @@ const E2EResults = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-green-50 dark:bg-green-900 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{Number(testResults.passed || 0)}</div>
                 <div className="text-sm text-green-700 dark:text-green-300">Tests Passed</div>
               </div>
               <div className="text-center p-4 bg-red-50 dark:bg-red-900 rounded-lg">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">2</div>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{Number(testResults.failed || 0)}</div>
                 <div className="text-sm text-red-700 dark:text-red-300">Tests Failed</div>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-300">Browser Used</span>
-                <span className="font-semibold text-gray-900 dark:text-white capitalize">{selectedBrowser}</span>
+                <span className="font-semibold text-gray-900 dark:text-white capitalize">{selectedBrowser || 'chrome'}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-300">Execution Time</span>
-                <span className="font-semibold text-gray-900 dark:text-white">45s</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="text-gray-600 dark:text-gray-300">Screenshots</span>
-                <span className="font-semibold text-gray-900 dark:text-white">12</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{testResults.executionTime || '-'}</span>
               </div>
             </div>
-            <div className="flex space-x-3">
-              <button onClick={downloadScript} className="flex-1 btn-primary">Download Script (.py)</button>
-              <button onClick={downloadReport} className="flex-1 btn-secondary">Download Report</button>
+            <div className="flex">
+              <button onClick={downloadReport} className="w-full btn-primary">Download PDF</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Docker UI removed as per requirements */}
+
+      {/* Default State */}
       {!testResults && !agentRunning && (
         <div className="card text-center py-12">
           <div className="text-6xl mb-4">🔄</div>
@@ -149,5 +196,3 @@ const E2EResults = ({
 };
 
 export default E2EResults;
-
-

@@ -15,27 +15,93 @@ const E2ETestingAgent = () => {
   const [applicationUrl, setApplicationUrl] = useState('');
   const [agentRunning, setAgentRunning] = useState(false);
 
-  // Static option data omitted for brevity in refactor
+  // New state for enhanced functionality
+  const [projectPath, setProjectPath] = useState('');
+  const [output, setOutput] = useState('');
+  const [runCommand, setRunCommand] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [dockerRunning, setDockerRunning] = useState(false);
+  const [dockerOutput, setDockerOutput] = useState('');
+  const [dockerResults, setDockerResults] = useState(null);
+  const [reportUrl, setReportUrl] = useState('');
+
+  const formatSeconds = (seconds) => {
+    const total = Math.max(0, Math.round(Number(seconds || 0)));
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    return minutes ? `${minutes}m ${secs}s` : `${secs}s`;
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setUploadedFiles(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (file && file.type === 'text/csv') {
+    if (file && (file.type === 'text/csv' || file.type.includes('spreadsheet') || file.type.includes('excel'))) {
       setUploadedFiles(file);
     } else {
-      alert('Please upload a valid CSV file');
+      alert('Please upload a valid CSV, XLSX, or XLS file');
     }
   };
 
   const setupPlaywright = () => {
+    if (!projectPath) return alert("Enter folder path");
+    setTestResults(null);
     setPlaywrightSetup(true);
-    // Simulate setup process
-    setTimeout(() => {
+
+    const evtSource = new EventSource(
+      `http://localhost:8080/setup_playwright_project?path=${encodeURIComponent(projectPath)}`
+    );
+
+    const logs = [];
+    
+    evtSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      logs.push(data);
+      setTestResults({
+        status: 'running',
+        logs: [...logs]
+      });
+      
+      if (data.message.includes("🎉")) {
+        evtSource.close();
+        setPlaywrightSetup(false);
+        setTestResults({
+          status: 'completed',
+          logs: [...logs]
+        });
+      }
+    };
+
+    evtSource.onerror = () => {
+      evtSource.close();
       setPlaywrightSetup(false);
-      alert('Playwright setup completed successfully!');
-    }, 3000);
+      setTestResults({
+        status: 'error',
+        logs: [...logs, { type: 'error', message: 'Setup failed. Please check your path and try again.' }]
+      });
+    };
   };
 
-  const generateTestScript = () => {
+  const generateTestScript = async () => {
     if (!uploadedFiles || !applicationUrl) {
       alert('Please upload CSV file and provide application URL');
       return;
@@ -43,45 +109,196 @@ const E2ETestingAgent = () => {
     
     if (selectedFlow === 'agent') {
       setAgentRunning(true);
-      // Simulate agent processing
-      setTimeout(() => {
-        setAgentRunning(false);
+    }
+    setLoading(true);
+    setOutput('');
+    setRunCommand('');
+
+    try {
+      const formData = new FormData();
+      // Create a stable copy to avoid net::ERR_UPLOAD_FILE_CHANGED if the original handle changes
+      const arrayBuffer = await uploadedFiles.arrayBuffer();
+      const stableFile = new File([arrayBuffer], uploadedFiles.name, { type: uploadedFiles.type || 'application/octet-stream' });
+      formData.append("file", stableFile);
+      formData.append("project_url", applicationUrl);
+
+      const res = await fetch("http://localhost:8080/parse_input", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      const script = data.script || "";
+      setOutput(script);
+
+      const cmd = `pytest --headed --browser chromium`;
+      setRunCommand(cmd);
+
+      // Only show results card after generation for manual flow.
+      // For agent flow, results should appear only after Docker execution finishes.
+      if (selectedFlow === 'manual') {
+        const tc = data.test_cases || data.testcases || data.testCases;
+        const testCaseCount =
+          (typeof tc === 'number' && !Number.isNaN(tc)) ? Number(tc) :
+          (Array.isArray(tc) ? tc.length : (
+            (tc && typeof tc === 'object') ? Object.keys(tc).length : 0
+          ));
         setTestResults({
           status: 'completed',
           scriptGenerated: true,
-          reportGenerated: true
+          testCaseCount
         });
-      }, 5000);
-    } else {
+      }
+
+    } catch (err) {
+      setOutput("Error: " + err.message);
       setTestResults({
-        status: 'completed',
-        scriptGenerated: true
+        status: 'error',
+        error: err.message
       });
+    } finally {
+      setLoading(false);
+      if (selectedFlow === 'agent') {
+        setAgentRunning(false);
+      }
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([output], { type: "text/python" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "test_script.py";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(runCommand);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  const handleRunWithDocker = async () => {
+    if (!output) {
+      alert("Please generate a test script first");
+      return;
+    }
+
+    setDockerRunning(true);
+    setDockerOutput("");
+    setDockerResults(null);
+
+    try {
+      const response = await fetch("http://localhost:8080/run_docker_tests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          test_script: output,
+          project_url: applicationUrl
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullOutput = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              fullOutput += data.message + "\n";
+              setDockerOutput(fullOutput);
+              
+              if (data.type === 'result') {
+                const result = data.result || {};
+                setDockerResults(result);
+                setReportUrl(result.reportUrl || '');
+                // Map to unified testResults used by AI Agent Results UI
+                const durationSec = Number(
+                  (result && (result.durationSec)) ||
+                  ((result && result.completedAt && result.startedAt) ? (result.completedAt - result.startedAt) : 0)
+                );
+                const executionTimeStr = (durationSec && durationSec > 0)
+                  ? formatSeconds(durationSec)
+                  : (result.executionTime || '');
+                setTestResults({
+                  status: 'completed',
+                  passed: Number(result.passed || 0),
+                  failed: Number(result.failed || 0),
+                  total: Number(result.total || (Number(result.passed || 0) + Number(result.failed || 0))),
+                  executionTime: executionTimeStr,
+                  screenshots: Array.isArray(result.screenshots) ? result.screenshots.length : Number(result.screenshots || 0) || 0,
+                  reportUrl: result.reportUrl || '',
+                  summaryUrl: result.summaryUrl || '',
+                  pdfUrl: result.pdfUrl || ''
+                });
+              }
+            } catch (e) {
+              fullOutput += line + "\n";
+              setDockerOutput(fullOutput);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setDockerOutput("Error running Docker tests: " + err.message);
+      console.error(err);
+    } finally {
+      setDockerRunning(false);
     }
   };
 
   const downloadScript = () => {
-    // Simulate file download
-    const element = document.createElement('a');
-    const file = new Blob(['# Generated Playwright Test Script\nimport pytest\nfrom playwright.sync_api import sync_playwright\n\n# Your test case implementation here'], 
-      { type: 'text/python' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'test_script.py';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    if (!output) {
+      alert('No script generated yet');
+      return;
+    }
+    handleDownload();
   };
 
-  const downloadReport = () => {
-    // Simulate report download
-    const element = document.createElement('a');
-    const file = new Blob(['# Test Execution Report\n## Summary\n- Total Tests: 10\n- Passed: 8\n- Failed: 2\n- Duration: 45s'], 
-      { type: 'text/markdown' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'test_report.md';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  const downloadReport = async () => {
+    if (!testResults || !(testResults.pdfUrl || testResults.reportUrl)) {
+      alert('Report not available yet');
+      return;
+    }
+    // If backend gives a direct pdfUrl, use it. Otherwise fetch HTML and convert to PDF client-side.
+    if (testResults.pdfUrl) {
+      window.open(testResults.pdfUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    try {
+      const res = await fetch(testResults.reportUrl, { credentials: 'omit' });
+      const html = await res.text();
+      // Lazy-load html2pdf.js from CDN and convert
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
+        s.onload = resolve; s.onerror = reject; document.body.appendChild(s);
+      });
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      const opt = { margin: 10, filename: 'test-report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      // eslint-disable-next-line no-undef
+      window.html2pdf().from(container).set(opt).save();
+    } catch (e) {
+      window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const runE2ETest = () => {
@@ -159,17 +376,21 @@ const E2ETestingAgent = () => {
             playwrightSetup={playwrightSetup}
             generateTestScript={generateTestScript}
             agentRunning={agentRunning}
+            projectPath={projectPath}
+            setProjectPath={setProjectPath}
+            handleDrag={handleDrag}
+            handleDrop={handleDrop}
+            dragActive={dragActive}
+            loading={loading}
+            output={output}
+            runCommand={runCommand}
+            handleDownload={handleDownload}
+            copyToClipboard={copyToClipboard}
+            copySuccess={copySuccess}
+            handleRunWithDocker={handleRunWithDocker}
+            dockerRunning={dockerRunning}
           />
-          <div className="card">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Agent Capabilities</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start"><span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span><span className="text-gray-600 dark:text-gray-300">Multi-browser testing</span></li>
-              <li className="flex items-start"><span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span><span className="text-gray-600 dark:text-gray-300">Cross-device compatibility</span></li>
-              <li className="flex items-start"><span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span><span className="text-gray-600 dark:text-gray-300">API integration testing</span></li>
-              <li className="flex items-start"><span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span><span className="text-gray-600 dark:text-gray-300">Database validation</span></li>
-              <li className="flex items-start"><span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span><span className="text-gray-600 dark:text-gray-300">Screenshot capture</span></li>
-            </ul>
-          </div>
+          
         </div>
         <E2EResults
           selectedFlow={selectedFlow}
