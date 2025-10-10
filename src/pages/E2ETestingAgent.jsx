@@ -271,34 +271,12 @@ const E2ETestingAgent = () => {
     handleDownload();
   };
 
-  const downloadReport = async () => {
-    if (!testResults || !(testResults.pdfUrl || testResults.reportUrl)) {
+  const downloadReport = () => {
+    if (!testResults || !testResults.reportUrl) {
       alert('Report not available yet');
       return;
     }
-    // If backend gives a direct pdfUrl, use it. Otherwise fetch HTML and convert to PDF client-side.
-    if (testResults.pdfUrl) {
-      window.open(testResults.pdfUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    try {
-      const res = await fetch(testResults.reportUrl, { credentials: 'omit' });
-      const html = await res.text();
-      // Lazy-load html2pdf.js from CDN and convert
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
-        s.onload = resolve; s.onerror = reject; document.body.appendChild(s);
-      });
-      const container = document.createElement('div');
-      container.innerHTML = html;
-      const opt = { margin: 10, filename: 'test-report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-      // eslint-disable-next-line no-undef
-      window.html2pdf().from(container).set(opt).save();
-    } catch (e) {
-      window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
-    }
+    window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
   };
 
   const runE2ETest = () => {
