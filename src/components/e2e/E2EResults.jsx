@@ -171,7 +171,7 @@ const E2EResults = ({
               </div>
             </div>
             <div className="flex">
-              <button onClick={downloadReport} className="w-full btn-primary">Download PDF</button>
+              <button onClick={downloadReport} className="w-full btn-primary">View Report</button>
             </div>
           </div>
         </div>
