@@ -27,24 +27,30 @@ function TestCaseGenerator() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-50">
+      {/* <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Test Case Generator Pro
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-300">
-              AI-Poweprimary Testing Intelligence
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              AI-Powered Testing Intelligence
             </p>
           </div>
-          {/* <button
-            onClick={toggleTheme}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 transition-colors duration-300"
-          >
-            {isDark ? 'Light Mode' : 'Dark Mode'}
-          </button> */}
         </div>
-      </header>
+      </header> */}
+
+      <div className="text-center">
+      <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+        📝
+      </div>
+      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        Test Case Generator
+      </h1>
+      <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+        Automatically generates detailed test cases from FRDs, user stories, and acceptance criteria.
+      </p>
+    </div>
       <main className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Document Upload */}
         <DocumentUpload

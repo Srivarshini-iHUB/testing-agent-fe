@@ -25,13 +25,13 @@ const ResultsDashboard = ({ result }) => {
       
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="rounded-2xl p-6 border-2 border-blue-500/40 dark:border-blue-400/40 bg-transparent">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium mb-1">Total Features</p>
-              <p className="text-4xl font-bold">{stats.features}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Features</p>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.features}</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 border-blue-500/40 dark:border-blue-400/40 text-blue-600 dark:text-blue-400">
               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
               </svg>
@@ -39,13 +39,13 @@ const ResultsDashboard = ({ result }) => {
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="rounded-2xl p-6 border-2 border-purple-500/40 dark:border-purple-400/40 bg-transparent">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium mb-1">User Stories</p>
-              <p className="text-4xl font-bold">{stats.stories}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">User Stories</p>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.stories}</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 border-purple-500/40 dark:border-purple-400/40 text-purple-600 dark:text-purple-400">
               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
               </svg>
@@ -53,27 +53,27 @@ const ResultsDashboard = ({ result }) => {
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="rounded-2xl p-6 border-2 border-pink-500/40 dark:border-pink-400/40 bg-transparent">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-pink-100 text-sm font-medium mb-1">Features Mapped</p>
-              <p className="text-4xl font-bold">{stats.mapped}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Features Mapped</p>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.mapped}</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 border-pink-500/40 dark:border-pink-400/40 text-pink-600 dark:text-pink-400">
               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 002 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clipRule="evenodd" />
               </svg>
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="rounded-2xl p-6 border-2 border-green-500/40 dark:border-green-400/40 bg-transparent">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium mb-1">Test Cases</p>
-              <p className="text-4xl font-bold">{stats.testCases}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Test Cases</p>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.testCases}</p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 border-green-500/40 dark:border-green-400/40 text-green-600 dark:text-green-400">
               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
