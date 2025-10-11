@@ -13,7 +13,7 @@ const TestCaseModal = ({ testCase, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-8 py-6 z-10">
+        <div className="sticky top-0 bg-primary-600 px-8 py-6 z-10">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
@@ -87,7 +87,7 @@ const TestCaseModal = ({ testCase, onClose }) => {
               <div className="space-y-3">
                 {testCase.test_steps.split('\n').filter(step => step.trim()).map((step, idx) => (
                   <div key={idx} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <div className="flex-shrink-0 w-7 h-7 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                       {idx + 1}
                     </div>
                     <p className="flex-1 text-gray-800 pt-1">{step.replace(/^\d+\.\s*/, '')}</p>
@@ -149,7 +149,7 @@ const TestCaseModal = ({ testCase, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-colors"
+            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-colors"
           >
             Close
           </button>

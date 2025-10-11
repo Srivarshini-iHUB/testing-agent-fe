@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import VisualHeader from '../components/visual/VisualHeader';
 import VisualConfigPanel from '../components/visual/VisualConfigPanel';
 import VisualFeatures from '../components/visual/VisualFeatures';
-import VisualResults from '../components/visual/VisualResults';
+import VisualRegressionResults from '../components/visual/VisualResults';
 import axios from 'axios';
 
 const VisualTestingAgent = () => {
@@ -18,8 +18,9 @@ const VisualTestingAgent = () => {
   const [developedPreview, setDevelopedPreview] = useState(null);
   const [isDraggingActual, setIsDraggingActual] = useState(false);
   const [isDraggingDeveloped, setIsDraggingDeveloped] = useState(false);
-  const [apiUrl, setApiUrl] = useState('http://localhost:8000');
+  const [apiUrl, setApiUrl] = useState('http://localhost:8080');
   const [error, setError] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
 
   const actualInputRef = useRef(null);
   const developedInputRef = useRef(null);
@@ -53,9 +54,11 @@ const VisualTestingAgent = () => {
       setError('Please upload both baseline and current images.');
       return;
     }
+    
     setIsProcessing(true);
     setTestResults({ status: 'running', progress: 0, currentStep: 'Initializing' });
     setError(null);
+    setApiResponse(null);
 
     try {
       const formData = new FormData();
@@ -66,11 +69,14 @@ const VisualTestingAgent = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setTestResults({ status: 'running', progress: 60, currentStep: 'Analyzing Differences' });
 
-      const response = await axios.post(`${apiUrl}/api/visual-testing`, formData, {
+      const response = await axios.post(`${apiUrl}/visual-testing`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       console.log('API Response:', response.data);
+
+      // Store the full API response
+      setApiResponse(response.data);
 
       setTestResults({
         status: 'completed',
@@ -85,6 +91,7 @@ const VisualTestingAgent = () => {
       console.error('API Error:', error.response?.data || error.message);
       setError('Failed to process images: ' + (error.response?.data?.detail || error.message));
       setTestResults(null);
+      setApiResponse(null);
     } finally {
       setIsProcessing(false);
     }
@@ -93,7 +100,7 @@ const VisualTestingAgent = () => {
   return (
     <div className="space-y-8">
       <VisualHeader />
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-1 gap-8">
         <div className="space-y-6">
           <VisualConfigPanel
             actualPreview={actualPreview}
@@ -115,13 +122,20 @@ const VisualTestingAgent = () => {
           />
           <VisualFeatures />
         </div>
-        <VisualResults 
+        {/* <VisualResults
           testResults={testResults} 
           actualInputRef={actualInputRef} 
           developedInputRef={developedInputRef}
           apiUrl={apiUrl}
-        />
+        /> */}
       </div>
+      
+      {/* Full Results Section - Shows after processing completes */}
+      {apiResponse && testResults?.status === 'completed' && (
+        <div className="mt-8">
+          <VisualRegressionResults resultData={apiResponse} />
+        </div>
+      )}
     </div>
   );
 };
