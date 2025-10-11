@@ -7,6 +7,14 @@ const E2EResults = ({
   downloadScript,
   downloadReport
 }) => {
+  const handleViewReport = () => {
+    if (testResults && testResults.reportUrl) {
+      const reportUrl = testResults.reportUrl;
+      // Open in new window with the report viewer
+      window.open(`/pytest-report?url=${encodeURIComponent(reportUrl)}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Setup Logs */}
@@ -170,8 +178,10 @@ const E2EResults = ({
                 <span className="font-semibold text-gray-900 dark:text-white">{testResults.executionTime || '-'}</span>
               </div>
             </div>
-            <div className="flex">
-              <button onClick={downloadReport} className="w-full btn-primary">View Report</button>
+            <div className="flex gap-2">
+              <button onClick={handleViewReport} className="flex-1 btn-primary">
+                📊 View Report
+              </button>
             </div>
           </div>
         </div>
