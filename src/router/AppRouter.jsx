@@ -74,12 +74,12 @@ const AgentTabs = () => {
       icon: '👁️',
       description: 'Visual regression testing'
     },
-    { 
-      path: '/report-viewer', 
-      label: 'Report Viewer',
-      icon: '📄',
-      description: 'View pytest test reports'
-    },
+    // { 
+    //   path: '/report-viewer', 
+    //   label: 'Report Viewer',
+    //   icon: '📄',
+    //   description: 'View pytest test reports'
+    // },
   ];
 
   return (
@@ -147,7 +147,7 @@ const AppRouter = () => {
               <Route path="/test-case-generator" element={<TestCaseGenerator />} />
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
-              <Route path="/report-viewer" element={<ReportViewer />} />
+              {/* <Route path="/report-viewer" element={<ReportViewer />} /> */}
             </Routes>
           </Layout>
         } />
