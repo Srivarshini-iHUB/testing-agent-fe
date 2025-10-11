@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import VisualHeader from '../components/visual/VisualHeader';
 import VisualConfigPanel from '../components/visual/VisualConfigPanel';
 import VisualFeatures from '../components/visual/VisualFeatures';
-import VisualResults from '../components/visual/VisualResults';
+import VisualRegressionResults from '../components/visual/VisualResults';
+import axios from 'axios';
 
 const VisualTestingAgent = () => {
   const { theme } = useTheme();
@@ -17,6 +18,9 @@ const VisualTestingAgent = () => {
   const [developedPreview, setDevelopedPreview] = useState(null);
   const [isDraggingActual, setIsDraggingActual] = useState(false);
   const [isDraggingDeveloped, setIsDraggingDeveloped] = useState(false);
+  const [apiUrl, setApiUrl] = useState('http://localhost:8080');
+  const [error, setError] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
 
   const actualInputRef = useRef(null);
   const developedInputRef = useRef(null);
@@ -33,59 +37,58 @@ const VisualTestingAgent = () => {
     setDevelopedPreview(URL.createObjectURL(file));
   };
 
-  // Configuration options can be extended; currently not rendered directly in the page
-
-  const runVisualTest = () => {
-    if (!actualImage || !developedImage) {
-      alert('Please upload both Actual and Developed images');
+  const runVisualTest = async () => {
+    if (!actualInputRef.current?.files[0] || !developedInputRef.current?.files[0]) {
+      setError('Please upload both baseline and current images.');
       return;
     }
+    
     setIsProcessing(true);
-    setTestResults({ status: 'running', progress: 0, currentStep: 'Analyzing differences...', duration: '0s' });
+    setTestResults({ status: 'running', progress: 0, currentStep: 'Initializing' });
+    setError(null);
+    setApiResponse(null);
 
-    const startedAt = Date.now();
-    const interval = setInterval(() => {
-      setTestResults(prev => {
-        const newProgress = Math.min((prev.progress || 0) + 25, 100);
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          const durationSec = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-          setIsProcessing(false);
-          return {
-            status: 'completed',
-            progress: 100,
-            currentStep: 'Visual comparison completed',
-            duration: `${durationSec}s`,
-            results: {
-              totalComparisons: 1,
-              passed: 0,
-              failed: 1,
-              diffPercent: '6.4%',
-              actualSrc: actualPreview || URL.createObjectURL(actualImage),
-              developedSrc: developedPreview || URL.createObjectURL(developedImage)
-            }
-          };
-        }
-        return { ...prev, progress: newProgress };
+    try {
+      const formData = new FormData();
+      formData.append('baseline', actualInputRef.current.files[0]);
+      formData.append('current', developedInputRef.current.files[0]);
+
+      setTestResults({ status: 'running', progress: 30, currentStep: 'Processing Images' });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setTestResults({ status: 'running', progress: 60, currentStep: 'Analyzing Differences' });
+
+      const response = await axios.post(`${apiUrl}/visual-testing`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-    }, 500);
-  };
 
-  const downloadVisualReport = () => {
-    const content = `# Visual Test Report\n\n- Status: Completed\n- Differences: ${testResults?.results?.diffPercent || 'N/A'}\n- Total Comparisons: ${testResults?.results?.totalComparisons || 1}`;
-    const element = document.createElement('a');
-    const file = new Blob([content], { type: 'text/markdown' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'visual_test_report.md';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+      console.log('API Response:', response.data);
+
+      // Store the full API response
+      setApiResponse(response.data);
+
+      setTestResults({
+        status: 'completed',
+        results: {
+          report: response.data.data.report,
+          ssim_score: response.data.data.ssim_score,
+          baseline_base64: response.data.data.baseline_base64,
+          annotated_current_base64: response.data.data.annotated_current_base64,
+        },
+      });
+    } catch (error) {
+      console.error('API Error:', error.response?.data || error.message);
+      setError('Failed to process images: ' + (error.response?.data?.detail || error.message));
+      setTestResults(null);
+      setApiResponse(null);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="space-y-8">
       <VisualHeader />
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-1 gap-8">
         <div className="space-y-6">
           <VisualConfigPanel
             actualPreview={actualPreview}
@@ -97,12 +100,30 @@ const VisualTestingAgent = () => {
             developedInputRef={developedInputRef}
             assignActual={assignActual}
             assignDeveloped={assignDeveloped}
+            setTestResults={setTestResults}
+            setIsProcessing={setIsProcessing}
+            setIsDraggingActual={setIsDraggingActual}
+            setIsDraggingDeveloped={setIsDraggingDeveloped}
             runVisualTest={runVisualTest}
+            error={error}
+            setError={setError}
           />
           <VisualFeatures />
         </div>
-        <VisualResults testResults={testResults} downloadVisualReport={downloadVisualReport} />
+        {/* <VisualResults
+          testResults={testResults} 
+          actualInputRef={actualInputRef} 
+          developedInputRef={developedInputRef}
+          apiUrl={apiUrl}
+        /> */}
       </div>
+      
+      {/* Full Results Section - Shows after processing completes */}
+      {apiResponse && testResults?.status === 'completed' && (
+        <div className="mt-8">
+          <VisualRegressionResults resultData={apiResponse} />
+        </div>
+      )}
     </div>
   );
 };
