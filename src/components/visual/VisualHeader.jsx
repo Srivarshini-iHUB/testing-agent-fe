@@ -8,7 +8,7 @@ const VisualHeader = () => {
         Visual Testing Agent
       </h1>
       <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-        Automated visual regression testing and UI consistency validation with pixel-perfect comparisons and accessibility checks.
+        Automates pixel-perfect UI validation and accessibility checks to ensure design consistency and quality.
       </p>
     </div>
   );
