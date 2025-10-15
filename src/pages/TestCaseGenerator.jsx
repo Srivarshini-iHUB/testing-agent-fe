@@ -96,16 +96,28 @@ function TestCaseGenerator() {
             {/* Download Buttons */}
             <div className="flex gap-4 justify-center mt-8">
               <button
-                onClick={() => downloadExcel(frdFiles, userStoryFiles)}
+                onClick={() => downloadExcel(result.test_cases?.test_cases || [])}
                 disabled={downloading}
-                className="px-6 py-3 bg-primary-600 dark:bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-300"
+                className="px-6 py-3 bg-primary-600 dark:bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-700 dark:hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center gap-2"
               >
-                {downloading ? 'Downloading...' : 'Download Excel'}
+                <span>📊</span>
+                {downloading ? 'Downloading...' : 'Download Excel (Simple)'}
               </button>
+              
+              {/* <button
+                onClick={() => downloadDetailedExcel(result)}
+                disabled={downloading}
+                className="px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center gap-2"
+              >
+                <span>📑</span>
+                {downloading ? 'Downloading...' : 'Download Excel (Detailed)'}
+              </button> */}
+              
               <button
                 onClick={() => downloadJSON(result.test_cases)}
-                className="px-6 py-3 bg-primary-600 dark:bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-300"
+                className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors duration-300 flex items-center gap-2"
               >
+                <span>📝</span>
                 Download JSON
               </button>
             </div>
