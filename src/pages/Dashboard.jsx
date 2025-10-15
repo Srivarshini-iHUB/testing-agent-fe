@@ -18,7 +18,6 @@ const Dashboard = () => {
         "Test Generation",
         "Code Coverage",
         "Mock Objects",
-        "Assertion Testing",
       ],
     },
     {
@@ -45,25 +44,21 @@ const Dashboard = () => {
       path: "/e2e-testing",
       color: "purple",
       features: [
-        "User Journey Testing",
-        "API Testing",
-        "Database Testing",
-        "Cross-Browser Testing",
+        "Functional Testing",
+        "User Journey Simulation",
+        "Chrome-Browser Testing",
       ],
     },
     {
       id: "visual-testing",
       title: "Visual Testing Agent",
       description:
-        "Automated visual regression testing and UI consistency validation.",
+        "Automated UI consistency validation.",
       icon: "👁️",
       path: "/visual-testing",
       color: "gray",
       features: [
         "Screenshot Comparison",
-        "Layout Testing",
-        "Responsive Testing",
-        "Accessibility Testing",
       ],
     },
   ];

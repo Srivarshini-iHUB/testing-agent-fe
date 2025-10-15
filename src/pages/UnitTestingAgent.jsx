@@ -31,43 +31,44 @@ const UnitTestingAgent = () => {
 
   const commits = Object.values(reports);
 
-  // Extract summary from Jest report
- const getTestSummary = (fileReport) => {
-  if (!fileReport) return null;
+  // Extract detailed test results from Jest report
+  const getTestDetails = (fileReport) => {
+    if (!fileReport) return null;
 
-  const {
-    numPassedTests,
-    numFailedTests,
-    numTotalTests,
-    numPassedTestSuites,
-    numFailedTestSuites,
-    testResults,
-  } = fileReport;
+    const {
+      numPassedTests,
+      numFailedTests,
+      numTotalTests,
+      numPassedTestSuites,
+      numFailedTestSuites,
+      testResults,
+    } = fileReport;
 
-  const failures = testResults
-    ? testResults
-        .filter((t) => t.status === "failed")
-        .map((t) => ({
-          title: t.fullName || t.title,
-          // Combine failureMessages and fallback to failureDetails
-          messages:
-            (Array.isArray(t.failureMessages) && t.failureMessages.length > 0
-              ? t.failureMessages
-              : t.failureDetails?.map(
-                  (d) => d.matcherResult?.message || ""
-                )) || ["No failure message available."],
-        }))
-    : [];
+    // Extract individual test assertions
+    const allTests = testResults
+      ? testResults.flatMap((result) =>
+          result.assertionResults.map((assertion) => ({
+            title: assertion.title,
+            fullName: assertion.fullName,
+            status: assertion.status,
+            duration: assertion.duration,
+            ancestorTitles: assertion.ancestorTitles,
+            failureMessages: assertion.failureMessages || [],
+            failureDetails: assertion.failureDetails || [],
+            numPassingAsserts: assertion.numPassingAsserts,
+          }))
+        )
+      : [];
 
-  return {
-    numPassedTests,
-    numFailedTests,
-    numTotalTests,
-    numPassedTestSuites,
-    numFailedTestSuites,
-    failures,
+    return {
+      numPassedTests,
+      numFailedTests,
+      numTotalTests,
+      numPassedTestSuites,
+      numFailedTestSuites,
+      allTests,
+    };
   };
-};
 
 
   return (
@@ -184,52 +185,148 @@ const UnitTestingAgent = () => {
                     {selectedCommit.files[selectedFile]}
                   </pre>
 
-                  {/* Jest Summary */}
+                  {/* Jest Test Results */}
                   {selectedCommit.reports[selectedFile] && (
                     <div className="mt-4">
-                      <h4 className="font-semibold text-md mb-2 text-gray-700 dark:text-gray-300">
-                        Jest Summary
+                      <h4 className="font-semibold text-lg mb-3 text-gray-900 dark:text-white">
+                        Test Results
                       </h4>
                       {(() => {
-                        const summary = getTestSummary(
+                        const testDetails = getTestDetails(
                           selectedCommit.reports[selectedFile]
                         );
-                        if (!summary) return <p>No report available.</p>;
+                        if (!testDetails) return <p>No report available.</p>;
 
                         return (
-                          <div className="space-y-2">
-                            <p>
-                              Passed Tests:{" "}
-                              <strong>{summary.numPassedTests}</strong> /{" "}
-                              {summary.numTotalTests}
-                            </p>
-                            <p>Failed Tests: {summary.numFailedTests}</p>
-                            <p>
-                              Passed Test Suites:{" "}
-                              <strong>{summary.numPassedTestSuites}</strong>
-                            </p>
-                            <p>
-                              Failed Test Suites:{" "}
-                              <strong>{summary.numFailedTestSuites}</strong>
-                            </p>
-
-                            {summary.failures.length > 0 && (
-                              console.log("hgdxsdcx",summary.failures),
-                              <div className="mt-2 p-2 border rounded bg-red-50 dark:bg-red-900">
-                                <h5 className="font-semibold text-red-700 dark:text-red-400 mb-1">
-                                  Failures
-                                </h5>
-                                {summary.failures.map((f, idx) => (
-                                  <div key={idx} className="mb-2">
-                                    <p className="font-medium">{f.title}</p>
-                               <pre className="text-sm text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
-  {f.messages.join("\n")}
-</pre>
-
-                                  </div>
-                                ))}
+                          <div className="space-y-4">
+                            {/* Summary Stats */}
+                            <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                  {testDetails.numPassedTests}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300">
+                                  Passed
+                                </div>
                               </div>
-                            )}
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                                  {testDetails.numFailedTests}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300">
+                                  Failed
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                  {testDetails.numTotalTests}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300">
+                                  Total Tests
+                                </div>
+                              </div>
+                              {/* <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                  {testDetails.numPassedTestSuites}/{testDetails.numTotalTestSuites}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300">
+                                  Test Suites
+                                </div>
+                              </div> */}
+                            </div>
+
+                            {/* Individual Test Cases */}
+                            <div className="space-y-2">
+                              <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                Test Cases ({testDetails.allTests.length})
+                              </h5>
+                              {testDetails.allTests.map((test, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`p-3 rounded-lg border ${
+                                    test.status === "passed"
+                                      ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                      : test.status === "failed"
+                                      ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                                      : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      {/* Test Title */}
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span
+                                          className={`text-lg ${
+                                            test.status === "passed"
+                                              ? "text-green-600 dark:text-green-400"
+                                              : test.status === "failed"
+                                              ? "text-red-600 dark:text-red-400"
+                                              : "text-gray-600 dark:text-gray-400"
+                                          }`}
+                                        >
+                                          {test.status === "passed"
+                                            ? "✓"
+                                            : test.status === "failed"
+                                            ? "✗"
+                                            : "○"}
+                                        </span>
+                                        <span className="font-medium text-gray-900 dark:text-white">
+                                          {test.title}
+                                        </span>
+                                      </div>
+
+                                      {/* Ancestor Titles (describe blocks) */}
+                                      {test.ancestorTitles.length > 0 && (
+                                        <div className="ml-7 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                          {test.ancestorTitles.join(" › ")}
+                                        </div>
+                                      )}
+
+                                      {/* Full Name */}
+                                      <div className="ml-7 text-sm text-gray-600 dark:text-gray-300">
+                                        {test.fullName}
+                                      </div>
+
+                                      {/* Test Details */}
+                                      <div className="ml-7 mt-2 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                        <span>
+                                          Duration: <strong>{test.duration}ms</strong>
+                                        </span>
+                                        {test.numPassingAsserts > 0 && (
+                                          <span>
+                                            Assertions:{" "}
+                                            <strong>{test.numPassingAsserts}</strong>
+                                          </span>
+                                        )}
+                                        <span
+                                          className={`font-semibold uppercase ${
+                                            test.status === "passed"
+                                              ? "text-green-600 dark:text-green-400"
+                                              : test.status === "failed"
+                                              ? "text-red-600 dark:text-red-400"
+                                              : "text-gray-600 dark:text-gray-400"
+                                          }`}
+                                        >
+                                          {test.status}
+                                        </span>
+                                      </div>
+
+                                      {/* Failure Messages */}
+                                      {/* {test.failureMessages.length > 0 && (
+                                        <div className="ml-7 mt-3 p-2 bg-red-100 dark:bg-red-900/40 rounded border border-red-300 dark:border-red-700">
+                                          <div className="font-semibold text-sm text-red-800 dark:text-red-300 mb-1">
+                                            Error Details:
+                                          </div>
+                                          <pre className="text-xs text-red-700 dark:text-red-200 overflow-x-auto whitespace-pre-wrap font-mono">
+                                            {test.failureMessages.join("\n\n")}
+                                          </pre>
+                                        </div>
+                                      )} */}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         );
                       })()}

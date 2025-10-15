@@ -108,7 +108,7 @@ const VisualTestingAgent = () => {
             error={error}
             setError={setError}
           />
-          <VisualFeatures />
+          {/* <VisualFeatures /> */}
         </div>
         {/* <VisualResults
           testResults={testResults} 
