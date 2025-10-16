@@ -44,7 +44,7 @@ const VisualConfigPanel = ({
         setTestResults({ status: 'running', progress: 60, currentStep: 'Analyzing Differences' });
       }
 
-      const response = await axios.post('http://localhost:8000/api/visual-testing', formData, {
+      const response = await axios.post('http://localhost:8000/visual-testing', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

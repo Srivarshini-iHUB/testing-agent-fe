@@ -66,18 +66,31 @@ const Dashboard = () => {
         "Accessibility Testing",
       ],
     },
+    {
+      id: "integration-testing",
+      title: "Integration Testing Agent",
+      description:
+        "Automated testing for API integrations, database connections, and external services.",
+      icon: "🔗",
+      path: "/integration-testing",
+      color: "orange",
+      features: [
+        "API Contract Testing",
+        "Database Integration",
+        "Service Mocking",
+        "Postman Collection Export",
+      ],
+    },
   ];
 
   const getColorClasses = (color) => {
- const colorMap = {
-  blue: "from-[#77BEF0] to-[#77BEF0]",
-  gray: "from-[#F7CAC9] to-[#F7CAC9]",
-  green: "from-[#BBD8A3] to-[#BBD8A3]",
-  purple: "from-[#A7AAE1] to-[#A7AAE1]",
-};
-
-
-
+    const colorMap = {
+      blue: "from-[#77BEF0] to-[#77BEF0]",
+      gray: "from-[#F7CAC9] to-[#F7CAC9]",
+      green: "from-[#BBD8A3] to-[#BBD8A3]",
+      purple: "from-[#A7AAE1] to-[#A7AAE1]",
+      orange: "from-[#FFB366] to-[#FF6B6B]",
+    };
 
     return colorMap[color] || colorMap.blue;
   };

@@ -5,6 +5,7 @@ import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
+import IntegrationTestingAgent from '../pages/Integration_agent';
 import PytestReportPage from '../pages/PytestReportPage';
 import ReportViewer from '../pages/ReportViewer';
 
@@ -73,6 +74,12 @@ const AgentTabs = () => {
       label: 'Visual Testing Agent',
       icon: '👁️',
       description: 'Visual regression testing'
+    },
+    { 
+      path: '/integration-testing', 
+      label: 'Integration Testing Agent',
+      icon: '🔗',
+      description: 'API and service integration testing'
     },
     // { 
     //   path: '/report-viewer', 
@@ -147,6 +154,7 @@ const AppRouter = () => {
               <Route path="/test-case-generator" element={<TestCaseGenerator />} />
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
+              <Route path="/integration-testing" element={<IntegrationTestingAgent />} />
               {/* <Route path="/report-viewer" element={<ReportViewer />} /> */}
             </Routes>
           </Layout>
@@ -157,5 +165,3 @@ const AppRouter = () => {
 };
 
 export default AppRouter;
-
-
