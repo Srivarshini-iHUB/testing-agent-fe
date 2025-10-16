@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { testReportsApi } from "../api/testReportsApi";
+import GithubConnect from "../components/GithubConnect";
+import GitRepoBranchPicker from "../components/GithubRepoSelector";
+import GithubRepoSelector from "../components/GithubRepoSelector";
+
 
 const UnitTestingAgent = () => {
   const { theme } = useTheme();
@@ -25,8 +29,18 @@ const UnitTestingAgent = () => {
 
     fetchReports();
     // Optional: refresh periodically
-    const interval = setInterval(fetchReports, 20000);
+    // const interval = setInterval(fetchReports, 20000);
     // return () => clearInterval(interval);
+     const params = new URLSearchParams(window.location.search);
+  const username = params.get("username");
+  const token = params.get("access_token");
+
+  if (username && token) {
+    localStorage.setItem("github_user", username);
+    localStorage.setItem("github_token", token);
+    // remove params from URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
   }, []);
 
   const commits = Object.values(reports);
@@ -85,6 +99,12 @@ const UnitTestingAgent = () => {
           Automatically generates Jest tests and displays real-time HTML reports.
         </p>
       </div>
+      <div className="flex justify-end mb-4">
+<div className="space-y-6">
+      <GithubConnect />
+      <GitRepoBranchPicker />
+    </div>
+</div>
 
       {/* Commits List */}
       <div className="card">
