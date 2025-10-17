@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const E2EConfigPanel = ({
   selectedFlow,
   setSelectedFlow,
@@ -30,10 +32,18 @@ const E2EConfigPanel = ({
   appsScriptCode,
   setupInstructions
 }) => {
+  const [scriptCopied, setScriptCopied] = useState(false);
+
   const flows = [
     { id: 'manual', name: 'Manual Setup', icon: 'fa-hand-pointer', description: 'Playwright configuration and CSV upload' },
     { id: 'agent', name: 'AI Agent', icon: 'fa-robot', description: 'Automated test generation and execution' }
   ];
+
+  const handleCopyScript = () => {
+    navigator.clipboard.writeText(appsScriptCode);
+    setScriptCopied(true);
+    setTimeout(() => setScriptCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
@@ -419,73 +429,82 @@ const E2EConfigPanel = ({
 
       {/* Bug Sheet and Apps Script Section */}
       {bugSheetUrl && (
-        <div className="space-y-4">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Bug Sheet & Apps Script Setup
-            </h3>
-            <div className="space-y-4">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+            <i className="fas fa-table text-emerald-600 dark:text-emerald-400"></i>
+            Bug Sheet & Apps Script Setup
+          </h3>
+          
+          <div className="space-y-5">
+            {/* Bug Sheet URL */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Bug Sheet URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bugSheetUrl}
+                  readOnly
+                  className="flex-1 bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
+                />
+                <button
+                  onClick={() => window.open(bugSheetUrl, '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg transition-all font-semibold whitespace-nowrap"
+                >
+                  <i className="fas fa-external-link-alt"></i>
+                  Open Sheet
+                </button>
+              </div>
+            </div>
+
+            {/* Apps Script Code */}
+            {appsScriptCode && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Bug Sheet URL
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Apps Script Code
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={bugSheetUrl}
-                    readOnly
-                    className="flex-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
-                  />
+                <div className="relative">
+                  <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 border border-gray-700 custom-scrollbar">
+                    {appsScriptCode}
+                  </pre>
                   <button
-                    onClick={() => window.open(bugSheetUrl, '_blank', 'noopener,noreferrer')}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg transition-all font-medium"
+                    onClick={handleCopyScript}
+                    className={`absolute top-2 right-2 flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-semibold ${
+                      scriptCopied
+                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    } text-white`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Open Bug Sheet
+                    {scriptCopied ? (
+                      <>
+                        <i className="fas fa-check"></i>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-copy"></i>
+                        Copy Code
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
+            )}
 
-              {appsScriptCode && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Apps Script Code
-                  </label>
-                  <div className="relative">
-                    <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 border border-gray-700">
-                      {appsScriptCode}
-                    </pre>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(appsScriptCode);
-                        // You could add a success state here if needed
-                      }}
-                      className="absolute top-2 right-2 flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-all text-sm"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy Code
-                    </button>
-                  </div>
+            {/* Setup Instructions */}
+            {setupInstructions && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Setup Instructions
+                </label>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-5">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {setupInstructions}
+                  </pre>
                 </div>
-              )}
-
-              {setupInstructions && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Setup Instructions
-                  </label>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
-                      {setupInstructions}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

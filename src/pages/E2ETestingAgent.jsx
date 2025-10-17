@@ -28,6 +28,8 @@ const E2ETestingAgent = () => {
   const [dockerOutput, setDockerOutput] = useState('');
   const [dockerResults, setDockerResults] = useState(null);
   const [reportUrl, setReportUrl] = useState('');
+  
+  // New bug sheet integration state
   const [testCases, setTestCases] = useState([]);
   const [reportId, setReportId] = useState('');
   const [bugSheetUrl, setBugSheetUrl] = useState('');
@@ -242,7 +244,6 @@ const E2ETestingAgent = () => {
                 setAppsScriptCode(result.appsScriptCode || '');
                 setSetupInstructions(result.setupInstructions || '');
                 
-                // Map to unified testResults used by AI Agent Results UI
                 const durationSec = Number(
                   (result && (result.durationSec)) ||
                   ((result && result.completedAt && result.startedAt) ? (result.completedAt - result.startedAt) : 0)
@@ -296,63 +297,6 @@ const E2ETestingAgent = () => {
     window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const runE2ETest = () => {
-    if (!testScenario.trim()) return;
-    
-    setTestResults({
-      status: 'running',
-      progress: 0,
-      totalSteps: 8,
-      completedSteps: 0,
-      currentStep: 'Initializing browser...',
-      duration: '0s'
-    });
-
-    const interval = setInterval(() => {
-      setTestResults(prev => {
-        const newProgress = prev.progress + 12.5;
-        const newCompletedSteps = Math.floor(newProgress / 12.5);
-        
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          return {
-            ...prev,
-            status: 'completed',
-            progress: 100,
-            completedSteps: prev.totalSteps,
-            currentStep: 'Test completed successfully',
-            duration: '45s',
-            results: {
-              passed: 7,
-              failed: 1,
-              skipped: 0,
-              screenshots: 8
-            }
-          };
-        }
-
-        const steps = [
-          'Initializing browser...',
-          'Loading application...',
-          'Navigating to login page...',
-          'Entering credentials...',
-          'Submitting login form...',
-          'Verifying dashboard access...',
-          'Testing navigation menu...',
-          'Performing logout...'
-        ];
-
-        return {
-          ...prev,
-          progress: newProgress,
-          completedSteps: newCompletedSteps,
-          currentStep: steps[newCompletedSteps] || prev.currentStep,
-          duration: `${Math.floor(newProgress * 0.45)}s`
-        };
-      });
-    }, 500);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
@@ -396,6 +340,13 @@ const E2ETestingAgent = () => {
               copySuccess={copySuccess}
               handleRunWithDocker={handleRunWithDocker}
               dockerRunning={dockerRunning}
+              testCases={testCases}
+              setTestCases={setTestCases}
+              reportId={reportId}
+              setReportId={setReportId}
+              bugSheetUrl={bugSheetUrl}
+              appsScriptCode={appsScriptCode}
+              setupInstructions={setupInstructions}
             />
           </div>
 
