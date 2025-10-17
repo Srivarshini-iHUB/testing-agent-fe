@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Play, StopCircle, Settings, FileText, AlertCircle, TrendingUp, Zap, Activity } from 'lucide-react';
+import { Play, StopCircle, Settings, FileText, AlertCircle, TrendingUp, Zap, Activity, Download, BarChart3 } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const PerformanceTesting = () => {
   const [config, setConfig] = useState({
@@ -20,6 +21,7 @@ const PerformanceTesting = () => {
 
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState(null);
+  const [rawData, setRawData] = useState(null);
   const [error, setError] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
@@ -34,16 +36,16 @@ const PerformanceTesting = () => {
     setIsRunning(true);
     setError(null);
     setResults(null);
+    setRawData(null);
     setCurrentStep('Initializing test...');
     setProgress(10);
 
     try {
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
-      const response = await fetch('http://localhost:8000/api/performance/test', {
+      const response = await fetch('http://localhost:8080/api/performance/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,6 +62,15 @@ const PerformanceTesting = () => {
 
       const data = await response.json();
       setResults(data);
+      
+      // Extract raw data from JSON in report
+      if (data.report) {
+        const jsonMatch = data.report.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+          setRawData(JSON.parse(jsonMatch[1]));
+        }
+      }
+      
       setCurrentStep('Test completed!');
     } catch (err) {
       setError(err.message || 'Failed to run performance test');
@@ -75,6 +86,102 @@ const PerformanceTesting = () => {
     setCurrentStep('Test stopped by user');
     setProgress(0);
   };
+
+  const downloadMarkdown = () => {
+    if (!results || !results.report) return;
+    
+    const blob = new Blob([results.report], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `performance-test-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const getChartData = () => {
+    if (!rawData) return null;
+
+    const latencyData = [];
+    const requestData = [];
+    const statusData = [];
+    const throughputData = [];
+
+    // Build latency data from response
+    if (rawData.latency) {
+      const percentiles = ['p50', 'p75', 'p90', 'p97_5', 'p99'];
+      const labels = ['P50', 'P75', 'P90', 'P95', 'P99'];
+      
+      percentiles.forEach((p, i) => {
+        if (rawData.latency[p] !== undefined) {
+          latencyData.push({
+            name: labels[i],
+            value: rawData.latency[p]
+          });
+        }
+      });
+    }
+
+    // Build request data from response
+    if (rawData.requests) {
+      const percentiles = ['p1', 'p10', 'p50', 'p75', 'p90', 'p99'];
+      
+      percentiles.forEach((p) => {
+        if (rawData.requests[p] !== undefined) {
+          requestData.push({
+            name: p.toUpperCase(),
+            value: rawData.requests[p]
+          });
+        }
+      });
+    }
+
+    // Build status data from response
+    const statusCodes = [
+      { key: '2xx', name: '2xx Success', color: '#10b981' },
+      { key: '4xx', name: '4xx Client Error', color: '#f59e0b' },
+      { key: '5xx', name: '5xx Server Error', color: '#ef4444' }
+    ];
+
+    statusCodes.forEach(status => {
+      if (rawData[status.key] !== undefined && rawData[status.key] > 0) {
+        statusData.push({
+          name: status.name,
+          value: rawData[status.key],
+          color: status.color
+        });
+      }
+    });
+
+    // If no errors, add success data
+    if (statusData.length === 0 && rawData['2xx']) {
+      statusData.push({
+        name: '2xx Success',
+        value: rawData['2xx'],
+        color: '#10b981'
+      });
+    }
+
+    // Build throughput data from response
+    if (rawData.throughput) {
+      const percentiles = ['p10', 'p25', 'p50', 'p75', 'p90', 'p99'];
+      
+      percentiles.forEach((p) => {
+        if (rawData.throughput[p] !== undefined) {
+          throughputData.push({
+            name: p.toUpperCase(),
+            value: parseFloat((rawData.throughput[p] / 1024).toFixed(2))
+          });
+        }
+      });
+    }
+
+    return { latencyData, requestData, statusData, throughputData };
+  };
+
+  const chartData = getChartData();
 
   const updateHeader = (key, value) => {
     setConfig(prev => ({
@@ -92,7 +199,6 @@ const PerformanceTesting = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Activity className="w-8 h-8 text-purple-400" />
@@ -101,11 +207,8 @@ const PerformanceTesting = () => {
           <p className="text-slate-300">AI-powered load and stress testing for your APIs</p>
         </div>
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Configuration Panel */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Configuration */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Settings className="w-5 h-5 text-purple-400" />
@@ -113,7 +216,6 @@ const PerformanceTesting = () => {
               </h2>
 
               <div className="space-y-4">
-                {/* URL Input */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Target URL *
@@ -128,24 +230,17 @@ const PerformanceTesting = () => {
                   />
                 </div>
 
-                {/* Method and Test Mode */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       HTTP Method
                     </label>
-                    <select
-                      value={config.method}
-                      onChange={(e) => setConfig({ ...config, method: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      disabled={isRunning}
-                    >
-                      <option value="GET">GET</option>
-                      <option value="POST">POST</option>
-                      <option value="PUT">PUT</option>
-                      <option value="PATCH">PATCH</option>
-                      <option value="DELETE">DELETE</option>
-                    </select>
+                    <input
+                      type="text"
+                      value="GET"
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-400 cursor-not-allowed"
+                      disabled
+                    />
                   </div>
 
                   <div>
@@ -164,7 +259,6 @@ const PerformanceTesting = () => {
                   </div>
                 </div>
 
-                {/* Conditional Parameters */}
                 {config.testMode === 'load' ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -263,7 +357,6 @@ const PerformanceTesting = () => {
                   </div>
                 )}
 
-                {/* Advanced Options Toggle */}
                 <button
                   onClick={() => setShowAdvanced(!showAdvanced)}
                   className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-2"
@@ -273,7 +366,6 @@ const PerformanceTesting = () => {
                   {showAdvanced ? 'Hide' : 'Show'} Advanced Options
                 </button>
 
-                {/* Advanced Options */}
                 {showAdvanced && (
                   <div className="space-y-4 pt-4 border-t border-slate-700">
                     <div>
@@ -312,92 +404,174 @@ const PerformanceTesting = () => {
                         + Add Header
                       </button>
                     </div>
-
-                    {['POST', 'PUT', 'PATCH'].includes(config.method) && (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                          Request Body (JSON)
-                        </label>
-                        <textarea
-                          value={config.body}
-                          onChange={(e) => setConfig({ ...config, body: e.target.value })}
-                          placeholder='{"key": "value"}'
-                          className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
-                          rows="4"
-                          disabled={isRunning}
-                        />
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Results Section */}
             {(results || error) && (
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
-                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-purple-400" />
-                  Test Results
-                </h2>
-
+              <div className="space-y-6">
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 text-red-400">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Error</p>
-                        <p className="text-sm">{error}</p>
+                  <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                    <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 text-red-400">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold">Error</p>
+                          <p className="text-sm">{error}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {results && (
-                  <div className="space-y-4">
-                    {results.report ? (
-                      <div className="prose prose-invert max-w-none">
-                        <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm">
-                          {results.report}
-                        </pre>
+                  <>
+                    <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-purple-400" />
+                          Test Results Summary
+                        </h2>
+                        {results.report && (
+                          <button
+                            onClick={downloadMarkdown}
+                            className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 flex items-center gap-2 transition-all"
+                          >
+                            <Download className="w-4 h-4" />
+                            Download Report
+                          </button>
+                        )}
                       </div>
-                    ) : (
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-900/50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-purple-500/30">
                           <p className="text-slate-400 text-sm">Avg Latency</p>
                           <p className="text-2xl font-bold text-white">
-                            {results.avgLatency || 'N/A'} ms
+                            {results.avgLatency || 'N/A'}<span className="text-sm text-slate-400 ml-1">ms</span>
                           </p>
                         </div>
-                        <div className="bg-slate-900/50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-4 rounded-lg border border-blue-500/30">
                           <p className="text-slate-400 text-sm">Req/Sec</p>
                           <p className="text-2xl font-bold text-white">
                             {results.requestsPerSec || 'N/A'}
                           </p>
                         </div>
-                        <div className="bg-slate-900/50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
                           <p className="text-slate-400 text-sm">Success Rate</p>
                           <p className="text-2xl font-bold text-green-400">
                             {results.successRate || 'N/A'}%
                           </p>
                         </div>
-                        <div className="bg-slate-900/50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-lg border border-orange-500/30">
                           <p className="text-slate-400 text-sm">Total Requests</p>
                           <p className="text-2xl font-bold text-white">
                             {results.totalRequests || 'N/A'}
                           </p>
                         </div>
                       </div>
+                    </div>
+
+                    {chartData && chartData.latencyData.length > 0 && (
+                      <>
+                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-purple-400" />
+                            Latency Distribution (Percentiles)
+                          </h3>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={chartData.latencyData}>
+                              <defs>
+                                <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
+                                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                              <XAxis dataKey="name" stroke="#94a3b8" />
+                              <YAxis stroke="#94a3b8" label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }} />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                labelStyle={{ color: '#e2e8f0' }}
+                              />
+                              <Area type="monotone" dataKey="value" stroke="#a855f7" fillOpacity={1} fill="url(#latencyGradient)" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {chartData.requestData.length > 0 && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                              <h3 className="text-lg font-semibold text-white mb-4">Requests/Second Distribution</h3>
+                              <ResponsiveContainer width="100%" height={250}>
+                                <BarChart data={chartData.requestData}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                                  <XAxis dataKey="name" stroke="#94a3b8" />
+                                  <YAxis stroke="#94a3b8" />
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#e2e8f0' }}
+                                  />
+                                  <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+
+                          {chartData.statusData.length > 0 && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                              <h3 className="text-lg font-semibold text-white mb-4">Status Code Distribution</h3>
+                              <ResponsiveContainer width="100%" height={250}>
+                                <PieChart>
+                                  <Pie
+                                    data={chartData.statusData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                  >
+                                    {chartData.statusData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </div>
+
+                        {chartData.throughputData.length > 0 && (
+                          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
+                            <h3 className="text-lg font-semibold text-white mb-4">Throughput Distribution (KB/s)</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                              <LineChart data={chartData.throughputData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                                <XAxis dataKey="name" stroke="#94a3b8" />
+                                <YAxis stroke="#94a3b8" />
+                                <Tooltip 
+                                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                  labelStyle={{ color: '#e2e8f0' }}
+                                />
+                                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             )}
           </div>
 
-          {/* Control Panel */}
           <div className="space-y-6">
-            {/* Action Buttons */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
               <h2 className="text-xl font-semibold text-white mb-4">Actions</h2>
               <div className="space-y-3">
@@ -421,7 +595,6 @@ const PerformanceTesting = () => {
                 )}
               </div>
 
-              {/* Progress Indicator */}
               {isRunning && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-sm text-slate-300">
@@ -438,7 +611,6 @@ const PerformanceTesting = () => {
               )}
             </div>
 
-            {/* Info Cards */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Zap className="w-5 h-5 text-yellow-400" />
