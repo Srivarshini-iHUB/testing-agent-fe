@@ -3,6 +3,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import Dashboard from '../pages/Dashboard';
 import Onboarding from '../pages/Onboarding';
+import SmokeTesting from '../pages/SmokeTesting';
 import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
@@ -88,6 +89,7 @@ const AppRouter = () => {
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
               <Route path="/performance-testing" element={<PerformanceTesting />} />
+              <Route path="/smoke-testing" element={<SmokeTesting />} />
             </Routes>
           </Layout>
         } />
