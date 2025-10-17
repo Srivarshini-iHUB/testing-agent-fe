@@ -5,6 +5,7 @@ import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
+import SmokeTestingAgent from '../pages/SmokeTestingAgent'; // <-- Import Smoke Testing
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -42,36 +43,12 @@ const AgentTabs = () => {
   const location = useLocation();
 
   const agents = [
-    { 
-      path: '/', 
-      label: 'Dashboard',
-      icon: '📊',
-      description: 'Overview and statistics'
-    },
-    { 
-      path: '/unit-testing', 
-      label: 'Unit Testing Agent',
-      icon: '🧪',
-      description: 'Automated unit test generation'
-    },
-    { 
-      path: '/test-case-generator', 
-      label: 'Test Case Generator',
-      icon: '📝',
-      description: 'Intelligent test case creation'
-    },
-    { 
-      path: '/e2e-testing', 
-      label: 'E2E Testing Agent',
-      icon: '🔄',
-      description: 'End-to-end workflow testing'
-    },
-    { 
-      path: '/visual-testing', 
-      label: 'Visual Testing Agent',
-      icon: '👁️',
-      description: 'Visual regression testing'
-    },
+    { path: '/', label: 'Dashboard', icon: '📊', description: 'Overview and statistics' },
+    { path: '/unit-testing', label: 'Unit Testing Agent', icon: '🧪', description: 'Automated unit test generation' },
+    { path: '/test-case-generator', label: 'Test Case Generator', icon: '📝', description: 'Intelligent test case creation' },
+    { path: '/e2e-testing', label: 'E2E Testing Agent', icon: '🔄', description: 'End-to-end workflow testing' },
+    { path: '/visual-testing', label: 'Visual Testing Agent', icon: '👁️', description: 'Visual regression testing' },
+    { path: '/smoke-testing', label: 'Smoke Testing Agent', icon: '🔥', description: 'Quick stability validation' }, // <-- Added Smoke Testing
   ];
 
   return (
@@ -133,6 +110,7 @@ const AppRouter = () => {
           <Route path="/test-case-generator" element={<TestCaseGenerator />} />
           <Route path="/e2e-testing" element={<E2ETestingAgent />} />
           <Route path="/visual-testing" element={<VisualTestingAgent />} />
+          <Route path="/smoke-testing" element={<SmokeTestingAgent />} /> {/* <-- Added Route */}
         </Routes>
       </Layout>
     </Router>

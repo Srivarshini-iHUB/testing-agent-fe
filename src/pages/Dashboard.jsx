@@ -39,6 +39,21 @@ const Dashboard = () => {
       path: '/visual-testing',
       color: 'orange',
       features: ['Screenshot Comparison', 'Layout Testing', 'Responsive Testing', 'Accessibility Testing']
+    },
+    {
+      id: 'smoke-testing',
+      title: 'Smoke Testing Agent',
+      description: 'Quick validation of application stability and readiness for regression testing.',
+      icon: '🔥',
+      path: '/smoke-testing',
+      color: 'red',
+      features: [
+        'Critical File Check',
+        'Syntax Validation',
+        'UI Validation',
+        'Error Handling Verification',
+        'Build Readiness Check'
+      ]
     }
   ];
 
@@ -47,7 +62,8 @@ const Dashboard = () => {
       blue: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400',
       green: 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400',
       purple: 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400',
-      orange: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400'
+      orange: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400',
+      red: 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -65,7 +81,7 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="card text-center">
           <div className="text-3xl mb-2">🧪</div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Unit Tests</h3>
@@ -89,6 +105,12 @@ const Dashboard = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Visual Tests</h3>
           <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">324</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">Validated</p>
+        </div>
+        <div className="card text-center">
+          <div className="text-3xl mb-2">🔥</div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Smoke Tests</h3>
+          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">47</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Executed</p>
         </div>
       </div>
 
@@ -173,6 +195,19 @@ const Dashboard = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300">1 hour ago</p>
             </div>
           </div>
+
+          <div className="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mr-4">
+              <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900 dark:text-white">Smoke tests executed for new build</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">10 minutes ago</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
