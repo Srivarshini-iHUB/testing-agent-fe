@@ -1,8 +1,8 @@
 import PytestReportViewer from '../components/e2e/PytestReportViewer';
 
-const PytestReportPage = () => {
+const E2EPytestReportPage = () => {
   return <PytestReportViewer />;
 };
 
-export default PytestReportPage;
+export default E2EPytestReportPage;
 
