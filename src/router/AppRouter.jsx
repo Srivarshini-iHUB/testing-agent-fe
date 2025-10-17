@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate 
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import Dashboard from '../pages/Dashboard';
+import Onboarding from '../pages/Onboarding';
 import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
@@ -15,8 +16,9 @@ const Header = () => {
   const location = useLocation();
 
   const isDashboard = location.pathname === '/';
+  const isOnboarding = location.pathname === '/onboarding';
 
-  if (isDashboard) {
+  if (isDashboard || isOnboarding) {
     return null;
   }
 
@@ -149,13 +151,13 @@ const AgentTabs = () => {
 const Layout = ({ children }) => {
   const location = useLocation();
   const isDashboard = location.pathname === '/';
+  const isOnboarding = location.pathname === '/onboarding';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      {/* Show tabs only on non-dashboard pages */}
-      {!isDashboard && <AgentTabs />}
-      <main className={isDashboard ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+      {!isDashboard && !isOnboarding && <AgentTabs />}
+      <main className={isDashboard || isOnboarding ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
         {children}
       </main>
     </div>
@@ -174,6 +176,7 @@ const AppRouter = () => {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/unit-testing" element={<UnitTestingAgent />} />
               <Route path="/test-case-generator" element={<TestCaseGenerator />} />
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
