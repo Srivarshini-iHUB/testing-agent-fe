@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import E2EHeader from '../components/e2e/E2EHeader';
 import E2EConfigPanel from '../components/e2e/E2EConfigPanel';
 import E2EResults from '../components/e2e/E2EResults';
 
 const E2ETestingAgent = () => {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const [selectedFlow, setSelectedFlow] = useState('manual');
   const [selectedBrowser, setSelectedBrowser] = useState('chrome');
@@ -15,7 +17,7 @@ const E2ETestingAgent = () => {
   const [applicationUrl, setApplicationUrl] = useState('');
   const [agentRunning, setAgentRunning] = useState(false);
 
-  // New state for enhanced functionality
+  // Enhanced functionality state
   const [projectPath, setProjectPath] = useState('');
   const [output, setOutput] = useState('');
   const [runCommand, setRunCommand] = useState('');
@@ -121,7 +123,6 @@ const E2ETestingAgent = () => {
 
     try {
       const formData = new FormData();
-      // Create a stable copy to avoid net::ERR_UPLOAD_FILE_CHANGED if the original handle changes
       const arrayBuffer = await uploadedFiles.arrayBuffer();
       const stableFile = new File([arrayBuffer], uploadedFiles.name, { type: uploadedFiles.type || 'application/octet-stream' });
       formData.append("file", stableFile);
@@ -141,8 +142,6 @@ const E2ETestingAgent = () => {
       const cmd = `pytest --headed --browser chromium`;
       setRunCommand(cmd);
 
-      // Only show results card after generation for manual flow.
-      // For agent flow, results should appear only after Docker execution finishes.
       if (selectedFlow === 'manual') {
         const tc = data.test_cases || data.testcases || data.testCases;
         const testCaseCount =
@@ -300,7 +299,6 @@ const E2ETestingAgent = () => {
   const runE2ETest = () => {
     if (!testScenario.trim()) return;
     
-    // Simulate E2E test execution
     setTestResults({
       status: 'running',
       progress: 0,
@@ -310,7 +308,6 @@ const E2ETestingAgent = () => {
       duration: '0s'
     });
 
-    // Simulate progress
     const interval = setInterval(() => {
       setTestResults(prev => {
         const newProgress = prev.progress + 12.5;
@@ -357,53 +354,64 @@ const E2ETestingAgent = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <E2EHeader />
-      <div className="grid lg:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <E2EConfigPanel
-            selectedFlow={selectedFlow}
-            setSelectedFlow={setSelectedFlow}
-            handleFileUpload={handleFileUpload}
-            uploadedFiles={uploadedFiles}
-            applicationUrl={applicationUrl}
-            setApplicationUrl={setApplicationUrl}
-            setupPlaywright={setupPlaywright}
-            playwrightSetup={playwrightSetup}
-            generateTestScript={generateTestScript}
-            agentRunning={agentRunning}
-            projectPath={projectPath}
-            setProjectPath={setProjectPath}
-            handleDrag={handleDrag}
-            handleDrop={handleDrop}
-            dragActive={dragActive}
-            loading={loading}
-            output={output}
-            runCommand={runCommand}
-            handleDownload={handleDownload}
-            copyToClipboard={copyToClipboard}
-            copySuccess={copySuccess}
-            handleRunWithDocker={handleRunWithDocker}
-            dockerRunning={dockerRunning}
-            testCases={testCases}
-            setTestCases={setTestCases}
-            reportId={reportId}
-            setReportId={setReportId}
-            bugSheetUrl={bugSheetUrl}
-            appsScriptCode={appsScriptCode}
-            setupInstructions={setupInstructions}
-          />
-          
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/')}
+          className="mb-6 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+        >
+          <i className="fas fa-arrow-left"></i>
+          Back to Dashboard
+        </button>
+
+        {/* Header */}
+        <E2EHeader />
+        
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-6 mt-6">
+          {/* Configuration Panel - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <E2EConfigPanel
+              selectedFlow={selectedFlow}
+              setSelectedFlow={setSelectedFlow}
+              handleFileUpload={handleFileUpload}
+              uploadedFiles={uploadedFiles}
+              applicationUrl={applicationUrl}
+              setApplicationUrl={setApplicationUrl}
+              setupPlaywright={setupPlaywright}
+              playwrightSetup={playwrightSetup}
+              generateTestScript={generateTestScript}
+              agentRunning={agentRunning}
+              projectPath={projectPath}
+              setProjectPath={setProjectPath}
+              handleDrag={handleDrag}
+              handleDrop={handleDrop}
+              dragActive={dragActive}
+              loading={loading}
+              output={output}
+              runCommand={runCommand}
+              handleDownload={handleDownload}
+              copyToClipboard={copyToClipboard}
+              copySuccess={copySuccess}
+              handleRunWithDocker={handleRunWithDocker}
+              dockerRunning={dockerRunning}
+            />
+          </div>
+
+          {/* Results Panel - Takes 1 column */}
+          <div>
+            <E2EResults
+              selectedFlow={selectedFlow}
+              testResults={testResults}
+              agentRunning={agentRunning}
+              applicationUrl={applicationUrl}
+              selectedBrowser={selectedBrowser}
+              downloadScript={downloadScript}
+              downloadReport={downloadReport}
+            />
+          </div>
         </div>
-        <E2EResults
-          selectedFlow={selectedFlow}
-          testResults={testResults}
-          agentRunning={agentRunning}
-          applicationUrl={applicationUrl}
-          selectedBrowser={selectedBrowser}
-          downloadScript={downloadScript}
-          downloadReport={downloadReport}
-        />
       </div>
     </div>
   );
