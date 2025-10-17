@@ -43,6 +43,18 @@ const UnitTestingAgent = () => {
   }
   }, []);
 
+  const fetchCommitFiles = async (repo, commitSha) => {
+  const token = localStorage.getItem("github_token");
+  const res = await fetch(
+    `http://localhost:8080/auth/github/files?repo=${repo}&commit_sha=${commitSha}`,
+    {
+      headers: { Authorization: `token ${token}` },
+    }
+  );
+  const data = await res.json();
+  return data.files; // This now contains decoded JS/TS code
+};
+
   const commits = Object.values(reports);
 
   // Extract detailed test results from Jest report
@@ -133,15 +145,15 @@ const UnitTestingAgent = () => {
                   Files: {Object.keys(commit.files).length}
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedCommit(commit);
-                  setSelectedFile(null);
-                }}
-                className="btn-primary px-4 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700"
-              >
-                View Details
-              </button>
+           <button
+  onClick={async () => {
+    const files = await fetchCommitFiles(commit.repo, commit.commit);
+    setSelectedCommit({ ...commit, files, reports: commit.reports || {} });
+    setSelectedFile(null);
+  }}
+>
+  View Details
+</button>
             </li>
           ))}
         </ul>
