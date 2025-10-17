@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useUser } from '../contexts/UserContext'
 
 const Dashboard = () => {
-  const { theme, isDark } = useTheme()
+  const { theme, isDark, toggleTheme } = useTheme()
   const { user, project } = useUser()
   const navigate = useNavigate()
   
@@ -187,31 +187,8 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <i className="fas fa-robot text-3xl"></i>
-              <div>
-                <h1 className="text-xl font-bold">Testing Agents Platform</h1>
-                <p className="text-sm opacity-90">{project.name}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden md:block">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm opacity-90">@{user.username}</p>
-              </div>
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-indigo-600 font-bold shadow-md">
-                {user.initials}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-16 py-8">
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <div>
@@ -332,10 +309,10 @@ const Dashboard = () => {
             </div>
 
             {/* Test Configuration */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Configure Your Test</h3>
+            {/* <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Configure Your Test</h3> */}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div
                   onClick={() => handleTestModeChange('individual')}
                   className={`p-6 rounded-xl border-2 text-center cursor-pointer transition-all ${
@@ -360,10 +337,10 @@ const Dashboard = () => {
                   <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Comprehensive Testing</h4>
                   <p className="text-gray-600 dark:text-gray-300">Run all 9 agents for complete coverage</p>
                 </div>
-              </div>
+              </div> */}
 
               {/* Selected Agents */}
-              <div className="mb-6">
+              {/* <div className="mb-6">
                 <h4 className="font-bold text-gray-900 dark:text-white mb-3">Selected Agents</h4>
                 {selectedAgents.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400">No agents selected</p>
@@ -386,21 +363,21 @@ const Dashboard = () => {
                     })}
                   </div>
                 )}
-              </div>
+              </div> */}
 
-              <button
+              {/* <button
                 onClick={executeTests}
                 disabled={selectedAgents.length === 0}
                 className="w-full bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 <i className="fas fa-play-circle text-2xl"></i>
                 Execute Test Suite
-              </button>
-            </div>
+              </button> */}
+            {/* </div> */}
           </>
         )}
         {/* Progress Section */}
-        {isRunning && (
+        {/* {isRunning && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Test Execution Progress</h3>
@@ -447,9 +424,9 @@ const Dashboard = () => {
               })}
             </div>
           </div>
-        )}
+        )} */}
 
-        Report Section
+        {/* Report Section
         {showReport && testResults && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
             <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700 flex-wrap gap-4">
@@ -538,7 +515,7 @@ const Dashboard = () => {
               Back to Dashboard
             </button>
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Footer */}
