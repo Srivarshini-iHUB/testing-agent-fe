@@ -10,8 +10,16 @@ const E2EResults = ({
   const handleViewReport = () => {
     if (testResults && testResults.reportUrl) {
       const reportUrl = testResults.reportUrl;
-      // Open in new window with the report viewer
-      window.open(`/pytest-report?url=${encodeURIComponent(reportUrl)}`, '_blank', 'noopener,noreferrer');
+      // Check if the URL is valid and accessible
+      if (reportUrl.startsWith('http://') || reportUrl.startsWith('https://')) {
+        // Open the report URL directly
+        window.open(reportUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        // If it's a relative path, open with the report viewer
+        window.open(`/pytest-report?url=${encodeURIComponent(reportUrl)}`, '_blank', 'noopener,noreferrer');
+      }
+    } else {
+      alert('Report URL not available yet. Please wait for the test execution to complete.');
     }
   };
 

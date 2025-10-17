@@ -26,6 +26,11 @@ const E2ETestingAgent = () => {
   const [dockerOutput, setDockerOutput] = useState('');
   const [dockerResults, setDockerResults] = useState(null);
   const [reportUrl, setReportUrl] = useState('');
+  const [testCases, setTestCases] = useState([]);
+  const [reportId, setReportId] = useState('');
+  const [bugSheetUrl, setBugSheetUrl] = useState('');
+  const [appsScriptCode, setAppsScriptCode] = useState('');
+  const [setupInstructions, setSetupInstructions] = useState('');
 
   const formatSeconds = (seconds) => {
     const total = Math.max(0, Math.round(Number(seconds || 0)));
@@ -130,6 +135,8 @@ const E2ETestingAgent = () => {
       const data = await res.json();
       const script = data.script || "";
       setOutput(script);
+      setTestCases(data.test_cases || []); // Store test case data
+      setReportId(data.reportId || ''); // Store reportId from parse_input response
 
       const cmd = `pytest --headed --browser chromium`;
       setRunCommand(cmd);
@@ -198,7 +205,9 @@ const E2ETestingAgent = () => {
         },
         body: JSON.stringify({
           test_script: output,
-          project_url: applicationUrl
+          project_url: applicationUrl,
+          test_cases: testCases, // Pass the stored test case data
+          reportId: reportId // Pass the reportId to update the existing MongoDB document
         }),
       });
 
@@ -228,6 +237,12 @@ const E2ETestingAgent = () => {
                 const result = data.result || {};
                 setDockerResults(result);
                 setReportUrl(result.reportUrl || '');
+                
+                // Store bug sheet data
+                setBugSheetUrl(result.bugSheetUrl || '');
+                setAppsScriptCode(result.appsScriptCode || '');
+                setSetupInstructions(result.setupInstructions || '');
+                
                 // Map to unified testResults used by AI Agent Results UI
                 const durationSec = Number(
                   (result && (result.durationSec)) ||
@@ -245,7 +260,10 @@ const E2ETestingAgent = () => {
                   screenshots: Array.isArray(result.screenshots) ? result.screenshots.length : Number(result.screenshots || 0) || 0,
                   reportUrl: result.reportUrl || '',
                   summaryUrl: result.summaryUrl || '',
-                  pdfUrl: result.pdfUrl || ''
+                  pdfUrl: result.pdfUrl || '',
+                  bugSheetUrl: result.bugSheetUrl || '',
+                  appsScriptCode: result.appsScriptCode || '',
+                  setupInstructions: result.setupInstructions || ''
                 });
               }
             } catch (e) {
@@ -367,6 +385,13 @@ const E2ETestingAgent = () => {
             copySuccess={copySuccess}
             handleRunWithDocker={handleRunWithDocker}
             dockerRunning={dockerRunning}
+            testCases={testCases}
+            setTestCases={setTestCases}
+            reportId={reportId}
+            setReportId={setReportId}
+            bugSheetUrl={bugSheetUrl}
+            appsScriptCode={appsScriptCode}
+            setupInstructions={setupInstructions}
           />
           
         </div>
