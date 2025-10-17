@@ -5,8 +5,7 @@ import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
-import PytestReportPage from '../pages/PytestReportPage';
-import ReportViewer from '../pages/ReportViewer';
+import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -74,12 +73,6 @@ const AgentTabs = () => {
       icon: '👁️',
       description: 'Visual regression testing'
     },
-    // { 
-    //   path: '/report-viewer', 
-    //   label: 'Report Viewer',
-    //   icon: '📄',
-    //   description: 'View pytest test reports'
-    // },
   ];
 
   return (
@@ -136,7 +129,7 @@ const AppRouter = () => {
     <Router>
       <Routes>
         {/* Report viewer without layout */}
-        <Route path="/pytest-report" element={<PytestReportPage />} />
+        <Route path="/pytest-report" element={<E2EPytestReportPage />} />
         
         {/* Main app routes with layout */}
         <Route path="*" element={
@@ -147,7 +140,6 @@ const AppRouter = () => {
               <Route path="/test-case-generator" element={<TestCaseGenerator />} />
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
-              {/* <Route path="/report-viewer" element={<ReportViewer />} /> */}
             </Routes>
           </Layout>
         } />
