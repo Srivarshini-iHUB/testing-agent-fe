@@ -7,6 +7,7 @@ import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
 import PytestReportPage from '../pages/PytestReportPage';
 import ReportViewer from '../pages/ReportViewer';
+import PerformanceTesting from '../components/performance/PerformanceTesting';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -147,6 +148,8 @@ const AppRouter = () => {
               <Route path="/test-case-generator" element={<TestCaseGenerator />} />
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
+              <Route path="/performance-testing" element={<PerformanceTesting />} />
+
               {/* <Route path="/report-viewer" element={<ReportViewer />} /> */}
             </Routes>
           </Layout>
