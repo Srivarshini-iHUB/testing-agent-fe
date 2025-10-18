@@ -7,16 +7,16 @@ const E2EResults = ({
   applicationUrl,
   selectedBrowser,
   downloadScript,
-  downloadReport
+  downloadReport,
+  reportData,
+  reportLoading,
+  fetchReportData
 }) => {
   const handleViewReport = () => {
     if (testResults && testResults.reportUrl) {
       const reportUrl = testResults.reportUrl;
-      if (reportUrl.startsWith('http://') || reportUrl.startsWith('https://')) {
-        window.open(reportUrl, '_blank', 'noopener,noreferrer');
-      } else {
-        window.open(`/pytest-report?url=${encodeURIComponent(reportUrl)}`, '_blank', 'noopener,noreferrer');
-      }
+      // Fetch and display the report data in the UI
+      fetchReportData(reportUrl);
     } else {
       alert('Report URL not available yet. Please wait for the test execution to complete.');
     }
@@ -36,7 +36,7 @@ const E2EResults = ({
             <i className="fas fa-download"></i>
             Download Script
           </button>
-          {testResults && testResults.reportUrl && (
+          {/* {testResults && testResults.reportUrl && (
             <button
               onClick={handleViewReport}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
@@ -44,7 +44,7 @@ const E2EResults = ({
               <i className="fas fa-chart-bar"></i>
               View Report
             </button>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -223,7 +223,124 @@ const E2EResults = ({
                 <span className="font-semibold text-gray-900 dark:text-white">{testResults.executionTime || '-'}</span>
               </div>
             </div>
+            
+            {/* View Report Button */}
+            <div className="flex gap-2 mt-4">
+              <button 
+                onClick={handleViewReport} 
+                disabled={reportLoading}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-all font-medium flex items-center justify-center"
+              >
+                {reportLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Loading Report...
+                  </>
+                ) : (
+                  '📊 View Detailed Report'
+                )}
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Detailed Report Viewer */}
+      {reportData && (
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Detailed Test Report
+          </h2>
+          
+          {/* Summary Stats */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {reportData.summary?.total || 0}
+              </div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">Total Tests</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900 rounded-lg">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {reportData.summary?.passed || 0}
+              </div>
+              <div className="text-sm text-green-700 dark:text-green-300">Passed</div>
+            </div>
+            <div className="text-center p-4 bg-red-50 dark:bg-red-900 rounded-lg">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {reportData.summary?.failed || 0}
+              </div>
+              <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
+            </div>
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                {Math.round(reportData.duration || 0)}s
+              </div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">Duration</div>
+            </div>
+          </div>
+
+          {/* Test Results */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Test Results
+            </h3>
+            {reportData.tests && reportData.tests.map((test, index) => (
+              <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    {test.nodeid?.split('::').pop() || `Test ${index + 1}`}
+                  </h4>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    test.outcome === 'passed' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                  }`}>
+                    {test.outcome?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                </div>
+                
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Duration: {Math.round((test.call?.duration || 0) * 1000)}ms
+                </div>
+
+                {test.outcome === 'failed' && test.call?.crash && (
+                  <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <h5 className="font-medium text-red-800 dark:text-red-200 mb-2">
+                      Error Details:
+                    </h5>
+                    <div className="text-sm text-red-700 dark:text-red-300 font-mono whitespace-pre-wrap">
+                      {test.call.crash.message}
+                    </div>
+                    {test.call.traceback && test.call.traceback.length > 0 && (
+                      <div className="mt-2">
+                        <h6 className="font-medium text-red-800 dark:text-red-200 mb-1">
+                          Traceback:
+                        </h6>
+                        <div className="text-sm text-red-700 dark:text-red-300 font-mono">
+                          {test.call.traceback.map((tb, i) => (
+                            <div key={i} className="ml-2">
+                              {tb.path}:{tb.lineno} in {tb.message}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Raw JSON Toggle */}
+          <details className="mt-6">
+            <summary className="cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+              View Raw JSON Data
+            </summary>
+            <pre className="mt-2 p-4 bg-gray-900 text-gray-300 rounded-lg overflow-auto text-xs font-mono max-h-96">
+              {JSON.stringify(reportData, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
 

@@ -35,6 +35,8 @@ const E2ETestingAgent = () => {
   const [bugSheetUrl, setBugSheetUrl] = useState('');
   const [appsScriptCode, setAppsScriptCode] = useState('');
   const [setupInstructions, setSetupInstructions] = useState('');
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const formatSeconds = (seconds) => {
     const total = Math.max(0, Math.round(Number(seconds || 0)));
@@ -297,6 +299,80 @@ const E2ETestingAgent = () => {
     window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const fetchReportData = async (reportUrl) => {
+    setReportLoading(true);
+    try {
+      const response = await fetch(reportUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setReportData(data);
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+      alert('Failed to load report data: ' + error.message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const runE2ETest = () => {
+    if (!testScenario.trim()) return;
+    
+    setTestResults({
+      status: 'running',
+      progress: 0,
+      totalSteps: 8,
+      completedSteps: 0,
+      currentStep: 'Initializing browser...',
+      duration: '0s'
+    });
+
+    const interval = setInterval(() => {
+      setTestResults(prev => {
+        const newProgress = prev.progress + 12.5;
+        const newCompletedSteps = Math.floor(newProgress / 12.5);
+        
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          return {
+            ...prev,
+            status: 'completed',
+            progress: 100,
+            completedSteps: prev.totalSteps,
+            currentStep: 'Test completed successfully',
+            duration: '45s',
+            results: {
+              passed: 7,
+              failed: 1,
+              skipped: 0,
+              screenshots: 8
+            }
+          };
+        }
+
+        const steps = [
+          'Initializing browser...',
+          'Loading application...',
+          'Navigating to login page...',
+          'Entering credentials...',
+          'Submitting login form...',
+          'Verifying dashboard access...',
+          'Testing navigation menu...',
+          'Performing logout...'
+        ];
+
+        return {
+          ...prev,
+          progress: newProgress,
+          completedSteps: newCompletedSteps,
+          currentStep: steps[newCompletedSteps] || prev.currentStep,
+          duration: `${Math.floor(newProgress * 0.45)}s`
+        };
+      });
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
@@ -352,15 +428,18 @@ const E2ETestingAgent = () => {
 
           {/* Results Panel - Takes 1 column */}
           <div>
-            <E2EResults
-              selectedFlow={selectedFlow}
-              testResults={testResults}
-              agentRunning={agentRunning}
-              applicationUrl={applicationUrl}
-              selectedBrowser={selectedBrowser}
-              downloadScript={downloadScript}
-              downloadReport={downloadReport}
-            />
+        <E2EResults
+          selectedFlow={selectedFlow}
+          testResults={testResults}
+          agentRunning={agentRunning}
+          applicationUrl={applicationUrl}
+          selectedBrowser={selectedBrowser}
+          downloadScript={downloadScript}
+          downloadReport={downloadReport}
+          reportData={reportData}
+          reportLoading={reportLoading}
+          fetchReportData={fetchReportData}
+        />
           </div>
         </div>
       </div>
