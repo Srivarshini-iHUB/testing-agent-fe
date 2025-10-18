@@ -21,73 +21,127 @@ const Dashboard = () => {
     id: 'test-case-generator',
     name: 'Test Case Generation',
     icon: 'fa-file-alt',
-    gradient: 'from-indigo-500 to-purple-600', // Documentation & Generation - Purple/Indigo for creation
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-indigo-700 dark:text-indigo-300',
+    iconBg: 'bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-indigo-700 dark:text-indigo-300',
+    titleBg: 'bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30',
     description: 'Automatically generates comprehensive test cases based on your code structure and requirements.',
-    path: '/test-case-generator'
+    path: '/test-case-generator',
+    status: 'Ready'
   },
   {
     id: 'unit-testing',
     name: 'Unit Testing',
     icon: 'fa-vial',
-    gradient: 'from-blue-500 to-cyan-600', // Foundational Testing - Blue for reliability
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-blue-700 dark:text-blue-300',
+    iconBg: 'bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-700 dark:to-cyan-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-blue-700 dark:text-blue-300',
+    titleBg: 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30',
     description: 'Executes unit tests to validate individual components and functions of your application.',
-    path: '/unit-testing'
+    path: '/unit-testing',
+    status: 'Ready'
   },
   {
     id: 'integration-testing',
     name: 'Integration Testing',
     icon: 'fa-link',
-    gradient: 'from-teal-500 to-emerald-600', // Connection & Integration - Teal/Emerald for linking
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-teal-700 dark:text-teal-300',
+    iconBg: 'bg-gradient-to-br from-teal-200 to-emerald-200 dark:from-teal-700 dark:to-emerald-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-teal-700 dark:text-teal-300',
+    titleBg: 'bg-gradient-to-r from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30',
     description: 'Verifies the interaction between different modules and systems in your application.',
-    path: '/integration-testing'
+    path: '/integration-testing',
+    status: 'Coming Soon'
   },
   {
     id: 'e2e-testing',
     name: 'Functional Testing',
     icon: 'fa-route',
-    gradient: 'from-purple-500 to-pink-600', // Complete Journey - Purple/Pink for full workflow
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-purple-700 dark:text-purple-300',
+    iconBg: 'bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-700 dark:to-pink-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-purple-700 dark:text-purple-300',
+    titleBg: 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30',
     description: 'Simulates real user scenarios to validate the entire application workflow from start to finish.',
-    path: '/e2e-testing'
+    path: '/e2e-testing',
+    status: 'Ready'
   },
   {
     id: 'security-testing',
     name: 'Security Testing',
     icon: 'fa-shield-alt',
-    gradient: 'from-red-500 to-rose-600', // Alert & Protection - Red for security/danger detection
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-red-700 dark:text-red-300',
+    iconBg: 'bg-gradient-to-br from-red-200 to-rose-200 dark:from-red-700 dark:to-rose-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-red-700 dark:text-red-300',
+    titleBg: 'bg-gradient-to-r from-red-100 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30',
     description: 'Identifies vulnerabilities and security risks in your application code and infrastructure.',
-    path: '/security-testing'
+    path: '/security-testing',
+    status: 'Ready'
   },
   {
     id: 'smoke-testing',
     name: 'Smoke Testing',
     icon: 'fa-fire',
-    gradient: 'from-orange-500 to-amber-600', // Quick Check - Orange/Amber for rapid testing
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-orange-700 dark:text-orange-300',
+    iconBg: 'bg-gradient-to-br from-orange-200 to-amber-200 dark:from-orange-700 dark:to-amber-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-orange-700 dark:text-orange-300',
+    titleBg: 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30',
     description: 'Performs basic functionality checks to ensure critical features are working after deployment.',
-    path: '/smoke-testing'
+    path: '/smoke-testing',
+    status: 'Ready'
   },
   {
     id: 'visual-testing',
     name: 'UI Testing',
     icon: 'fa-mouse-pointer',
-    gradient: 'from-violet-500 to-fuchsia-600', // Visual & Design - Violet/Fuchsia for UI/aesthetics
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-violet-700 dark:text-violet-300',
+    iconBg: 'bg-gradient-to-br from-violet-200 to-fuchsia-200 dark:from-violet-700 dark:to-fuchsia-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-violet-700 dark:text-violet-300',
+    titleBg: 'bg-gradient-to-r from-violet-100 to-fuchsia-100 dark:from-violet-900/30 dark:to-fuchsia-900/30',
     description: 'Validates user interface elements, layouts, and visual consistency across different devices.',
-    path: '/visual-testing'
+    path: '/visual-testing',
+    status: 'Ready'
   },
   {
     id: 'performance-testing',
     name: 'Performance Testing',
     icon: 'fa-tachometer-alt',
-    gradient: 'from-emerald-500 to-green-600', // Speed & Performance - Green for optimization/go
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-emerald-700 dark:text-emerald-300',
+    iconBg: 'bg-gradient-to-br from-emerald-200 to-green-200 dark:from-emerald-700 dark:to-green-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-emerald-700 dark:text-emerald-300',
+    titleBg: 'bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30',
     description: 'Evaluates system responsiveness, stability, and scalability under various load conditions.',
-    path: '/performance-testing'
+    path: '/performance-testing',
+    status: 'Ready'
   },
   {
     id: 'regression-testing',
     name: 'Regression Testing',
     icon: 'fa-undo',
-    gradient: 'from-slate-500 to-gray-600', // Historical/Backward - Gray/Slate for looking back
+    bgColor: 'bg-white dark:bg-gray-800',
+    iconColor: 'text-slate-700 dark:text-slate-300',
+    iconBg: 'bg-gradient-to-br from-slate-200 to-gray-200 dark:from-slate-700 dark:to-gray-700',
+    borderColor: 'border-gray-200 dark:border-gray-700',
+    accentColor: 'text-slate-700 dark:text-slate-300',
+    titleBg: 'bg-gradient-to-r from-slate-100 to-gray-100 dark:from-slate-900/30 dark:to-gray-900/30',
     description: 'Ensures new code changes don\'t adversely affect existing functionality of your application.',
-    path: '/regression-testing'
+    path: '/regression-testing',
+    status: 'Ready'
   }
 ];
 
@@ -270,37 +324,42 @@ const Dashboard = () => {
               {agents.map(agent => (
                 <div
                   key={agent.id}
-                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
-                    selectedAgents.includes(agent.id) ? 'ring-4 ring-emerald-500' : ''
+                  className={`${agent.bgColor} ${agent.borderColor} border rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group ${
+                    selectedAgents.includes(agent.id) ? 'ring-2 ring-indigo-400 dark:ring-indigo-500' : ''
                   }`}
                 >
-                  <div className={`bg-gradient-to-r ${agent.gradient} text-white p-6`}>
-                    <i className={`fas ${agent.icon} text-4xl mb-3 block`}></i>
-                    <h3 className="text-xl font-bold">{agent.name}</h3>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-gray-600 dark:text-gray-300 mb-6 min-h-[80px]">{agent.description}</p>
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-                        <i className="fas fa-circle text-xs"></i>
-                        Ready
+                  <div className="h-full flex flex-col">
+                    {/* Colorful Title Section */}
+                    <div className={`${agent.titleBg} p-6 rounded-t-2xl`}>
+                      <div className="flex items-start gap-4">
+                        <div className={`${agent.iconBg} ${agent.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}>
+                          <i className={`fas ${agent.icon} text-xl`}></i>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-2 group-hover:${agent.accentColor} transition-colors`}>
+                            {agent.name}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                            <i className="fas fa-circle text-xs"></i>
+                            {agent.status}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        {/* <button
-                          onClick={() => toggleAgent(agent.id)}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
-                            selectedAgents.includes(agent.id)
-                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                          }`}
-                        >
-                          {selectedAgents.includes(agent.id) ? 'Selected' : 'Select'}
-                        </button> */}
+                    </div>
+                    
+                    {/* Neutral Content Section */}
+                    <div className="p-6 flex-1 flex flex-col">
+                      <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed flex-1">
+                        {agent.description}
+                      </p>
+                      
+                      <div className="mt-auto">
                         <button
                           onClick={() => exploreAgent(agent.id)}
-                          className="px-4 py-2 rounded-lg font-semibold transition-all text-sm bg-emerald-500 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          className={`w-full ${agent.iconBg} ${agent.iconColor} py-2.5 px-4 rounded-lg font-medium transition-all duration-200 hover:shadow-md group-hover:scale-105 border ${agent.borderColor} hover:border-opacity-60`}
                         >
-                          Explore
+                          <i className="fas fa-arrow-right mr-2 group-hover:translate-x-1 transition-transform"></i>
+                          Explore Agent
                         </button>
                       </div>
                     </div>

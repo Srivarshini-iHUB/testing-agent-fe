@@ -10,6 +10,7 @@ import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
 import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 import PerformanceTesting from '../pages/PerformanceTesting';
+import SecurityTest from '../pages/SecurityTest';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -90,6 +91,7 @@ const AppRouter = () => {
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
               <Route path="/performance-testing" element={<PerformanceTesting />} />
               <Route path="/smoke-testing" element={<SmokeTesting />} />
+              <Route path="/security-testing" element={<SecurityTest />} />
             </Routes>
           </Layout>
         } />
