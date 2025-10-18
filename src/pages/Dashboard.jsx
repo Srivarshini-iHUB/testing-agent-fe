@@ -17,79 +17,80 @@ const Dashboard = () => {
   const [testResults, setTestResults] = useState(null)
 
   const agents = [
-    {
-      id: 'test-case-generator',
-      name: 'Test Case Generation',
-      icon: 'fa-file-alt',
-      gradient: 'from-blue-500 to-blue-600',
-      description: 'Automatically generates comprehensive test cases based on your code structure and requirements.',
-      path: '/test-case-generator'
-    },
-    {
-      id: 'unit-testing',
-      name: 'Unit Testing',
-      icon: 'fa-vial',
-      gradient: 'from-indigo-500 to-indigo-600',
-      description: 'Executes unit tests to validate individual components and functions of your application.',
-      path: '/unit-testing'
-    },
-    {
-      id: 'integration-testing',
-      name: 'Integration Testing',
-      icon: 'fa-link',
-      gradient: 'from-cyan-500 to-cyan-600',
-      description: 'Verifies the interaction between different modules and systems in your application.',
-      path: '/integration-testing'
-    },
-    {
-      id: 'e2e-testing',
-      name: 'End-to-End Testing',
-      icon: 'fa-route',
-      gradient: 'from-teal-500 to-teal-600',
-      description: 'Simulates real user scenarios to validate the entire application workflow from start to finish.',
-      path: '/e2e-testing'
-    },
-    {
-      id: 'security-testing',
-      name: 'Security Testing',
-      icon: 'fa-shield-alt',
-      gradient: 'from-emerald-500 to-emerald-600',
-      description: 'Identifies vulnerabilities and security risks in your application code and infrastructure.',
-      path: '/security-testing'
-    },
-    {
-      id: 'smoke-testing',
-      name: 'Smoke Testing',
-      icon: 'fa-fire',
-      gradient: 'from-orange-500 to-orange-600',
-      description: 'Performs basic functionality checks to ensure critical features are working after deployment.',
-      path: '/smoke-testing'
-    },
-    {
-      id: 'visual-testing',
-      name: 'UI Testing',
-      icon: 'fa-mouse-pointer',
-      gradient: 'from-violet-500 to-violet-600',
-      description: 'Validates user interface elements, layouts, and visual consistency across different devices.',
-      path: '/visual-testing'
-    },
-    {
-      id: 'performance-testing',
-      name: 'Performance Testing',
-      icon: 'fa-tachometer-alt',
-      gradient: 'from-rose-500 to-rose-600',
-      description: 'Evaluates system responsiveness, stability, and scalability under various load conditions.',
-      path: '/performance-testing'
-    },
-    {
-      id: 'regression-testing',
-      name: 'Regression Testing',
-      icon: 'fa-undo',
-      gradient: 'from-purple-500 to-purple-600',
-      description: 'Ensures new code changes don\'t adversely affect existing functionality of your application.',
-      path: '/regression-testing'
-    }
-  ]
+  {
+    id: 'test-case-generator',
+    name: 'Test Case Generation',
+    icon: 'fa-file-alt',
+    gradient: 'from-indigo-500 to-purple-600', // Documentation & Generation - Purple/Indigo for creation
+    description: 'Automatically generates comprehensive test cases based on your code structure and requirements.',
+    path: '/test-case-generator'
+  },
+  {
+    id: 'unit-testing',
+    name: 'Unit Testing',
+    icon: 'fa-vial',
+    gradient: 'from-blue-500 to-cyan-600', // Foundational Testing - Blue for reliability
+    description: 'Executes unit tests to validate individual components and functions of your application.',
+    path: '/unit-testing'
+  },
+  {
+    id: 'integration-testing',
+    name: 'Integration Testing',
+    icon: 'fa-link',
+    gradient: 'from-teal-500 to-emerald-600', // Connection & Integration - Teal/Emerald for linking
+    description: 'Verifies the interaction between different modules and systems in your application.',
+    path: '/integration-testing'
+  },
+  {
+    id: 'e2e-testing',
+    name: 'Functional Testing',
+    icon: 'fa-route',
+    gradient: 'from-purple-500 to-pink-600', // Complete Journey - Purple/Pink for full workflow
+    description: 'Simulates real user scenarios to validate the entire application workflow from start to finish.',
+    path: '/e2e-testing'
+  },
+  {
+    id: 'security-testing',
+    name: 'Security Testing',
+    icon: 'fa-shield-alt',
+    gradient: 'from-red-500 to-rose-600', // Alert & Protection - Red for security/danger detection
+    description: 'Identifies vulnerabilities and security risks in your application code and infrastructure.',
+    path: '/security-testing'
+  },
+  {
+    id: 'smoke-testing',
+    name: 'Smoke Testing',
+    icon: 'fa-fire',
+    gradient: 'from-orange-500 to-amber-600', // Quick Check - Orange/Amber for rapid testing
+    description: 'Performs basic functionality checks to ensure critical features are working after deployment.',
+    path: '/smoke-testing'
+  },
+  {
+    id: 'visual-testing',
+    name: 'UI Testing',
+    icon: 'fa-mouse-pointer',
+    gradient: 'from-violet-500 to-fuchsia-600', // Visual & Design - Violet/Fuchsia for UI/aesthetics
+    description: 'Validates user interface elements, layouts, and visual consistency across different devices.',
+    path: '/visual-testing'
+  },
+  {
+    id: 'performance-testing',
+    name: 'Performance Testing',
+    icon: 'fa-tachometer-alt',
+    gradient: 'from-emerald-500 to-green-600', // Speed & Performance - Green for optimization/go
+    description: 'Evaluates system responsiveness, stability, and scalability under various load conditions.',
+    path: '/performance-testing'
+  },
+  {
+    id: 'regression-testing',
+    name: 'Regression Testing',
+    icon: 'fa-undo',
+    gradient: 'from-slate-500 to-gray-600', // Historical/Backward - Gray/Slate for looking back
+    description: 'Ensures new code changes don\'t adversely affect existing functionality of your application.',
+    path: '/regression-testing'
+  }
+];
+
 
   const toggleAgent = (agentId) => {
     if (isRunning) return
@@ -256,13 +257,13 @@ const Dashboard = () => {
           <>
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Testing Agents</h2>
-              <button
+              {/* <button
                 onClick={selectAllAgents}
                 className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-md flex items-center gap-2"
               >
                 <i className="fas fa-check-square"></i>
                 Select All
-              </button>
+              </button> */}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -285,7 +286,7 @@ const Dashboard = () => {
                         Ready
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        {/* <button
                           onClick={() => toggleAgent(agent.id)}
                           className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
                             selectedAgents.includes(agent.id)
@@ -294,10 +295,10 @@ const Dashboard = () => {
                           }`}
                         >
                           {selectedAgents.includes(agent.id) ? 'Selected' : 'Select'}
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => exploreAgent(agent.id)}
-                          className="px-4 py-2 rounded-lg font-semibold transition-all text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          className="px-4 py-2 rounded-lg font-semibold transition-all text-sm bg-emerald-500 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                         >
                           Explore
                         </button>
