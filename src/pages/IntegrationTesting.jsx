@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { Upload, Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText } from "lucide-react"
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
@@ -135,9 +133,9 @@ export default function IntegrationTestingPlatform() {
 
   const passFailData = report?.scenario_summary
     ? [
-        { name: "Passed", value: report.scenario_summary.passed_tests, fill: "#10b981" },
-        { name: "Failed", value: report.scenario_summary.failed_tests, fill: "#ef4444" },
-      ]
+      { name: "Passed", value: report.passed_tests, fill: "#10b981" },
+      { name: "Failed", value: report.failed_tests, fill: "#ef4444" },
+    ]
     : []
 
   return (
@@ -343,11 +341,10 @@ export default function IntegrationTestingPlatform() {
                 <div
                   key={idx}
                   onClick={() => setSelectedScenario(scenario)}
-                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
-                    selectedScenario?.scenario_name === scenario.scenario_name
+                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${selectedScenario?.scenario_name === scenario.scenario_name
                       ? "border-blue-500/60 bg-blue-500/10 shadow-lg shadow-blue-500/10"
                       : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50 hover:bg-slate-800/50"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -364,11 +361,10 @@ export default function IntegrationTestingPlatform() {
                       </div>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ml-4 ${
-                        selectedScenario?.scenario_name === scenario.scenario_name
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ml-4 ${selectedScenario?.scenario_name === scenario.scenario_name
                           ? "border-blue-500 bg-blue-500"
                           : "border-slate-600"
-                      }`}
+                        }`}
                     >
                       {selectedScenario?.scenario_name === scenario.scenario_name && (
                         <div className="w-2 h-2 bg-white rounded-full" />
@@ -440,24 +436,24 @@ export default function IntegrationTestingPlatform() {
           <div className="animate-in fade-in duration-500">
             {/* Summary Cards */}
             <div className="mb-10">
-              <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">Test Report</h2>
+              <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">{report.scenario_summary}</h2>
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
                   <p className="text-slate-400 text-sm font-semibold mb-3">Total Tests</p>
-                  <p className="text-4xl font-bold text-white">{report.scenario_summary.total_tests}</p>
+                  <p className="text-4xl font-bold text-white">{report.total_tests}</p>
                 </div>
                 <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-xl hover:border-green-500/50 transition-all duration-300">
                   <p className="text-green-400 text-sm font-semibold mb-3">Passed</p>
-                  <p className="text-4xl font-bold text-green-400">{report.scenario_summary.passed_tests}</p>
+                  <p className="text-4xl font-bold text-green-400">{report.passed_tests}</p>
                 </div>
                 <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl hover:border-red-500/50 transition-all duration-300">
                   <p className="text-red-400 text-sm font-semibold mb-3">Failed</p>
-                  <p className="text-4xl font-bold text-red-400">{report.scenario_summary.failed_tests}</p>
+                  <p className="text-4xl font-bold text-red-400">{report.failed_tests}</p>
                 </div>
                 <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
                   <p className="text-slate-400 text-sm font-semibold mb-3">Status</p>
                   <div className="flex items-center gap-2">
-                    {report.scenario_summary.scenario_passed ? (
+                    {["Passed", "PASSED","passed"].includes(report.overall_status) ? (
                       <>
                         <CheckCircle className="text-green-500" size={28} />
                         <span className="text-green-400 font-bold text-lg">PASSED</span>
@@ -468,6 +464,7 @@ export default function IntegrationTestingPlatform() {
                         <span className="text-red-400 font-bold text-lg">FAILED</span>
                       </>
                     )}
+
                   </div>
                 </div>
               </div>
@@ -533,17 +530,16 @@ export default function IntegrationTestingPlatform() {
             {/* Test Details */}
             <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300 mb-10">
               <h3 className="text-lg font-bold text-white mb-6">Test Details</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {report.test_details.map((test, idx) => (
                   <div
                     key={idx}
-                    className={`p-5 rounded-lg border transition-all duration-300 ${
-                      test.passed
+                    className={`p-5 rounded-lg border transition-all duration-300 ${test.passed
                         ? "bg-green-500/5 border-green-500/30 hover:border-green-500/50"
                         : "bg-red-500/5 border-red-500/30 hover:border-red-500/50"
-                    }`}
+                      }`}
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3 flex-1">
                         {test.passed ? (
                           <CheckCircle className="text-green-500 flex-shrink-0" size={22} />
@@ -556,16 +552,35 @@ export default function IntegrationTestingPlatform() {
                         </div>
                       </div>
                       <span
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 ${
-                          test.passed ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 ${test.passed ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                          }`}
                       >
-                        {test.status_code}
+                        Status: {test.status_code}
                       </span>
                     </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-300 mb-2">Request Payload</p>
+                        <pre className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg font-mono overflow-auto">
+                          {JSON.stringify(test.payload, null, 2)}
+                        </pre>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-300 mb-2">Response</p>
+                        <pre className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg font-mono overflow-auto">
+                          {JSON.stringify(test.response, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm font-semibold text-slate-300 mb-2">Expected Response</p>
+                      <pre className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg font-mono overflow-auto">
+                        {JSON.stringify(test.expected_response, null, 2)}
+                      </pre>
+                    </div>
                     {!test.passed && test.failure_reason && (
-                      <p className="text-sm text-red-300 bg-red-500/10 p-3 rounded border border-red-500/20">
-                        {test.failure_reason}
+                      <p className="text-sm text-red-300 bg-red-500/10 p-3 rounded border border-red-500/20 mt-4">
+                        Failure Reason: {test.failure_reason}
                       </p>
                     )}
                   </div>
