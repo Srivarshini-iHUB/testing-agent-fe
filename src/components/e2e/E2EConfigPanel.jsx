@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const E2EConfigPanel = ({
   selectedFlow,
   setSelectedFlow,
@@ -21,90 +23,125 @@ const E2EConfigPanel = ({
   copyToClipboard,
   copySuccess,
   handleRunWithDocker,
-  dockerRunning
+  dockerRunning,
+  testCases,
+  setTestCases,
+  reportId,
+  setReportId,
+  bugSheetUrl,
+  appsScriptCode,
+  setupInstructions
 }) => {
+  const [scriptCopied, setScriptCopied] = useState(false);
+
   const flows = [
-    { id: 'manual', name: 'Manual Setup', description: 'Playwright configuration and CSV upload' },
-    { id: 'agent', name: 'AI Agent', description: 'Automated test generation and execution' }
+    { id: 'manual', name: 'Manual Setup', icon: 'fa-hand-pointer', description: 'Playwright configuration and CSV upload' },
+    { id: 'agent', name: 'AI Agent', icon: 'fa-robot', description: 'Automated test generation and execution' }
   ];
+
+  const handleCopyScript = () => {
+    navigator.clipboard.writeText(appsScriptCode);
+    setScriptCopied(true);
+    setTimeout(() => setScriptCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="card">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          E2E Test Configuration
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Testing Flow
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {flows.map((flow) => (
-                <button
-                  key={flow.id}
-                  onClick={() => setSelectedFlow(flow.id)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    selectedFlow === flow.id
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {flow.name}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">
-                    {flow.description}
-                  </div>
-                </button>
-              ))}
-            </div>
+      {/* Flow Selection */}
+      <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+        <div className="flex items-center gap-2 mb-4">
+          <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Test Configuration</h2>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Select Testing Flow
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            {flows.map((flow) => (
+              <button
+                key={flow.id}
+                onClick={() => setSelectedFlow(flow.id)}
+                className={`p-5 rounded-xl border-2 transition-all text-left ${
+                  selectedFlow === flow.id
+                    ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 bg-white dark:bg-gray-800/30'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <i className={`fas ${flow.icon} text-2xl ${
+                    selectedFlow === flow.id 
+                      ? 'text-indigo-600 dark:text-indigo-400' 
+                      : 'text-gray-400'
+                  }`}></i>
+                  <div className="font-bold text-gray-900 dark:text-white">{flow.name}</div>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">{flow.description}</div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Setup Flow removed: Setup control is available in Manual flow */}
-
       {/* Manual Flow */}
       {selectedFlow === 'manual' && (
-        <div className="card">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+            <i className="fas fa-wrench text-purple-600 dark:text-purple-400"></i>
             Manual Test Generation
           </h3>
-          <div className="space-y-4">
+          
+          <div className="space-y-5">
+            {/* Playwright Setup */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Playwright Setup (optional)
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Playwright Setup <span className="text-gray-500 dark:text-gray-400 font-normal">(optional)</span>
               </label>
               <div className="space-y-2">
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="flex gap-3">
                   <input
                     type="text"
                     value={projectPath}
                     onChange={(e) => setProjectPath(e.target.value)}
-                    placeholder="Project folder path"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white md:col-span-2"
+                    placeholder="Project folder path (e.g., /home/user/my-project)"
+                    className="flex-1 px-4 py-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white"
                   />
                   <button
                     onClick={setupPlaywright}
                     disabled={playwrightSetup || !projectPath}
-                    className="w-full btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap"
                   >
-                    {playwrightSetup ? 'Setting up Playwright...' : 'Setup Playwright'}
+                    {playwrightSetup ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-download mr-2"></i>
+                        Setup
+                      </>
+                    )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">If you already have a Playwright project, you can skip this step.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <i className="fas fa-info-circle mr-1"></i>
+                  If you already have a Playwright project, you can skip this step
+                </p>
               </div>
             </div>
+
+            {/* File Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Test Data File
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Test Data File <span className="text-rose-500">*</span>
               </label>
               <div
-                className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                className={`relative border-2 border-dashed rounded-xl p-8 transition-all ${
                   dragActive
-                    ? "border-primary-400 bg-primary-500/10"
-                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                    ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-gray-50 dark:bg-gray-900/30"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -121,20 +158,18 @@ const E2EConfigPanel = ({
                 <div className="text-center">
                   {uploadedFiles ? (
                     <div className="flex items-center justify-center gap-3">
-                      <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                        <i className="fas fa-check text-emerald-600 dark:text-emerald-400 text-xl"></i>
+                      </div>
                       <div className="text-left">
-                        <p className="text-gray-900 dark:text-white font-medium">{uploadedFiles.name}</p>
+                        <p className="text-gray-900 dark:text-white font-semibold">{uploadedFiles.name}</p>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">{(uploadedFiles.size / 1024).toFixed(2)} KB</p>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <svg className="w-12 h-12 text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-gray-700 dark:text-gray-300 mb-1">
+                      <i className="fas fa-cloud-upload-alt text-5xl text-gray-400 dark:text-gray-500 mb-3"></i>
+                      <p className="text-gray-700 dark:text-gray-300 mb-1 font-medium">
                         Drag and drop your file here, or click to browse
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">Supports CSV, XLSX, and XLS files</p>
@@ -144,41 +179,53 @@ const E2EConfigPanel = ({
               </div>
             </div>
 
+            {/* Application URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Project URL
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Application URL <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="url"
-                value={applicationUrl}
-                onChange={(e) => setApplicationUrl(e.target.value)}
-                placeholder="https://your-app.com"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <div className="relative">
+                <i className="fas fa-link absolute left-4 top-4 text-gray-400"></i>
+                <input
+                  type="url"
+                  value={applicationUrl}
+                  onChange={(e) => setApplicationUrl(e.target.value)}
+                  placeholder="https://your-app.com"
+                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white"
+                />
+              </div>
             </div>
 
+            {/* Generate Button */}
             <button
               onClick={generateTestScript}
               disabled={loading || !uploadedFiles || !applicationUrl}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 rounded-xl font-bold shadow-lg disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  <i className="fas fa-spinner fa-spin"></i>
                   Generating Test Script...
                 </>
               ) : (
-                'Generate Test Script'
+                <>
+                  <i className="fas fa-magic"></i>
+                  Generate Test Script
+                </>
               )}
             </button>
 
+            {/* Next Steps Info */}
             {output && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Next steps</h4>
-                <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                  <li>Copy the generated script below.</li>
-                  <li>Save it as <span className="font-mono">tests/test_generated.py</span> in your Playwright project.</li>
-                  <li>Run <span className="font-mono">pytest --headed --browser chromium</span> from your project directory.</li>
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2 flex items-center gap-2">
+                  <i className="fas fa-lightbulb"></i>
+                  Next Steps
+                </h4>
+                <ol className="list-decimal ml-5 space-y-1 text-sm text-indigo-800 dark:text-indigo-200">
+                  <li>Copy the generated script below</li>
+                  <li>Save it as <code className="bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded">tests/test_generated.py</code></li>
+                  <li>Run <code className="bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded">pytest --headed --browser chromium</code></li>
                 </ol>
               </div>
             )}
@@ -188,20 +235,23 @@ const E2EConfigPanel = ({
 
       {/* Agent Flow */}
       {selectedFlow === 'agent' && (
-        <div className="card">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+            <i className="fas fa-robot text-indigo-600 dark:text-indigo-400"></i>
             AI Agent Testing
           </h3>
-          <div className="space-y-4">
+          
+          <div className="space-y-5">
+            {/* File Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Test Data File
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Test Data File <span className="text-rose-500">*</span>
               </label>
               <div
-                className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                className={`relative border-2 border-dashed rounded-xl p-8 transition-all ${
                   dragActive
-                    ? "border-primary-400 bg-primary-500/10"
-                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                    ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-gray-50 dark:bg-gray-900/30"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -218,20 +268,18 @@ const E2EConfigPanel = ({
                 <div className="text-center">
                   {uploadedFiles ? (
                     <div className="flex items-center justify-center gap-3">
-                      <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                        <i className="fas fa-check text-emerald-600 dark:text-emerald-400 text-xl"></i>
+                      </div>
                       <div className="text-left">
-                        <p className="text-gray-900 dark:text-white font-medium">{uploadedFiles.name}</p>
+                        <p className="text-gray-900 dark:text-white font-semibold">{uploadedFiles.name}</p>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">{(uploadedFiles.size / 1024).toFixed(2)} KB</p>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <svg className="w-12 h-12 text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-gray-700 dark:text-gray-300 mb-1">
+                      <i className="fas fa-cloud-upload-alt text-5xl text-gray-400 dark:text-gray-500 mb-3"></i>
+                      <p className="text-gray-700 dark:text-gray-300 mb-1 font-medium">
                         Drag and drop your file here, or click to browse
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">Supports CSV, XLSX, and XLS files</p>
@@ -241,45 +289,71 @@ const E2EConfigPanel = ({
               </div>
             </div>
 
+            {/* Application URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Project URL
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Application URL <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="url"
-                value={applicationUrl}
-                onChange={(e) => setApplicationUrl(e.target.value)}
-                placeholder="https://your-app.com"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <div className="relative">
+                <i className="fas fa-link absolute left-4 top-4 text-gray-400"></i>
+                <input
+                  type="url"
+                  value={applicationUrl}
+                  onChange={(e) => setApplicationUrl(e.target.value)}
+                  placeholder="https://your-app.com"
+                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white"
+                />
+              </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="grid gap-3 md:grid-cols-2">
               <button
                 onClick={generateTestScript}
                 disabled={!uploadedFiles || !applicationUrl || agentRunning}
-                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {agentRunning ? 'Generating...' : 'Generate Scripts'}
+                {agentRunning ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-file-code"></i>
+                    Generate Scripts
+                  </>
+                )}
               </button>
               <button
                 onClick={handleRunWithDocker}
                 disabled={agentRunning || !output}
-                className="w-full btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {dockerRunning ? 'Running in Docker...' : 'Run with Docker'}
+                {dockerRunning ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <i className="fab fa-docker"></i>
+                    Run with Docker
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Generated Script and Run Command */}
+      {/* Generated Script Display */}
       {output && (
         <div className="space-y-4">
-          <div className="card">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i className="fab fa-python text-blue-500"></i>
                 Generated Python Test Script
               </h3>
               <div className="flex gap-2">
@@ -287,9 +361,7 @@ const E2EConfigPanel = ({
                   onClick={handleDownload}
                   className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <i className="fas fa-download"></i>
                   Download
                 </button>
                 {selectedFlow === 'agent' && (
@@ -300,28 +372,27 @@ const E2EConfigPanel = ({
                   >
                     {dockerRunning ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <i className="fas fa-spinner fa-spin"></i>
                         Running...
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z" />
-                        </svg>
-                        Run with Docker
+                        <i className="fab fa-docker"></i>
+                        Run Docker
                       </>
                     )}
                   </button>
                 )}
               </div>
             </div>
-            <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96">
+            <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 custom-scrollbar">
               {output}
             </pre>
           </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <i className="fas fa-terminal text-emerald-600 dark:text-emerald-400"></i>
               Run Command
             </h3>
             <div className="flex gap-2">
@@ -329,33 +400,111 @@ const E2EConfigPanel = ({
                 type="text"
                 value={runCommand}
                 readOnly
-                className="flex-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
+                className="flex-1 bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
               />
               <button
                 onClick={copyToClipboard}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-semibold ${
                   copySuccess
-                    ? "bg-green-600 hover:bg-green-500"
-                    : "bg-primary-600 hover:bg-primary-500"
+                    ? "bg-emerald-600 hover:bg-emerald-500"
+                    : "bg-indigo-600 hover:bg-indigo-500"
                 } text-white`}
               >
                 {copySuccess ? (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <i className="fas fa-check"></i>
                     Copied!
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <i className="fas fa-copy"></i>
                     Copy
                   </>
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bug Sheet and Apps Script Section */}
+      {bugSheetUrl && (
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+            <i className="fas fa-table text-emerald-600 dark:text-emerald-400"></i>
+            Bug Sheet & Apps Script Setup
+          </h3>
+          
+          <div className="space-y-5">
+            {/* Bug Sheet URL */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Bug Sheet URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bugSheetUrl}
+                  readOnly
+                  className="flex-1 bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
+                />
+                <button
+                  onClick={() => window.open(bugSheetUrl, '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg transition-all font-semibold whitespace-nowrap"
+                >
+                  <i className="fas fa-external-link-alt"></i>
+                  Open Sheet
+                </button>
+              </div>
+            </div>
+
+            {/* Apps Script Code */}
+            {appsScriptCode && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Apps Script Code
+                </label>
+                <div className="relative">
+                  <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 border border-gray-700 custom-scrollbar">
+                    {appsScriptCode}
+                  </pre>
+                  <button
+                    onClick={handleCopyScript}
+                    className={`absolute top-2 right-2 flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-semibold ${
+                      scriptCopied
+                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    } text-white`}
+                  >
+                    {scriptCopied ? (
+                      <>
+                        <i className="fas fa-check"></i>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-copy"></i>
+                        Copy Code
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Setup Instructions */}
+            {setupInstructions && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Setup Instructions
+                </label>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-5">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {setupInstructions}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -3,12 +3,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import Dashboard from '../pages/Dashboard';
 import Onboarding from '../pages/Onboarding';
+import SmokeTesting from '../pages/SmokeTesting';
 import UnitTestingAgent from '../pages/UnitTestingAgent';
 import TestCaseGenerator from '../pages/TestCaseGenerator';
 import E2ETestingAgent from '../pages/E2ETestingAgent';
 import VisualTestingAgent from '../pages/VisualTestingAgent';
 import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 import PerformanceTesting from '../pages/PerformanceTesting';
+import SecurityTest from '../pages/SecurityTest';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -88,6 +90,8 @@ const AppRouter = () => {
               <Route path="/e2e-testing" element={<E2ETestingAgent />} />
               <Route path="/visual-testing" element={<VisualTestingAgent />} />
               <Route path="/performance-testing" element={<PerformanceTesting />} />
+              <Route path="/smoke-testing" element={<SmokeTesting />} />
+              <Route path="/security-testing" element={<SecurityTest />} />
             </Routes>
           </Layout>
         } />

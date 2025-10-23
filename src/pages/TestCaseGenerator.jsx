@@ -206,7 +206,7 @@ function TestCaseGenerator() {
               <button
                 onClick={handleGenerate}
                 disabled={loading || !frdFiles.length || !userStoryFiles.length}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 dark:disabled:from-gray-600 dark:disabled:to-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full  bg-emerald-500 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 dark:disabled:from-gray-600 dark:disabled:to-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-play'}`}></i>
                 {loading ? 'Generating...' : 'Start Test Generation'}
