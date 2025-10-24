@@ -12,7 +12,7 @@ import VisualTestingAgent from '../pages/VisualTestingAgent';
 import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 import PerformanceTesting from '../pages/PerformanceTesting';
 import SecurityTest from '../pages/SecurityTest';
-import ProfilePage from '../pages/ProfilePage';
+import ProfilePage from '../components/MyProjects';
 import NewProjectPopup from '../pages/NewProjectPopup';
 
 const Header = () => {
@@ -95,8 +95,6 @@ const AppRouter = () => {
         <Route path="*" element={
           <Layout>
             <Routes>
-              <Route path="/ProfilePage" element={<ProfilePage />} />
-              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/dashboard/:projectId" element={<Dashboard />} />
               <Route path="/NewProjectPopup" element={<NewProjectPopup />} />
               <Route path="/dashboard" element={<Dashboard />} />
