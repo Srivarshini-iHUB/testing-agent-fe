@@ -12,7 +12,6 @@ import VisualTestingAgent from '../pages/VisualTestingAgent';
 import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 import PerformanceTesting from '../pages/PerformanceTesting';
 import SecurityTest from '../pages/SecurityTest';
-import ProfilePage from '../components/MyProjects';
 import NewProjectPopup from '../pages/NewProjectPopup';
 
 const Header = () => {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useUser } from "../contexts/UserContext";
 import EditProjectModal from "../components/EditProjectModal";
-import MyProjects from "../components/MyProjects";
+import AgentHistory from "../components/AgentHistory";
 
 const Dashboard = () => {
   const { theme, isDark, toggleTheme } = useTheme();
@@ -82,7 +82,7 @@ const Dashboard = () => {
     setShowProjectDropdown(false);
     // Show success notification
     const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
+    notification.className = 'fixed top-4 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
     notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
     document.body.appendChild(notification);
     setTimeout(() => {
@@ -255,9 +255,6 @@ const Dashboard = () => {
                   <i className="fas fa-folder-open text-white text-lg"></i>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">
-                    Current Project
-                  </p>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                       {currentProject.name}
@@ -403,7 +400,7 @@ const Dashboard = () => {
 
 
         {/* Project Configuration */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800/30 backdrop-blur-sm rounded-xl shadow-md p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
@@ -459,7 +456,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800/30 backdrop-blur-sm rounded-t-xl shadow-md overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('agents')}
@@ -472,14 +469,14 @@ const Dashboard = () => {
               TESTING AGENTS
             </button>
             <button
-              onClick={() => setActiveTab('projects')}
+              onClick={() => setActiveTab('history')}
               className={`px-6 py-3 font-semibold text-sm transition-all relative ${
-                activeTab === 'projects'
+                activeTab === 'history'
                   ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
                   : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              TEST REPOERS
+              AGENT HISTORY
             </button>
           </div>
 
@@ -527,7 +524,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {activeTab === 'projects' && <MyProjects />}
+            {activeTab === 'history' && <AgentHistory currentProject={currentProject} />}
           </div>
         </div>
       </div>
