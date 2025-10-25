@@ -85,16 +85,16 @@ const Header = () => {
               >
                 {/* User Avatar */}
                 <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
-                  {user.initials || user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {user?.initials || user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
                 
                 {/* User Info - Hidden on mobile */}
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-                    {user.name}
+                    {user?.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {user.email}
+                    {user?.email}
                   </p>
                 </div>
 
@@ -109,14 +109,14 @@ const Header = () => {
                   <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                        {user.initials || user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {user?.initials || user?.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-white truncate">
-                          {user.name}
+                          {user?.name}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                          {user.email}
+                          {user?.email}
                         </p>
                       </div>
                     </div>

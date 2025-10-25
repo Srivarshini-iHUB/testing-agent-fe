@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
+import UserProfile from '../components/auth/UserProfile';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { isAuthenticated, user } = useUser();
   const [activeTab, setActiveTab] = useState('all');
 
   const agents = [
@@ -209,12 +212,17 @@ const LandingPage = () => {
               >
                 <i className={`fas ${isDark ? 'fa-sun' : 'fa-moon'}`}></i>
               </button>
-              <button
-                onClick={() => navigate('/onboarding')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md"
-              >
-                Sign In
-              </button>
+              
+              {isAuthenticated ? (
+                <UserProfile />
+              ) : (
+                <button
+                  onClick={() => navigate('/onboarding')}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md"
+                >
+                  Get Started
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -242,20 +250,41 @@ const LandingPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <button
-                onClick={() => navigate('/onboarding')}
-                className="group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
-              >
-                Start Testing
-                <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-              </button>
-              <button
-                onClick={() => document.getElementById('agents').scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
-              >
-                <i className="fas fa-play-circle"></i>
-                Explore Agents
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
+                  >
+                    Go to Dashboard
+                    <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                  </button>
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
+                  >
+                    <i className="fas fa-plus-circle"></i>
+                    New Project
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
+                  >
+                    Start Testing
+                    <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('agents').scrollIntoView({ behavior: 'smooth' })}
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
+                  >
+                    <i className="fas fa-play-circle"></i>
+                    Explore Agents
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Stats */}
@@ -458,20 +487,41 @@ const LandingPage = () => {
               Join thousands of developers who trust Testing Agents for their quality assurance needs
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => navigate('/onboarding')}
-                className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
-              >
-                Start Testing Now
-                <i className="fas fa-rocket"></i>
-              </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
-              >
-                View Dashboard
-                <i className="fas fa-chart-line"></i>
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
+                  >
+                    Go to Dashboard
+                    <i className="fas fa-chart-line"></i>
+                  </button>
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                  >
+                    New Project
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
+                  >
+                    Start Testing Now
+                    <i className="fas fa-rocket"></i>
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('agents').scrollIntoView({ behavior: 'smooth' })}
+                    className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                  >
+                    Learn More
+                    <i className="fas fa-info-circle"></i>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

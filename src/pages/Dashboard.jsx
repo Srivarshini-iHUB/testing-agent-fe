@@ -308,7 +308,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
           <div className="flex-1">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Welcome back, {user.name.split(" ")[0]}!
+              Welcome back, {user?.name?.split(" ")[0]}!
             </h2>
             
             {/* Enhanced Project Info Card */}
@@ -385,13 +385,13 @@ const Dashboard = () => {
                               <p className={`font-semibold truncate ${
                                 currentProject?.id === proj.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'
                               }`}>
-                                {proj.name}
+                                {proj?.name}
                               </p>
                             </div>
                             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                               <span className="flex items-center gap-1">
                                 <i className="fas fa-calendar-alt"></i>
-                                {proj.lastActive}
+                                {proj?.lastActive}
                               </span>
                             </div>
                           </div>
