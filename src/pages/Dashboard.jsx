@@ -7,7 +7,7 @@ import AgentHistory from "../components/AgentHistory";
 
 const Dashboard = () => {
   const { theme, isDark, toggleTheme } = useTheme();
-  const { user, project, updateProject, switchProject } = useUser();
+  const { user, project, updateProject } = useUser();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("agents");
@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // All user projects (replace with actual data from context)
+  // All user projects (replace with actual data from context/API)
   const allProjects = [
     {
       id: 'project-1',
@@ -27,71 +27,30 @@ const Dashboard = () => {
       createdAt: '2025-10-15',
       lastActive: '2025-10-24',
     },
-    {
+        {
       id: 'project-2',
-      name: 'Social Media App',
-      repository: 'https://github.com/ajay/socialmedia',
-      frdDocument: 'Social_FRD.pdf',
-      userStories: 'Social_UserStories.pdf',
-      postmanCollection: 'Social_Postman.json',
-      createdAt: '2025-10-10',
-      lastActive: '2025-10-23',
+      name: 'E-Commerce Platform',
+      repository: 'https://github.com/ajay/ecommerce',
+      frdDocument: 'Ecommerce_FRD.pdf',
+      userStories: 'Ecommerce_UserStories.pdf',
+      postmanCollection: 'Ecommerce_Postman.json',
+      createdAt: '2025-10-15',
+      lastActive: '2025-10-24',
     },
-    {
-      id: 'project-3',
-      name: 'Banking Dashboard',
-      repository: 'https://github.com/ajay/banking',
-      frdDocument: 'Banking_FRD.pdf',
-      userStories: 'Banking_UserStories.pdf',
-      postmanCollection: 'Banking_Postman.json',
-      createdAt: '2025-10-05',
-      lastActive: '2025-10-22',
-    },
-    {
-      id: 'project-4',
-      name: 'Healthcare Portal',
-      repository: 'https://github.com/ajay/healthcare',
-      frdDocument: 'Healthcare_FRD.pdf',
-      userStories: 'Healthcare_UserStories.pdf',
-      postmanCollection: 'Healthcare_Postman.json',
-      createdAt: '2025-10-01',
-      lastActive: '2025-10-20',
-    },
+    // Add more projects or leave empty for first-time users
   ];
 
-  // Find current project from list
+  // Check if user is new (no projects)
+  const isFirstTimeUser = allProjects.length === 0;
+
+  // Find current project or use first one
   const [currentProject, setCurrentProject] = useState(
-    allProjects.find(p => p.name === project.name) || allProjects[0]
+    allProjects.find(p => p.name === project?.name) || allProjects[0]
   );
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowProjectDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleProjectSwitch = (proj) => {
-    setCurrentProject(proj);
-    updateProject(proj);
-    setShowProjectDropdown(false);
-    // Show success notification
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
-    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.remove();
-    }, 3000);
-  };
-
-    const agents = [
-    {
+  // Agents data
+  const agents = [
+{
       id: 'test-case-generator',
       name: 'Test Case Generation',
       icon: 'fa-file-alt',
@@ -219,6 +178,31 @@ const Dashboard = () => {
     }
   ];
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowProjectDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleProjectSwitch = (proj) => {
+    setCurrentProject(proj);
+    updateProject(proj);
+    setShowProjectDropdown(false);
+    
+    // Success notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+  };
+
   const handleNewProject = () => {
     navigate("/NewProjectPopup");
   };
@@ -237,6 +221,85 @@ const Dashboard = () => {
     }
   };
 
+  // First-Time User Welcome Screen
+  if (isFirstTimeUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-16 py-8">
+          
+          {/* Welcome Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Welcome to Testing Agents, {user.name.split(' ')[0]}!
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Let's set up your first project and start automated testing with AI-powered agents
+            </p>
+          </div>
+
+          {/* Getting Started Card */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+              
+              {/* Hero Section */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <i className="fas fa-rocket text-2xl"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Get Started in 4 Easy Steps</h2>
+                    <p className="text-indigo-100 text-sm">Create your first project and unlock powerful testing</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="p-8">
+                <div className="grid md:grid-cols-4 gap-4 mb-8">
+                  {[
+                    { icon: 'fab fa-github', title: 'Connect GitHub', description: 'Link your repository', color: 'indigo' },
+                    { icon: 'fas fa-cog', title: 'Project Details', description: 'Configure project info', color: 'purple' },
+                    { icon: 'fas fa-file-upload', title: 'Upload Docs', description: 'Add FRD & User Stories', color: 'pink' },
+                    { icon: 'fas fa-robot', title: 'Run Agents', description: 'Start automated testing', color: 'blue' }
+                  ].map((step, index) => (
+                    <div key={index} className="text-center">
+                      <div className={`w-14 h-14 bg-${step.color}-100 dark:bg-${step.color}-900/30 rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                        <i className={`${step.icon} text-${step.color}-600 dark:text-${step.color}-400 text-xl`}></i>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">{step.title}</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{step.description}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <div className="text-center">
+                  <button
+                    onClick={handleNewProject}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <i className="fas fa-plus-circle text-xl"></i>
+                    Create Your First Project
+                    <i className="fas fa-arrow-right"></i>
+                  </button>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                    Takes only 2 minutes to set up
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer className="bg-gray-900 text-white text-center py-8 mt-16">
+          <p>Testing Agents Platform © 2025 | Empowering testers with AI</p>
+        </footer>
+      </div>
+    );
+  }
+
+  // Regular Dashboard (for users with projects)
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-16 py-8">
@@ -257,7 +320,7 @@ const Dashboard = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                      {currentProject.name}
+                      {currentProject?.name || project?.name}
                     </h3>
                     <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full">
                       Active
@@ -265,7 +328,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
                     <i className="fas fa-calendar-alt"></i>
-                    Last updated: {currentProject.lastActive}
+                    Last updated: {currentProject?.lastActive || 'Today'}
                   </p>
                 </div>
               </div>
@@ -273,11 +336,11 @@ const Dashboard = () => {
           </div>
 
           <div className="flex gap-3">
-            {/* Project Switcher Dropdown - Enhanced */}
+            {/* Project Switcher Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-5 py-3 rounded-xl font-semibold hover:border-indigo-500 dark:hover:border-indigo-500 transition-all shadow-md hover:shadow-lg flex items-center gap-3 min-w-[220px] group"
+                className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-5 py-3 rounded-xl font-semibold hover:border-indigo-500 transition-all shadow-md hover:shadow-lg flex items-center gap-3 min-w-[220px] group"
               >
                 <div className="flex items-center gap-2 flex-1">
                   <i className="fas fa-layer-group text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
@@ -286,83 +349,58 @@ const Dashboard = () => {
                 <i className={`fas fa-chevron-down text-sm transition-all duration-300 ${showProjectDropdown ? 'rotate-180 text-indigo-600' : 'text-gray-400'}`}></i>
               </button>
 
-              {/* Enhanced Dropdown Menu */}
               {showProjectDropdown && (
                 <div className="absolute top-full mt-3 right-0 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-                  {/* Header */}
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">
-                          Your Projects
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {allProjects.length} total projects
-                        </p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">Your Projects</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{allProjects.length} total</p>
                       </div>
-                      <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                         <i className="fas fa-folder text-white"></i>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Project List */}
-                  <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                  <div className="max-h-80 overflow-y-auto">
                     {allProjects.map((proj) => (
                       <button
                         key={proj.id}
                         onClick={() => handleProjectSwitch(proj)}
-                        className={`w-full text-left px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border-l-4 group ${
-                          currentProject.id === proj.id
-                            ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
-                            : 'border-transparent hover:border-gray-300'
+                        className={`w-full text-left px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border-l-4 ${
+                          currentProject?.id === proj.id ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : 'border-transparent'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                currentProject.id === proj.id 
-                                  ? 'bg-indigo-600 dark:bg-indigo-500' 
-                                  : 'bg-gray-200 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30'
-                              } transition-colors`}>
+                                currentProject?.id === proj.id ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+                              }`}>
                                 <i className={`fas fa-folder text-sm ${
-                                  currentProject.id === proj.id 
-                                    ? 'text-white' 
-                                    : 'text-gray-600 dark:text-gray-400'
+                                  currentProject?.id === proj.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                                 }`}></i>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`font-semibold truncate ${
-                                  currentProject.id === proj.id 
-                                    ? 'text-indigo-600 dark:text-indigo-400' 
-                                    : 'text-gray-900 dark:text-white'
-                                }`}>
-                                  {proj.name}
-                                </p>
-                              </div>
+                              <p className={`font-semibold truncate ${
+                                currentProject?.id === proj.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'
+                              }`}>
+                                {proj.name}
+                              </p>
                             </div>
-                            
                             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                               <span className="flex items-center gap-1">
                                 <i className="fas fa-calendar-alt"></i>
                                 {proj.lastActive}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <i className="fas fa-clock"></i>
-                                {proj.createdAt}
-                              </span>
                             </div>
                           </div>
-                          
-                          {currentProject.id === proj.id && (
+                          {currentProject?.id === proj.id && (
                             <div className="flex flex-col items-center gap-1">
                               <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
                                 <i className="fas fa-check text-white text-xs"></i>
                               </div>
-                              <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-                                Active
-                              </span>
+                              <span className="text-xs font-semibold text-green-600">Active</span>
                             </div>
                           )}
                         </div>
@@ -370,14 +408,13 @@ const Dashboard = () => {
                     ))}
                   </div>
 
-                  {/* Footer */}
                   <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <button
                       onClick={() => {
                         setShowProjectDropdown(false);
                         handleNewProject();
                       }}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold transition-all text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold transition-all text-sm flex items-center justify-center gap-2 shadow-md"
                     >
                       <i className="fas fa-plus-circle"></i>
                       Create New Project
@@ -398,9 +435,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-
         {/* Project Configuration */}
-        <div className="bg-white dark:bg-gray-800/30 backdrop-blur-sm rounded-xl shadow-md p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
@@ -416,51 +452,31 @@ const Dashboard = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                <i className="fab fa-github text-indigo-600 dark:text-indigo-400 text-xl"></i>
+            {[
+              { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository },
+              { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument },
+              { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories },
+              { icon: 'fas fa-cube', label: 'Postman Collection', value: currentProject?.postmanCollection || project?.postmanCollection }
+            ].map((item, idx) => (
+              <div key={idx} className="flex items-start gap-3">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <i className={`${item.icon} text-indigo-600 dark:text-indigo-400 text-xl`}></i>
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{item.value}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Repository</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{currentProject.repository}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-file-alt text-indigo-600 dark:text-indigo-400 text-xl"></i>
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">FRD Document</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{currentProject.frdDocument}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-book text-indigo-600 dark:text-indigo-400 text-xl"></i>
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">User Stories</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{currentProject.userStories}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-cube text-indigo-600 dark:text-indigo-400 text-xl"></i>
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Postman Collection</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{currentProject.postmanCollection}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800/30 backdrop-blur-sm rounded-t-xl shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-md overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('agents')}
-              className={`px-6 py-3 font-semibold text-sm transition-all relative ${
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'agents'
                   ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
                   : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -470,7 +486,7 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-3 font-semibold text-sm transition-all relative ${
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'history'
                   ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
                   : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -480,7 +496,6 @@ const Dashboard = () => {
             </button>
           </div>
 
-          {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'agents' && (
               <div>
@@ -497,7 +512,7 @@ const Dashboard = () => {
                             <div className={`${agent.iconBg} ${agent.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}>
                               <i className={`fas ${agent.icon} text-xl`}></i>
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1">
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{agent.name}</h3>
                               <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
                                 <i className="fas fa-circle text-xs"></i>
@@ -529,7 +544,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="bg-gray-900 text-white text-center py-8 mt-12">
         <p>Testing Agents Platform © 2025 | Empowering testers with AI</p>
       </footer>
