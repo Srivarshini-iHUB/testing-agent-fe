@@ -1,65 +1,86 @@
 import { useState } from 'react';
-import { testCaseApi } from '../api/testCaseApi';
+import { ExcelFormatter } from '../utils/excelFormatter';
 
 export const useDownload = () => {
   const [downloading, setDownloading] = useState(false);
-  
-  const downloadExcel = async (frdFiles, userStoryFiles) => {
+
+  /**
+   * Download test cases as Excel (Frontend generation)
+   */
+  const downloadExcel = async (testCases) => {
+    setDownloading(true);
+    
     try {
-      setDownloading(true);
-      
-      const blob = await testCaseApi.downloadExcel(frdFiles, userStoryFiles);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
+      // Generate timestamp for filename
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      link.download = `test_cases_${timestamp}.xlsx`;
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-    } catch (err) {
-      console.error('Download failed:', err);
-      alert('Failed to download Excel file: ' + err.message);
+      const filename = `test_cases_${timestamp}.xlsx`;
+
+      // Generate and download Excel on frontend
+      ExcelFormatter.downloadExcel(testCases, filename);
+
+      console.log('✅ Excel downloaded successfully');
+    } catch (error) {
+      console.error('❌ Excel download failed:', error);
+      alert('Failed to download Excel file. Please try again.');
     } finally {
       setDownloading(false);
     }
   };
-  
-  const downloadJSON = (data) => {
+
+  /**
+   * Download detailed Excel with multiple sheets
+   */
+  const downloadDetailedExcel = async (result) => {
+    setDownloading(true);
+    
     try {
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      link.download = `test_cases_${timestamp}.json`;
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-    } catch (err) {
-      console.error('JSON download failed:', err);
-      alert('Failed to download JSON file: ' + err.message);
+      const filename = `test_cases_detailed_${timestamp}.xlsx`;
+
+      ExcelFormatter.downloadDetailedExcel(result, filename);
+
+      console.log('✅ Detailed Excel downloaded successfully');
+    } catch (error) {
+      console.error('❌ Detailed Excel download failed:', error);
+      alert('Failed to download detailed Excel file. Please try again.');
+    } finally {
+      setDownloading(false);
     }
   };
-  
-  return { downloading, downloadExcel, downloadJSON };
+
+  /**
+   * Download test cases as JSON
+   */
+  const downloadJSON = (testCaseData) => {
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `test_cases_${timestamp}.json`;
+
+      // Convert to JSON string
+      const jsonString = JSON.stringify(testCaseData, null, 2);
+
+      // Create blob and download
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log('✅ JSON downloaded successfully');
+    } catch (error) {
+      console.error('❌ JSON download failed:', error);
+      alert('Failed to download JSON file. Please try again.');
+    }
+  };
+
+  return {
+    downloading,
+    downloadExcel,
+    downloadDetailedExcel,
+    downloadJSON
+  };
 };

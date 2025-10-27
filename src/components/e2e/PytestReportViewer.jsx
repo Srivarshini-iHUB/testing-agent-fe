@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const PytestReportViewer = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,47 +61,31 @@ const PytestReportViewer = () => {
   const getStatusIcon = (outcome) => {
     switch (outcome) {
       case 'passed':
-        return (
-          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
+        return <i className="fas fa-check-circle text-emerald-500 dark:text-emerald-400 text-xl"></i>;
       case 'failed':
-        return (
-          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
+        return <i className="fas fa-times-circle text-rose-500 dark:text-rose-400 text-xl"></i>;
       case 'skipped':
-        return (
-          <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
+        return <i className="fas fa-minus-circle text-amber-500 dark:text-amber-400 text-xl"></i>;
       default:
-        return (
-          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
+        return <i className="fas fa-question-circle text-gray-500 dark:text-gray-400 text-xl"></i>;
     }
   };
 
   const getStatusBadge = (outcome) => {
     const badges = {
-      passed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      skipped: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      passed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+      failed: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
+      skipped: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
     };
-    return badges[outcome] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    return badges[outcome] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading test report...</p>
+          <div className="w-16 h-16 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 font-semibold">Loading test report...</p>
         </div>
       </div>
     );
@@ -108,14 +93,21 @@ const PytestReportViewer = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="card max-w-lg">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 p-6">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 shadow-2xl max-w-lg w-full">
           <div className="text-center">
-            <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <div className="w-20 h-20 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-exclamation-triangle text-4xl text-rose-600 dark:text-rose-400"></i>
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Report</h2>
-            <p className="text-gray-600 dark:text-gray-300">{error}</p>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+            <button
+              onClick={() => navigate('/e2e-testing')}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-semibold transition-all"
+            >
+              <i className="fas fa-arrow-left mr-2"></i>
+              Back to E2E Testing
+            </button>
           </div>
         </div>
       </div>
@@ -124,8 +116,8 @@ const PytestReportViewer = () => {
 
   if (!reportData) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="card max-w-lg text-center">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 p-6">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 shadow-2xl max-w-lg w-full text-center">
           <div className="text-6xl mb-4">📊</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Report Data</h2>
           <p className="text-gray-600 dark:text-gray-300">Please provide a valid report URL</p>
@@ -137,80 +129,88 @@ const PytestReportViewer = () => {
   const { summary, tests = [], duration, created } = reportData;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Pytest Test Report
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            {created && new Date(created * 1000).toLocaleString()}
-          </p>
+          <button
+            onClick={() => navigate('/e2e-testing')}
+            className="mb-4 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+          >
+            <i className="fas fa-arrow-left"></i>
+            Back to E2E Testing
+          </button>
+
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-3xl shadow-lg">
+              📊
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pytest Test Report</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                {created && new Date(created * 1000).toLocaleString()}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Summary Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-blue-200 dark:border-blue-700">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border-l-4 border-blue-500 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-1">Total Tests</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{summary?.total || 0}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">Total Tests</p>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{summary?.total || 0}</p>
               </div>
-              <div className="text-blue-500 dark:text-blue-400">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <i className="fas fa-clipboard-list text-3xl text-blue-600 dark:text-blue-400"></i>
               </div>
             </div>
           </div>
 
-          <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 border-green-200 dark:border-green-700">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border-l-4 border-emerald-500 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-1">Passed</p>
-                <p className="text-3xl font-bold text-green-900 dark:text-green-100">{summary?.passed || 0}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">Passed</p>
+                <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">{summary?.passed || 0}</p>
               </div>
-              <div className="text-green-500 dark:text-green-400">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                <i className="fas fa-check-circle text-3xl text-emerald-600 dark:text-emerald-400"></i>
               </div>
             </div>
           </div>
 
-          <div className="card bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900 dark:to-red-800 border-red-200 dark:border-red-700">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border-l-4 border-rose-500 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium mb-1">Failed</p>
-                <p className="text-3xl font-bold text-red-900 dark:text-red-100">{summary?.failed || 0}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">Failed</p>
+                <p className="text-4xl font-bold text-rose-600 dark:text-rose-400">{summary?.failed || 0}</p>
               </div>
-              <div className="text-red-500 dark:text-red-400">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
+                <i className="fas fa-times-circle text-3xl text-rose-600 dark:text-rose-400"></i>
               </div>
             </div>
           </div>
 
-          <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
+          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border-l-4 border-purple-500 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-1">Duration</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{formatDuration(duration)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">Duration</p>
+                <p className="text-4xl font-bold text-purple-600 dark:text-purple-400">{formatDuration(duration)}</p>
               </div>
-              <div className="text-purple-500 dark:text-purple-400">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                <i className="fas fa-clock text-3xl text-purple-600 dark:text-purple-400"></i>
               </div>
             </div>
           </div>
         </div>
 
         {/* Test Results */}
-        <div className="card">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Test Results</h2>
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <i className="fas fa-list-check text-indigo-600 dark:text-indigo-400"></i>
+            Test Results
+          </h2>
           <div className="space-y-4">
             {tests.map((test, index) => {
               const isExpanded = expandedTests.has(test.nodeid);
@@ -219,67 +219,70 @@ const PytestReportViewer = () => {
               return (
                 <div
                   key={test.nodeid || index}
-                  className={`border rounded-lg overflow-hidden transition-all ${
+                  className={`border-2 rounded-xl overflow-hidden transition-all ${
                     test.outcome === 'failed'
-                      ? 'border-red-300 dark:border-red-700'
+                      ? 'border-rose-300 dark:border-rose-700'
                       : test.outcome === 'passed'
-                      ? 'border-green-300 dark:border-green-700'
+                      ? 'border-emerald-300 dark:border-emerald-700'
                       : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
                   <div
-                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                    className={`p-5 cursor-pointer hover:opacity-90 transition-all ${
                       test.outcome === 'failed'
-                        ? 'bg-red-50 dark:bg-red-900/20'
+                        ? 'bg-rose-50 dark:bg-rose-900/20'
                         : test.outcome === 'passed'
-                        ? 'bg-green-50 dark:bg-green-900/20'
-                        : 'bg-gray-50 dark:bg-gray-800'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                        : 'bg-gray-50 dark:bg-gray-800/30'
                     }`}
                     onClick={() => toggleTest(test.nodeid)}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1">
+                      <div className="flex items-start gap-3 flex-1">
                         {getStatusIcon(test.outcome)}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                               {test.nodeid?.split('::').pop() || 'Unknown Test'}
                             </h3>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(test.outcome)}`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadge(test.outcome)}`}>
                               {test.outcome?.toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono truncate">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mb-2 truncate">
                             {test.nodeid}
                           </p>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            <span>⏱️ {formatDuration(testDuration)}</span>
-                            {test.lineno && <span>📍 Line {test.lineno}</span>}
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <i className="fas fa-stopwatch"></i>
+                              {formatDuration(testDuration)}
+                            </span>
+                            {test.lineno && (
+                              <span className="flex items-center gap-1">
+                                <i className="fas fa-map-marker-alt"></i>
+                                Line {test.lineno}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <svg
-                        className={`w-5 h-5 text-gray-500 transition-transform ${
-                          isExpanded ? 'transform rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <i className={`fas fa-chevron-down text-gray-500 dark:text-gray-400 transition-transform ${
+                        isExpanded ? 'rotate-180' : ''
+                      }`}></i>
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                      {/* Test Phases */}
-                      <div className="space-y-4">
+                    <div className="p-5 bg-white dark:bg-gray-900/50 border-t-2 border-gray-200 dark:border-gray-700">
+                      <div className="space-y-5">
                         {/* Setup Phase */}
                         {test.setup && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Setup Phase</h4>
-                            <div className="flex items-center space-x-2 text-sm">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                              <i className="fas fa-cog text-blue-600 dark:text-blue-400"></i>
+                              Setup Phase
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                               {getStatusIcon(test.setup.outcome)}
                               <span className="text-gray-600 dark:text-gray-400">
                                 {test.setup.outcome} ({formatDuration(test.setup.duration)})
@@ -291,8 +294,11 @@ const PytestReportViewer = () => {
                         {/* Call Phase */}
                         {test.call && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Test Execution</h4>
-                            <div className="flex items-center space-x-2 text-sm mb-2">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                              <i className="fas fa-play text-indigo-600 dark:text-indigo-400"></i>
+                              Test Execution
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-3">
                               {getStatusIcon(test.call.outcome)}
                               <span className="text-gray-600 dark:text-gray-400">
                                 {test.call.outcome} ({formatDuration(test.call.duration)})
@@ -301,24 +307,31 @@ const PytestReportViewer = () => {
 
                             {/* Error Details */}
                             {test.call.outcome === 'failed' && test.call.crash && (
-                              <div className="mt-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                                <h5 className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">Error Message</h5>
-                                <pre className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap font-mono">
+                              <div className="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-lg border-2 border-rose-200 dark:border-rose-800">
+                                <h5 className="text-sm font-bold text-rose-800 dark:text-rose-300 mb-2 flex items-center gap-2">
+                                  <i className="fas fa-bug"></i>
+                                  Error Message
+                                </h5>
+                                <pre className="text-sm text-rose-700 dark:text-rose-400 whitespace-pre-wrap font-mono bg-rose-100 dark:bg-rose-950/30 p-3 rounded">
                                   {test.call.crash.message}
                                 </pre>
                                 {test.call.crash.path && (
-                                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                                    📄 {test.call.crash.path}:{test.call.crash.lineno}
+                                  <p className="text-xs text-rose-600 dark:text-rose-400 mt-2 font-mono">
+                                    <i className="fas fa-file-code mr-1"></i>
+                                    {test.call.crash.path}:{test.call.crash.lineno}
                                   </p>
                                 )}
                               </div>
                             )}
 
-                            {/* Long repr (detailed error) */}
+                            {/* Long repr */}
                             {test.call.longrepr && (
-                              <div className="mt-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Traceback</h5>
-                                <pre className="text-xs text-gray-700 dark:text-gray-400 whitespace-pre-wrap font-mono overflow-x-auto">
+                              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <h5 className="text-sm font-bold text-gray-800 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                  <i className="fas fa-stream"></i>
+                                  Traceback
+                                </h5>
+                                <pre className="text-xs text-gray-700 dark:text-gray-400 whitespace-pre-wrap font-mono overflow-x-auto custom-scrollbar">
                                   {test.call.longrepr}
                                 </pre>
                               </div>
@@ -326,14 +339,19 @@ const PytestReportViewer = () => {
 
                             {/* Traceback */}
                             {test.call.traceback && test.call.traceback.length > 0 && (
-                              <div className="mt-3">
-                                <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Stack Trace</h5>
+                              <div>
+                                <h5 className="text-sm font-bold text-gray-800 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                  <i className="fas fa-layer-group"></i>
+                                  Stack Trace
+                                </h5>
                                 <div className="space-y-2">
                                   {test.call.traceback.map((trace, idx) => (
-                                    <div key={idx} className="p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-                                      <span className="text-gray-600 dark:text-gray-400">{trace.path}:{trace.lineno}</span>
+                                    <div key={idx} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                      <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                        {trace.path}:{trace.lineno}
+                                      </span>
                                       {trace.message && (
-                                        <p className="text-gray-700 dark:text-gray-300 mt-1">{trace.message}</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{trace.message}</p>
                                       )}
                                     </div>
                                   ))}
@@ -346,8 +364,11 @@ const PytestReportViewer = () => {
                         {/* Teardown Phase */}
                         {test.teardown && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Teardown Phase</h4>
-                            <div className="flex items-center space-x-2 text-sm">
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                              <i className="fas fa-broom text-purple-600 dark:text-purple-400"></i>
+                              Teardown Phase
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                               {getStatusIcon(test.teardown.outcome)}
                               <span className="text-gray-600 dark:text-gray-400">
                                 {test.teardown.outcome} ({formatDuration(test.teardown.duration)})
@@ -359,12 +380,15 @@ const PytestReportViewer = () => {
                         {/* Keywords */}
                         {test.keywords && test.keywords.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Keywords</h4>
+                            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                              <i className="fas fa-tags text-amber-600 dark:text-amber-400"></i>
+                              Keywords
+                            </h4>
                             <div className="flex flex-wrap gap-2">
                               {test.keywords.map((keyword, idx) => (
                                 <span
                                   key={idx}
-                                  className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs"
+                                  className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-semibold"
                                 >
                                   {keyword}
                                 </span>
@@ -383,13 +407,16 @@ const PytestReportViewer = () => {
 
         {/* Exit Code */}
         {reportData.exitcode !== undefined && (
-          <div className="mt-6 card">
+          <div className="mt-6 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
             <div className="flex items-center justify-between">
-              <span className="text-gray-700 dark:text-gray-300 font-medium">Exit Code</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+              <span className="text-gray-700 dark:text-gray-300 font-bold flex items-center gap-2">
+                <i className="fas fa-code"></i>
+                Exit Code
+              </span>
+              <span className={`px-4 py-2 rounded-lg text-sm font-bold ${
                 reportData.exitcode === 0
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300'
               }`}>
                 {reportData.exitcode}
               </span>
@@ -402,4 +429,3 @@ const PytestReportViewer = () => {
 };
 
 export default PytestReportViewer;
-

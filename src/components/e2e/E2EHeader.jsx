@@ -1,19 +1,21 @@
 const E2EHeader = () => {
   return (
-    <div className="text-center">
-      <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-        🎭
+    <div className="mb-8">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-lg">
+          🔄
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Functionalo Testing Agent
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
+            Comprehensive testing of complete user workflows with automated execution and reporting
+          </p>
+        </div>
       </div>
-      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-        End-to-End Testing Agent
-      </h1>
-      <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-        Comprehensive testing of complete user workflows within Chrome with automated execution and reporting.
-      </p>
     </div>
   );
 };
 
 export default E2EHeader;
-
-
