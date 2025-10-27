@@ -37,7 +37,7 @@ const NewProject = () => {
     setTimeout(() => {
       setGithubConnected(true)
       setGithubUser({
-        name: user.name,
+        name: mockGithubRepos.name,
         username: 'ajay-kumar',
         avatar: 'https://github.com/identicons/ajay.png'
       })
