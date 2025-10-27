@@ -25,7 +25,7 @@ export const useTestCaseGeneration = () => {
       const data = await testCaseApi.generateTestCases(
         frdFiles, 
         userStoryFiles,
-        'PROJ_1',
+        'string',
         (percent) => setProgress(percent)
       );
       
