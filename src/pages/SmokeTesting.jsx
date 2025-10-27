@@ -411,14 +411,19 @@ function SmokeTesting() {
 
   // Handlers
   const handleBeforeDeploymentClick = () => {
-    if (!sessionToken) {
-      window.location.href = `${API_BASE}/auth/login?redirect_uri=${encodeURIComponent(
-        "http://localhost:5173/smoke-testing"
-      )}`;
-    } else {
-      setActiveTab("before");
-    }
-  };
+  if (!sessionToken) {
+    // Optional: Show loading state or disable button
+    toast.info("Redirecting to GitHub for login...", {
+      position: "top-right",
+      autoClose: 2000,
+    });
+    window.location.href = `${API_BASE}/auth/login?redirect_uri=${encodeURIComponent(
+      "http://localhost:5173/smoke-testing"
+    )}`;
+  } else {
+    setActiveTab("before");
+  }
+};
 
   const handleAfterDeploymentClick = () => {
     setActiveTab("after");
@@ -471,12 +476,21 @@ function SmokeTesting() {
                 </p>
                 <button
                   onClick={handleBeforeDeploymentClick}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                 >
-                  Explore
+                  {sessionToken ? (
+                    <>
+                      <i className="fas fa-check-circle"></i>
+                      Explore
+                    </>
+                  ) : (
+                    <>
+                      <i className="fab fa-github"></i>
+                      Github Login to Explore
+                    </>
+                  )}
                 </button>
               </div>
-
               {/* Deployment Center Card (Non-clickable) */}
               <div className="flex flex-col items-center justify-center p-4 md:my-0 my-4">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 rounded-full p-4 shadow-lg">
@@ -484,7 +498,6 @@ function SmokeTesting() {
                 </div>
                 <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">Deployment</h3>
               </div>
-
               {/* After Deployment Card */}
               <div
                 className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 cursor-pointer w-full md:w-1/3"
@@ -505,7 +518,6 @@ function SmokeTesting() {
                   Explore
                 </button>
               </div>
-
               {/* Connecting Arrows (Visual Roadmap) */}
               <div className="hidden md:flex absolute w-full justify-between px-4">
                 <div className="flex-grow border-t-2 border-dashed border-gray-300 dark:border-gray-600 mx-2 mt-10"></div>
@@ -514,7 +526,6 @@ function SmokeTesting() {
             </div>
           </div>
         )}
-
         {/* Before Deployment Tab */}
         {activeTab === "before" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
