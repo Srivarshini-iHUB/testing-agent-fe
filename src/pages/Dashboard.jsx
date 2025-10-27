@@ -10,7 +10,7 @@ const Dashboard = () => {
   const { user, project, updateProject } = useUser();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("agents");
+  const [activeTab, setActiveTab] = useState("history");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -475,16 +475,6 @@ const Dashboard = () => {
         <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-md overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setActiveTab('agents')}
-              className={`px-6 py-3 font-semibold text-sm transition-all ${
-                activeTab === 'agents'
-                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              TESTING AGENTS
-            </button>
-            <button
               onClick={() => setActiveTab('history')}
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'history'
@@ -493,6 +483,16 @@ const Dashboard = () => {
               }`}
             >
               AGENT HISTORY
+            </button>
+            <button
+              onClick={() => setActiveTab('agents')}
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
+                activeTab === 'agents'
+                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                  : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              TESTING AGENTS
             </button>
           </div>
 
