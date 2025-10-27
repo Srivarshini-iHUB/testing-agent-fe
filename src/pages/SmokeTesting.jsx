@@ -143,13 +143,11 @@ function SmokeTesting() {
       const formData = new FormData();
       formData.append("file", testCasesFile);
       formData.append("project_url", projectUrl);
-
       const res = await axios.post(
         `${API_BASE}/generate_smoke_tests`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-
       const scriptWithoutPythonLabel = res.data.script.replace(/^python\s*[\r\n]/, "");
       setGeneratedScript(scriptWithoutPythonLabel);
       setGeneratedTestCases(res.data.test_cases);
@@ -179,13 +177,11 @@ function SmokeTesting() {
     const maxWidth = pageWidth - margin * 2;
     const lineHeight = 12;
     let y = 40;
-
     const addTitle = (text, fontSize = 16) => {
       doc.setFontSize(fontSize);
       doc.text(text, margin, y);
       y += fontSize + 8;
     };
-
     const addParagraph = (text, fontSize = 11) => {
       doc.setFontSize(fontSize);
       const lines = doc.splitTextToSize(text, maxWidth);
@@ -198,13 +194,11 @@ function SmokeTesting() {
         y += lineHeight;
       });
     };
-
     addTitle("Smoke Test Report", 18);
     addParagraph(`Commit: ${reportObj.commit_id || "N/A"}`);
     addParagraph(`Branch: ${reportObj.branch || selectedBranch || "N/A"}`);
     addParagraph(`Overall Status: ${reportObj.status || "N/A"}`);
     y += 6;
-
     const summary = reportObj.summary || reportObj || {};
     const addSection = (title, content) => {
       addTitle(title, 13);
@@ -229,7 +223,6 @@ function SmokeTesting() {
       }
       y += 4;
     };
-
     addSection("Critical Files Present", summary.critical_files_present);
     addSection("Build Ready for Regression", summary.build_ready_for_regression);
     addSection("Syntax Errors", summary.syntax_errors || []);
@@ -239,7 +232,6 @@ function SmokeTesting() {
     if (summary._raw_llm_output) {
       addSection("LLM Raw Output", [{ file: "LLM", error: summary._raw_llm_output }]);
     }
-
     const name = `smoke_report_${reportObj.commit_id || "latest"}.pdf`;
     doc.save(name);
   };
@@ -248,7 +240,6 @@ function SmokeTesting() {
   const downloadDOCX = async (reportObj) => {
     const summary = reportObj.summary || reportObj || {};
     const children = [];
-
     const pushParagraph = (text, bold = false) => {
       children.push(
         new Paragraph({
@@ -256,13 +247,11 @@ function SmokeTesting() {
         })
       );
     };
-
     pushParagraph("Smoke Test Report", true);
     pushParagraph(`Commit: ${reportObj.commit_id || "N/A"}`);
     pushParagraph(`Branch: ${reportObj.branch || selectedBranch || "N/A"}`);
     pushParagraph(`Overall Status: ${reportObj.status || "N/A"}`);
     children.push(new Paragraph({ text: "" }));
-
     const addArraySection = (title, arr) => {
       pushParagraph(title, true);
       if (!arr || arr.length === 0) {
@@ -284,13 +273,11 @@ function SmokeTesting() {
       }
       children.push(new Paragraph({ text: "" }));
     };
-
     const addBooleanSection = (title, val) => {
       pushParagraph(title, true);
       pushParagraph(val ? "Yes" : "No");
       children.push(new Paragraph({ text: "" }));
     };
-
     addBooleanSection("Critical Files Present", summary.critical_files_present);
     addBooleanSection("Build Ready for Regression", summary.build_ready_for_regression);
     addArraySection("Syntax Errors", summary.syntax_errors || []);
@@ -301,7 +288,6 @@ function SmokeTesting() {
       pushParagraph("LLM Raw Output", true);
       pushParagraph(summary._raw_llm_output);
     }
-
     const doc = new Document({
       sections: [{ properties: {}, children }],
     });
@@ -362,7 +348,6 @@ function SmokeTesting() {
               {report.status}
             </span>
           </div>
-
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="text-center">
               <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -468,35 +453,64 @@ function SmokeTesting() {
 
         {/* Tab Selection */}
         {!activeTab && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 max-w-4xl mx-auto">
-            <div
-              onClick={handleBeforeDeploymentClick}
-              className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fas fa-code-branch text-orange-600 dark:text-orange-400"></i>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Smoke Testing Before Deployment
-                </h3>
+          <div className="flex flex-col items-center justify-center mb-6 max-w-4xl mx-auto">
+            {/* Roadmap Container */}
+            <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4 relative">
+              {/* Before Deployment Card */}
+              <div
+                className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 cursor-pointer w-full md:w-1/3"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <i className="fas fa-code-branch text-orange-600 dark:text-orange-400"></i>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Before Deployment
+                  </h3>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                  Test your code before deployment. Login with GitHub, select repo, and run smoke tests.
+                </p>
+                <button
+                  onClick={handleBeforeDeploymentClick}
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Explore
+                </button>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Test your code before deployment. Login with GitHub, select repo, and run smoke tests.
-              </p>
-            </div>
 
-            <div
-              onClick={handleAfterDeploymentClick}
-              className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fas fa-rocket text-green-600 dark:text-green-400"></i>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Smoke Testing After Deployment
-                </h3>
+              {/* Deployment Center Card (Non-clickable) */}
+              <div className="flex flex-col items-center justify-center p-4 md:my-0 my-4">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 rounded-full p-4 shadow-lg">
+                  <i className="fas fa-rocket text-white text-2xl"></i>
+                </div>
+                <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">Deployment</h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Test your deployed project. Upload test cases and generate smoke test scripts.
-              </p>
+
+              {/* After Deployment Card */}
+              <div
+                className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 cursor-pointer w-full md:w-1/3"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <i className="fas fa-rocket text-green-600 dark:text-green-400"></i>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    After Deployment
+                  </h3>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                  Test your deployed project. Upload test cases and generate smoke test scripts.
+                </p>
+                <button
+                  onClick={handleAfterDeploymentClick}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Explore
+                </button>
+              </div>
+
+              {/* Connecting Arrows (Visual Roadmap) */}
+              <div className="hidden md:flex absolute w-full justify-between px-4">
+                <div className="flex-grow border-t-2 border-dashed border-gray-300 dark:border-gray-600 mx-2 mt-10"></div>
+                <div className="flex-grow border-t-2 border-dashed border-gray-300 dark:border-gray-600 mx-2 mt-10"></div>
+              </div>
             </div>
           </div>
         )}
@@ -533,7 +547,6 @@ function SmokeTesting() {
                     ))}
                   </select>
                 </div>
-
                 {branches.length > 0 && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -553,7 +566,6 @@ function SmokeTesting() {
                     </select>
                   </div>
                 )}
-
                 <div className="pt-2">
                   <button
                     onClick={handleRunTests}
@@ -586,7 +598,6 @@ function SmokeTesting() {
                   )}
                 </div>
               </div>
-
               {/* Tips */}
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg mt-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -611,7 +622,6 @@ function SmokeTesting() {
                 </div>
               </div>
             </div>
-
             {/* Results */}
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -630,23 +640,21 @@ function SmokeTesting() {
                         <div><strong>Status:</strong> {report.status || "Completed"}</div>
                       </div>
                     </div>
-
                     {/* Summary */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Critical Files:</span>
-                        <span className={summary.critical_files_present ? "text-green-600" : "text-red-600"}>
-                          {summary.critical_files_present ? "Yes" : "No"}
+                        <span className={report.summary?.critical_files_present ? "text-green-600" : "text-red-600"}>
+                          {report.summary?.critical_files_present ? "Yes" : "No"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Build Ready:</span>
-                        <span className={summary.build_ready_for_regression ? "text-green-600" : "text-red-600"}>
-                          {summary.build_ready_for_regression ? "Yes" : "No"}
+                        <span className={report.summary?.build_ready_for_regression ? "text-green-600" : "text-red-600"}>
+                          {report.summary?.build_ready_for_regression ? "Yes" : "No"}
                         </span>
                       </div>
                     </div>
-
                     {/* Download Buttons */}
                     <div className="flex gap-2 pt-4">
                       <button onClick={() => downloadPDF(report)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-1">
@@ -680,7 +688,6 @@ function SmokeTesting() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               Smoke Testing After Deployment
             </h2>
-
             <form onSubmit={handleGenerateTests} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -694,7 +701,6 @@ function SmokeTesting() {
                   className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Test Cases (CSV/XLSX)
@@ -707,7 +713,6 @@ function SmokeTesting() {
                   className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
                 />
               </div>
-
               <button
                 type="submit"
                 disabled={isGenerating}
@@ -726,14 +731,12 @@ function SmokeTesting() {
                 )}
               </button>
             </form>
-
             {generateError && (
               <div className="mt-4 bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-center space-x-2">
                 <i className="fas fa-exclamation-circle text-red-500"></i>
                 <span className="text-red-600 dark:text-red-400 text-sm">{generateError}</span>
               </div>
             )}
-
             {generatedScript && (
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-4">
@@ -751,7 +754,6 @@ function SmokeTesting() {
                     <i className="fas fa-copy"></i> Copy
                   </button>
                 </div>
-
                 <div className="bg-gray-100 dark:bg-gray-900/50 rounded-lg p-4 overflow-x-auto">
                   <Highlight code={generatedScript} language="python" theme={themes.vsDark}>
                     {({ className, style, tokens, getLineProps, getTokenProps }) => (
@@ -767,7 +769,6 @@ function SmokeTesting() {
                     )}
                   </Highlight>
                 </div>
-
                 <button
                   onClick={downloadScript}
                   className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-lg flex items-center justify-center space-x-2"
@@ -777,7 +778,6 @@ function SmokeTesting() {
                 </button>
               </div>
             )}
-
             {generatedTestCases.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Test Cases</h3>
