@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+
 const VisualConfigPanel = ({
   actualPreview,
   developedPreview,
@@ -8,8 +11,70 @@ const VisualConfigPanel = ({
   developedInputRef,
   assignActual,
   assignDeveloped,
-  runVisualTest
+  setTestResults,
+  setIsProcessing,
+  setIsDraggingActual,
+  setIsDraggingDeveloped,
 }) => {
+  const [error, setError] = useState(null);
+
+  const runVisualTest = async () => {
+    if (!actualInputRef.current?.files[0] || !developedInputRef.current?.files[0]) {
+      setError('Please upload both baseline and current images.');
+      return;
+    }
+    if (typeof setIsProcessing === 'function') {
+      setIsProcessing(true);
+    }
+    if (typeof setTestResults === 'function') {
+      setTestResults({ status: 'running', progress: 0, currentStep: 'Initializing' });
+    }
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('baseline', actualInputRef.current.files[0]);
+      formData.append('current', developedInputRef.current.files[0]);
+
+      if (typeof setTestResults === 'function') {
+        setTestResults({ status: 'running', progress: 30, currentStep: 'Processing Images' });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (typeof setTestResults === 'function') {
+        setTestResults({ status: 'running', progress: 60, currentStep: 'Analyzing Differences' });
+      }
+
+      const response = await axios.post('http://localhost:8000/visual-testing', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (typeof setTestResults === 'function') {
+        setTestResults({
+          status: 'completed',
+          results: {
+            report: response.data.data.report,
+            ssim_score: response.data.data.ssim_score,
+            baselineSrc: `data:image/jpeg;base64,${response.data.data.baseline_base64}`,
+            annotatedSrc: `data:image/jpeg;base64,${response.data.data.annotated_current_base64}`,
+            totalComparisons: 1,
+            failed: response.data.data.report.differences.length,
+            diffPercent: ((1 - response.data.data.ssim_score) * 100).toFixed(2),
+          },
+        });
+      }
+    } catch (error) {
+      console.error('API Error:', error.response?.data || error.message);
+      setError('Failed to process images: ' + (error.response?.data?.detail || error.message));
+      if (typeof setTestResults === 'function') {
+        setTestResults(null);
+      }
+    } finally {
+      if (typeof setIsProcessing === 'function') {
+        setIsProcessing(false);
+      }
+    }
+  };
+
   return (
     <div className="card">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">

@@ -341,6 +341,7 @@ const VisualRegressionResults = ({ resultData }) => {
                   </p>
                 </div>
               </div>
+              <div className="text-sm text-yellow-700 dark:text-yellow-300">Diff %</div>
             </div>
           </div>
         </div>

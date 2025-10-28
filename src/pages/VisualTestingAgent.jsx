@@ -27,6 +27,18 @@ const VisualTestingAgent = () => {
   const actualInputRef = useRef(null);
   const developedInputRef = useRef(null);
 
+  useEffect(() => {
+    const fetchNgrokUrl = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/api/ngrok-url`);
+        setApiUrl(response.data.ngrok_url);
+      } catch (err) {
+        console.warn('Failed to fetch ngrok URL, using localhost');
+      }
+    };
+    fetchNgrokUrl();
+  }, []);
+
   const assignActual = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     setActualImage(file);
