@@ -204,7 +204,7 @@ const SecurityTesting = () => {
         {/* Back & Logout */}
         <div className="flex justify-between mb-6">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700"
           >
             ← Back to Dashboard

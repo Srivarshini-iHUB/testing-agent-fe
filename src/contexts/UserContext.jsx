@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import googleAuthService from '../services/googleAuthService';
 
 const UserContext = createContext();
 
@@ -13,14 +14,14 @@ export const useUser = () => {
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : {
-      name: 'Ajay Kumar',
-      initials: 'AJ',
-      username: 'ajaykumar',
-      email: 'ajay@example.com',
-      avatar: null
-    };
+    return savedUser ? JSON.parse(savedUser) : null;
   });
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return googleAuthService.isAuthenticated();
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
 
   const [project, setProject] = useState(() => {
     const savedProject = localStorage.getItem('project');
@@ -36,9 +37,43 @@ export const UserProvider = ({ children }) => {
     };
   });
 
+  // Initialize authentication on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      if (isAuthenticated && !user) {
+        try {
+          const currentUser = await googleAuthService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            setIsAuthenticated(false);
+          }
+        } catch (error) {
+          console.error('Failed to get current user:', error);
+          setIsAuthenticated(false);
+        }
+      }
+    };
+    
+    initializeAuth();
+  }, [isAuthenticated, user]);
+
+  // Listen for auth logout events from API client
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+    return () => window.removeEventListener('auth:logout', handleAuthLogout);
+  }, []);
+
   // Save to localStorage whenever user changes
   useEffect(() => {
-    localStorage.setItem('user', JSON.stringify(user));
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
   }, [user]);
 
   // Save to localStorage whenever project changes
@@ -68,16 +103,36 @@ export const UserProvider = ({ children }) => {
     localStorage.removeItem('project');
   };
 
-  const logout = () => {
-    setUser({
-      name: '',
-      initials: '',
-      username: '',
-      email: '',
-      avatar: null
-    });
-    resetProject();
-    localStorage.removeItem('user');
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const result = await googleAuthService.signIn();
+      if (result.success) {
+        setUser(result.user);
+        setIsAuthenticated(true);
+        return { success: true, user: result.user };
+      }
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await googleAuthService.signOut();
+      setUser(null);
+      setIsAuthenticated(false);
+      resetProject();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local state even if Google logout fails
+      setUser(null);
+      setIsAuthenticated(false);
+      resetProject();
+    }
   };
 
   const value = {
@@ -88,7 +143,10 @@ export const UserProvider = ({ children }) => {
     setProject,
     updateProject,
     resetProject,
-    logout
+    logout,
+    signInWithGoogle,
+    isAuthenticated,
+    isLoading
   };
 
   return (

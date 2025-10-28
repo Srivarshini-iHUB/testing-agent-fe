@@ -345,19 +345,19 @@ const E2EResults = ({
       )}
 
       {/* Default State */}
-      {!testResults && !agentRunning && (
+      {/* {!testResults && !agentRunning && (
         <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 shadow-lg text-center">
           <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-flask text-4xl text-purple-600 dark:text-purple-400"></i>
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            Ready for E2E Testing
+            Ready for Functional Testing
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
             Choose your testing flow and upload test cases to get started
           </p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

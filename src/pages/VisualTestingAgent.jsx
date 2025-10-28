@@ -27,6 +27,18 @@ const VisualTestingAgent = () => {
   const actualInputRef = useRef(null);
   const developedInputRef = useRef(null);
 
+  useEffect(() => {
+    const fetchNgrokUrl = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/api/ngrok-url`);
+        setApiUrl(response.data.ngrok_url);
+      } catch (err) {
+        console.warn('Failed to fetch ngrok URL, using localhost');
+      }
+    };
+    fetchNgrokUrl();
+  }, []);
+
   const assignActual = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     setActualImage(file);
@@ -93,7 +105,7 @@ const VisualTestingAgent = () => {
         {/* Back Button & Header */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="mb-4 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
           >
             <i className="fas fa-arrow-left"></i>
