@@ -106,7 +106,7 @@ const PytestReportViewer = () => {
               className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-semibold transition-all"
             >
               <i className="fas fa-arrow-left mr-2"></i>
-              Back to E2E Testing
+              Back to Functional Testing
             </button>
           </div>
         </div>
@@ -138,7 +138,7 @@ const PytestReportViewer = () => {
             className="mb-4 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
           >
             <i className="fas fa-arrow-left"></i>
-            Back to E2E Testing
+            Back to Functional Testing
           </button>
 
           <div className="flex items-center gap-4">
