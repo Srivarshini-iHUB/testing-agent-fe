@@ -378,7 +378,7 @@ const E2ETestingAgent = () => {
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="mb-6 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
         >
           <i className="fas fa-arrow-left"></i>
