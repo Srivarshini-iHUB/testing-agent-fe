@@ -8,7 +8,7 @@ export default function IntegrationTestingPlatform() {
   const [frdFile, setFrdFile] = useState(null)
   const [scenarios, setScenarios] = useState([])
   const [selectedScenario, setSelectedScenario] = useState(null)
-  const [baseUrl, setBaseUrl] = useState("http://host.docker.internal:3000/api")
+  const [baseUrl, setBaseUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [report, setReport] = useState(null)
@@ -80,6 +80,11 @@ export default function IntegrationTestingPlatform() {
       return
     }
 
+    if (!baseUrl.trim()) {
+      setError("Please provide a base URL")
+      return
+    }
+
     setLoading(true)
     setError(null)
     setStep("running")
@@ -120,6 +125,7 @@ export default function IntegrationTestingPlatform() {
     setFrdFile(null)
     setScenarios([])
     setSelectedScenario(null)
+    setBaseUrl("")
     setReport(null)
     setError(null)
   }
@@ -375,22 +381,22 @@ export default function IntegrationTestingPlatform() {
               ))}
             </div>
 
-            {/* Base URL Input */}
+          
             <div className="mb-10">
-              <label className="block text-sm font-semibold text-white mb-3">Base URL (Optional)</label>
+              <label className="block text-sm font-semibold text-white mb-3">Base URL *</label>
               <input
                 type="text"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 className="w-full px-5 py-3.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 font-mono text-sm"
-                placeholder="http://host.docker.internal:3000/api"
+                placeholder="e.g., http://host.docker.internal:3000/api"
               />
             </div>
 
             {/* Run Button */}
             <button
               onClick={runScenario}
-              disabled={!selectedScenario || loading}
+              disabled={!selectedScenario || !baseUrl.trim() || loading}
               className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg shadow-green-500/20 hover:shadow-green-500/40 disabled:shadow-none text-lg"
             >
               {loading ? (

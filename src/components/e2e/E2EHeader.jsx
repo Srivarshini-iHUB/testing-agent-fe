@@ -1,5 +1,6 @@
 const E2EHeader = () => {
-  return (
+
+ return (
     <div className="mb-8">
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-lg">
