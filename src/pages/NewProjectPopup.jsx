@@ -1,124 +1,156 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useTheme } from '../contexts/ThemeContext'
-import { useUser } from '../contexts/UserContext'
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
+import axios from 'axios'; // Import for GitHub API calls (separate from apiClient)
+
+const API_BASE_URL = 'http://localhost:8080'; // Adjust to your backend port (from settings.PORT, e.g., 8000)
 
 const NewProject = () => {
-  const { isDark } = useTheme()
-  const { updateProject, user } = useUser()
-  const navigate = useNavigate()
+  const { isDark } = useTheme();
+  const { updateProject, user } = useUser();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // To parse query params
 
-  const [currentStep, setCurrentStep] = useState(1)
-  const [githubConnected, setGithubConnected] = useState(false)
-  const [githubUser, setGithubUser] = useState(null)
-  const [selectedRepo, setSelectedRepo] = useState(null)
-  const [repositories, setRepositories] = useState([])
+  const [currentStep, setCurrentStep] = useState(1);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [githubUser, setGithubUser] = useState(null);
+  const [selectedRepo, setSelectedRepo] = useState(null);
+  const [repositories, setRepositories] = useState([]);
+  const [ghToken, setGhToken] = useState(null); // New: Store GitHub token
   
   const [formData, setFormData] = useState({
     repoUrl: '',
     projectName: '',
     projectDesc: '',
     projectURL: '',
-    frdFiles: [],  // Changed to array
-    userStoryFiles: [],  // Changed to array
+    frdFiles: [],  
+    userStoryFiles: [],  
     postmanFile: null
-  })
+  });
 
-  // Mock GitHub repos
-  const mockGithubRepos = [
-    { id: 1, name: 'ecommerce-app', full_name: 'ajay/ecommerce-app', description: 'E-commerce platform with React', private: false },
-    { id: 2, name: 'social-media', full_name: 'ajay/social-media', description: 'Social networking application', private: false },
-    { id: 3, name: 'banking-dashboard', full_name: 'ajay/banking-dashboard', description: 'Financial dashboard', private: true },
-    { id: 4, name: 'healthcare-portal', full_name: 'ajay/healthcare-portal', description: 'Healthcare management system', private: false },
-  ]
+  // On mount: Check for redirect params from GitHub callback
+  useEffect(() => {
+    const userParam = searchParams.get('user');
+    const tokenParam = searchParams.get('token');
+    if (userParam && tokenParam) {
+      setGithubConnected(true);
+      setGithubUser({ username: userParam });
+      setGhToken(tokenParam);
+      // Optional: localStorage.setItem('gh_token', tokenParam); // For persistence
+      // Clear query params from URL (optional)
+      navigate('/NewProjectPopup', { replace: true }); // Assuming route is /NewProjectPopup
+    }
+  }, [searchParams, navigate]);
 
-  const handleGithubConnect = () => {
-    alert('Redirecting to GitHub for authentication...')
-    setTimeout(() => {
-      setGithubConnected(true)
-      setGithubUser({
-        name: mockGithubRepos.name,
-        username: 'ajay-kumar',
-        avatar: 'https://github.com/identicons/ajay.png'
-      })
-      setRepositories(mockGithubRepos)
-    }, 1500)
-  }
+  // Real GitHub connect: Fetch auth URL and redirect
+  const handleGithubConnect = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/github/login`);
+      const { auth_url } = response.data;
+      window.location.href = auth_url;
+    } catch (error) {
+      showNotification('Failed to initiate GitHub login. Please try again.', 'error');
+      console.error('GitHub login error:', error);
+    }
+  };
+
+  // New: Manual fetch repositories
+  const handleFetchRepos = async () => {
+    if (!ghToken) {
+      showNotification('No GitHub token available. Please reconnect.', 'error');
+      return;
+    }
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/github/repos`, {
+        headers: { Authorization: `token ${ghToken}` }
+      });
+      if (response.data.ok) {
+        setRepositories(response.data.repos);
+        showNotification('Repositories loaded successfully!', 'success');
+      } else {
+        throw new Error('Failed to fetch repos');
+      }
+    } catch (error) {
+      showNotification('Failed to load repositories. Check your connection or token.', 'error');
+      console.error('Fetch repos error:', error);
+    }
+  };
 
   const handleRepoSelect = (repo) => {
-    setSelectedRepo(repo)
+    setSelectedRepo(repo);
     setFormData(prev => ({
       ...prev,
-      repoUrl: `https://github.com/${repo.full_name}`,
+      repoUrl: repo.html_url, // Use html_url from real data
       projectName: repo.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    }))
-  }
+    }));
+  };
 
-  // Handle multiple file uploads
+  // Handle multiple file uploads (unchanged)
   const handleMultipleFileChange = (fileType) => (e) => {
     if (e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files)
+      const newFiles = Array.from(e.target.files);
       setFormData(prev => ({
         ...prev,
         [fileType]: [...prev[fileType], ...newFiles]
-      }))
+      }));
     }
-  }
+  };
 
-  // Remove specific file
+  // Remove specific file (unchanged)
   const removeFile = (fileType, index) => {
     setFormData(prev => ({
       ...prev,
       [fileType]: prev[fileType].filter((_, i) => i !== index)
-    }))
-  }
+    }));
+  };
 
-  // Handle single file upload (Postman)
+  // Handle single file upload (Postman) (unchanged)
   const handleSingleFileChange = (field) => (e) => {
     if (e.target.files.length > 0) {
-      setFormData(prev => ({ ...prev, [field]: e.target.files[0] }))
+      setFormData(prev => ({ ...prev, [field]: e.target.files[0] }));
     }
-  }
+  };
 
   const handleInputChange = (field) => (e) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }))
-  }
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  };
 
   const validateGithubStep = () => {
     if (!githubConnected || !selectedRepo) {
-      return { valid: false, message: 'Please connect GitHub and select a repository' }
+      return { valid: false, message: 'Please connect GitHub and select a repository' };
     }
-    return { valid: true }
-  }
+    return { valid: true };
+  };
 
   const validateProjectForm = () => {
     if (!formData.projectName.trim()) {
-      return { valid: false, message: 'Please enter your project name' }
+      return { valid: false, message: 'Please enter your project name' };
     }
-    return { valid: true }
-  }
+    return { valid: true };
+  };
 
   const handleNextStep = () => {
-    let validation
+    let validation;
     
     if (currentStep === 1) {
-      validation = validateGithubStep()
+      validation = validateGithubStep();
       if (!validation.valid) {
-        showNotification(validation.message, 'error')
-        return
+        showNotification(validation.message, 'error');
+        return;
       }
-      setCurrentStep(2)
+      setCurrentStep(2);
     } else if (currentStep === 2) {
-      validation = validateProjectForm()
+      validation = validateProjectForm();
       if (!validation.valid) {
-        showNotification(validation.message, 'error')
-        return
+        showNotification(validation.message, 'error');
+        return;
       }
-      setCurrentStep(3)
+      setCurrentStep(3);
     } else if (currentStep === 3) {
-      setCurrentStep(4)
+      setCurrentStep(4);
     }
-  }
+  };
 
   const showNotification = (message, type = 'info') => {
     const bgColors = {
@@ -126,42 +158,42 @@ const NewProject = () => {
       warning: 'bg-orange-600',
       success: 'bg-green-600',
       info: 'bg-blue-600'
-    }
+    };
     
     const icons = {
       error: 'fa-exclamation-circle',
       warning: 'fa-exclamation-triangle',
       success: 'fa-check-circle',
       info: 'fa-info-circle'
-    }
+    };
 
-    const notification = document.createElement('div')
-    notification.className = `fixed top-4 right-4 ${bgColors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-2`
-    notification.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 3000)
-  }
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 ${bgColors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-2`;
+    notification.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+  };
 
   const handleClose = () => {
     if (window.confirm('Discard changes and go back to dashboard?')) {
-      navigate('/dashboard')
+      navigate('/dashboard');
     }
-  }
+  };
 
   const handleStartTesting = () => {
-    const frdCount = formData.frdFiles.length
-    const userStoryCount = formData.userStoryFiles.length
+    const frdCount = formData.frdFiles.length;
+    const userStoryCount = formData.userStoryFiles.length;
 
     // Build summary message
-    let summaryMessage = `Project "${formData.projectName}" will be created with:\n\n`
-    summaryMessage += `• Repository: ${selectedRepo.full_name}\n`
-    summaryMessage += `• FRD Documents: ${frdCount || 'None'}\n`
-    summaryMessage += `• User Stories: ${userStoryCount || 'None'}\n`
-    summaryMessage += `• Postman Collection: ${formData.postmanFile ? 'Yes' : 'None'}\n\n`
-    summaryMessage += `Continue to create project?`
+    let summaryMessage = `Project "${formData.projectName}" will be created with:\n\n`;
+    summaryMessage += `• Repository: ${selectedRepo?.full_name || 'None'}\n`;
+    summaryMessage += `• FRD Documents: ${frdCount || 'None'}\n`;
+    summaryMessage += `• User Stories: ${userStoryCount || 'None'}\n`;
+    summaryMessage += `• Postman Collection: ${formData.postmanFile ? 'Yes' : 'None'}\n\n`;
+    summaryMessage += `Continue to create project?`;
 
     if (!window.confirm(summaryMessage)) {
-      return
+      return;
     }
 
     updateProject({
@@ -175,29 +207,31 @@ const NewProject = () => {
       githubConnected: true,
       githubRepo: selectedRepo?.full_name,
       createdAt: new Date().toISOString()
-    })
+    });
 
-    showNotification('Project created successfully!', 'success')
-    setTimeout(() => navigate('/dashboard'), 1500)
-  }
+    showNotification('Project created successfully!', 'success');
+    setTimeout(() => navigate('/dashboard'), 1500);
+  };
 
   const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   function handleSkipStep() {
     if (currentStep < 4) {
-    setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep + 1);
     } else {
-    // Optional: final submit or navigate away
+      // Optional: final submit or navigate away
     }
-    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="max-w-5xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
         
-        {/* Left Panel */}
+        {/* Left Panel (unchanged) */}
         <div className="lg:w-2/5 bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-6 lg:p-8 flex flex-col justify-center">
           <div className="flex items-center gap-2 mb-6">
             <i className="fas fa-robot text-4xl"></i>
@@ -225,12 +259,13 @@ const NewProject = () => {
         {/* Right Panel */}
         <div className="lg:w-3/5 p-6 lg:p-8 overflow-y-auto relative max-h-[90vh]">
           <button
-          onClick={handleSkipStep}
-          aria-label="Skip this step"
-          className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 ">
-          Skip </button>
+            onClick={handleSkipStep}
+            aria-label="Skip this step"
+            className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 "
+          >
+            Skip 
+          </button>
 
-          {/* <button onClick={handleSkipStep} aria-label="Skip to next step" className="absolute bottom-8 right-60 w-8 h-8"> Skip </button> */}
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 z-10 transition-all"
@@ -239,7 +274,7 @@ const NewProject = () => {
           </button>
 
           <div className="max-w-md mx-auto">
-            {/* Step Progress */}
+            {/* Step Progress (unchanged) */}
             <div className="relative flex justify-between mb-8">
               <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
               <div
@@ -269,7 +304,7 @@ const NewProject = () => {
               ))}
             </div>
 
-            {/* Step 1: GitHub (unchanged) */}
+            {/* Step 1: GitHub */}
             {currentStep === 1 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Connect GitHub</h2>
@@ -310,13 +345,23 @@ const NewProject = () => {
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Select Repository <span className="text-rose-500">*</span>
                       </label>
+                      {/* New: Manual fetch button */}
+                      {repositories.length === 0 ? (
+                        <button
+                          onClick={handleFetchRepos}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm shadow-lg mb-4"
+                        >
+                          <i className="fas fa-download text-xl"></i>
+                          Load Repositories
+                        </button>
+                      ) : null}
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {repositories.map((repo) => (
                           <button
-                            key={repo.id}
+                            key={repo.full_name} // Use full_name as key (from real data)
                             onClick={() => handleRepoSelect(repo)}
                             className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                              selectedRepo?.id === repo.id
+                              selectedRepo?.full_name === repo.full_name
                                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }`}
@@ -325,7 +370,7 @@ const NewProject = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <i className={`fas fa-code-branch text-sm ${
-                                    selectedRepo?.id === repo.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'
+                                    selectedRepo?.full_name === repo.full_name ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'
                                   }`}></i>
                                   <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                                     {repo.full_name}
@@ -337,10 +382,10 @@ const NewProject = () => {
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                                  {repo.description || 'No description'}
+                                  {repo.description || 'No description'} {/* Add if API provides */}
                                 </p>
                               </div>
-                              {selectedRepo?.id === repo.id && (
+                              {selectedRepo?.full_name === repo.full_name && (
                                 <i className="fas fa-check-circle text-indigo-600 dark:text-indigo-400"></i>
                               )}
                             </div>
@@ -363,7 +408,7 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 2: Project Details */}
+            {/* Step 2: Project Details (unchanged) */}
             {currentStep === 2 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Project Information</h2>
@@ -434,7 +479,7 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 3: Documents - MULTIPLE FILES */}
+            {/* Step 3: Documents - MULTIPLE FILES (unchanged) */}
             {currentStep === 3 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Upload Documents</h2>
@@ -559,7 +604,7 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 4: API Configuration */}
+            {/* Step 4: API Configuration (unchanged) */}
             {currentStep === 4 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">API Configuration</h2>
@@ -628,7 +673,7 @@ const NewProject = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default NewProject
+export default NewProject;
