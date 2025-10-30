@@ -132,6 +132,7 @@ const E2ETestingAgent = () => {
       const stableFile = new File([arrayBuffer], uploadedFiles.name, { type: uploadedFiles.type || 'application/octet-stream' });
       formData.append("file", stableFile);
       formData.append("project_url", applicationUrl);
+      formData.append("project_id", "PROJ_3");
 
       const res = await fetch("http://localhost:8080/parse_input", {
         method: "POST",

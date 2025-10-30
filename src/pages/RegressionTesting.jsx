@@ -24,7 +24,7 @@ const RegressionTesting = () => {
       setProgress(10);
       let reportId = localStorage.getItem('last_e2e_report_id') || '';
       if (!reportId) {
-        const resp = await fetch(`http://localhost:8080/e2e-reports?project_id=1&limit=1`);
+        const resp = await fetch(`http://localhost:8080/e2e-reports?project_id=PROJ_3&limit=1`);
         if (resp.ok) {
           const j = await resp.json();
           const list = Array.isArray(j.reports) ? j.reports : [];
