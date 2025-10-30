@@ -102,13 +102,10 @@ const GoogleSignIn = ({
             localStorage.setItem('user', JSON.stringify(data.user));
 
             // Immediately request Drive/Sheets consent during login
-            if (!consentRequestedRef.current) {
-              consentRequestedRef.current = true;
-              try {
-                await requestDriveSheetsConsent(data?.user?.email);
-              } catch (e) {
-                if (authConfig.debug) console.warn('[Login] User skipped/failed consent', e);
-              }
+            try {
+              await requestDriveSheetsConsent(data?.user?.email);
+            } catch (e) {
+              if (authConfig.debug) console.warn('[Login] User skipped/failed consent', e);
             }
             // Prevent future auto prompts
             try { window.google.accounts.id.disableAutoSelect(); } catch (_) {}
