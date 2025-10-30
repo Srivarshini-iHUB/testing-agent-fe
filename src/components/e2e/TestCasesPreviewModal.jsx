@@ -34,51 +34,60 @@ const TestCasesPreviewModal = ({ isOpen, onClose, testCasesPreview, onUpdate }) 
     />
   );
 
-  const downloadAsCSV = () => {
-    const headers = [
-      'Test Case ID',
-      'Feature Name',
-      'Test Scenario',
-      'Test Type',
-      'Preconditions',
-      'Test Steps',
-      'Test Data',
-      'Expected Result',
-      'Edited Route',
-      'Priority',
-      'Automation Status'
-    ];
+const downloadAsCSV = () => {
+  const headers = [
+    'Test Case ID',
+    'Feature Name',
+    'Test Scenario',
+    'Test Type',
+    'Preconditions',
+    'Test Steps',
+    'Test Data',
+    'Expected Result', // merged Expected Result + Edited Route
+    'Priority',
+    'Automation Status'
+  ];
 
-    const csvRows = testCasesPreview.map((tc, idx) => [
+  const csvRows = testCasesPreview.map((tc, idx) => {
+    const expectedResult = `${getFieldValue(tc, 'expected_result') || ''}${
+      tc.edited_route ? `; ${tc.edited_route}` : ''
+    }`;
+
+    return [
       tc.testcase_id || 'N/A',
       tc.feature_name || 'Unnamed Feature',
       getFieldValue(tc, 'test_scenario'),
       tc.test_type || 'N/A',
-      getFieldValue(tc, 'preconditions').replace(/\n/g, '; '), // Flatten multi-line
-      getFieldValue(tc, 'test_steps').replace(/\n/g, '; '), // Flatten multi-line
-      getFieldValue(tc, 'test_data'),
-      getFieldValue(tc, 'expected_result').replace(/\n/g, '; '), // Flatten multi-line
-      getFieldValue(tc, 'edited_route'),
+      (getFieldValue(tc, 'preconditions') || '').replace(/\n/g, '; '),
+      (getFieldValue(tc, 'test_steps') || '').replace(/\n/g, '; '),
+      getFieldValue(tc, 'test_data') || 'N/A',
+      expectedResult.replace(/\n/g, '; '), // merged field
       tc.priority || 'N/A',
       tc.automation_status || 'N/A'
-    ]);
+    ];
+  });
 
-    const csvContent = [
-      headers.join(','),
-      ...csvRows.map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
+  const csvContent = [
+    headers.join(','),
+    ...csvRows.map(row =>
+      row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(',')
+    )
+  ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `test-cases-preview-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute(
+    'download',
+    `test-cases-preview-${new Date().toISOString().split('T')[0]}.csv`
+  );
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
