@@ -185,17 +185,17 @@ const NewProject = () => {
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const handleSkipStep = () => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+  function handleSkipStep() {
     if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
+    setCurrentStep(currentStep + 1);
+    } else {
+    // Optional: final submit or navigate away
     }
-  };
-
+    }
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="max-w-5xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
@@ -227,12 +227,12 @@ const NewProject = () => {
         {/* Right Panel */}
         <div className="lg:w-3/5 p-6 lg:p-8 overflow-y-auto relative max-h-[90vh]">
           <button
-            onClick={handleSkipStep}
-            aria-label="Skip this step"
-            className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            Skip
-          </button>
+          onClick={handleSkipStep}
+          aria-label="Skip this step"
+          className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 ">
+          Skip </button>
+
+          {/* <button onClick={handleSkipStep} aria-label="Skip to next step" className="absolute bottom-8 right-60 w-8 h-8"> Skip </button> */}
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 z-10 transition-all"

@@ -5,9 +5,6 @@ import axios from "axios";
 import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-import { Highlight, themes } from "prism-react-renderer";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 const API_BASE = "http://localhost:8080";
 
