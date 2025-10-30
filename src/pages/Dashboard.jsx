@@ -246,7 +246,7 @@ const Dashboard = () => {
           {/* Welcome Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              Welcome to Testing Agents, {user.name.split(' ')[0]}!
+              Welcome to Testing Agents, {user?.name?.split(' ')[0]}!
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Let's set up your first project and start automated testing with AI-powered agents
