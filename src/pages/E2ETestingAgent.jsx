@@ -1,4 +1,4 @@
-// src/pages/E2ETestingAgent.jsx (Full consolidated frontend component)
+// src/pages/E2ETestingAgent.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -6,10 +6,12 @@ import { authConfig } from '../config/auth';
 import E2EHeader from '../components/e2e/E2EHeader';
 import E2EConfigPanel from '../components/e2e/E2EConfigPanel';
 import E2EResults from '../components/e2e/E2EResults';
+import GitAutoRouting from '../components/e2e/GitAutoRouting';
 
 const E2ETestingAgent = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+
   // --- Existing State (Manual/AI Flow) ---
   const [selectedFlow, setSelectedFlow] = useState('manual');
   const [aiSubFlow, setAiSubFlow] = useState('old_ai');
@@ -37,6 +39,7 @@ const E2ETestingAgent = () => {
   const [setupInstructions, setSetupInstructions] = useState('');
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+
   // --- Git Auto Routing State ---
   const [sessionToken, setSessionToken] = useState('');
   const [repos, setRepos] = useState([]);
@@ -50,6 +53,7 @@ const E2ETestingAgent = () => {
   const [projectUrl, setProjectUrl] = useState(''); // Used as project_id for filtering
   // UI states for login success message
   const [loginSuccessMessage, setLoginSuccessMessage] = useState('');
+
   // --- Common Helpers ---
   const formatSeconds = (seconds) => {
     const total = Math.max(0, Math.round(Number(seconds || 0)));
@@ -57,6 +61,7 @@ const E2ETestingAgent = () => {
     const secs = total % 60;
     return minutes ? `${minutes}m ${secs}s` : `${secs}s`;
   };
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -66,6 +71,7 @@ const E2ETestingAgent = () => {
       setDragActive(false);
     }
   };
+
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -74,6 +80,7 @@ const E2ETestingAgent = () => {
       setUploadedFiles(e.dataTransfer.files[0]);
     }
   };
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file && (file.type === 'text/csv' || file.type.includes('spreadsheet') || file.type.includes('excel'))) {
@@ -82,6 +89,7 @@ const E2ETestingAgent = () => {
       alert('Please upload a valid CSV, XLSX, or XLS file');
     }
   };
+
   // --- Manual / Old AI Flow (unchanged) ---
   const setupPlaywright = () => {
     if (!projectPath) return alert("Enter folder path");
@@ -116,6 +124,7 @@ const E2ETestingAgent = () => {
       });
     };
   };
+
   const generateTestScript = async () => {
     if (!uploadedFiles || !applicationUrl) {
       alert('Please upload CSV file and provide application URL');
@@ -144,7 +153,7 @@ const E2ETestingAgent = () => {
       setOutput(script);
       setTestCases(data.test_cases || []);
       setReportId(data.reportId || '');
-      const cmd = `pytest --headed --browser chromium`;
+      const cmd = `pytest --headed --browser chromium;`;
       setRunCommand(cmd);
       if (selectedFlow === 'manual') {
         const tc = data.test_cases || data.testcases || data.testCases;
@@ -172,10 +181,13 @@ const E2ETestingAgent = () => {
       }
     }
   };
-  // --- Git Auto Routing Flow ---
+
+  // --- Git Auto Routing Flow Helpers (passed as props) ---
   const handleGitLogin = () => {
-    window.location.href = 'http://localhost:8080/auth/login';
+    const redirectUri = encodeURIComponent(window.location.href);
+    window.location.href = `http://localhost:8080/auth/login?redirect_uri=${redirectUri}`;
   };
+
   const fetchRepos = async () => {
     const token = sessionToken || localStorage.getItem('session_token');
     if (!token) return;
@@ -201,6 +213,7 @@ const E2ETestingAgent = () => {
       setLoading(false);
     }
   };
+
   const fetchBranches = async (fullRepo) => {
     const token = sessionToken || localStorage.getItem('session_token');
     if (!token || !fullRepo) return;
@@ -225,6 +238,7 @@ const E2ETestingAgent = () => {
       setLoading(false);
     }
   };
+
   const fetchRouteFiles = async () => {
     if (!selectedRepo || !selectedBranch) {
       alert('Select repo and branch first');
@@ -248,6 +262,7 @@ const E2ETestingAgent = () => {
       setLoading(false);
     }
   };
+
   const extractAndMapTestCases = async () => {
     if (!selectedRepo || !selectedBranch || selectedFiles.length === 0 || !projectUrl) {
       alert('Select repo, branch, at least one file, and enter project ID');
@@ -289,11 +304,13 @@ const E2ETestingAgent = () => {
       setLoading(false);
     }
   };
-  const handleRouteEdit = (index, newRoute) => {
+
+  const handleUpdateTestCase = (index, field, value) => {
     const updated = [...testCasesPreview];
-    updated[index].edited_route = newRoute;
+    updated[index][field] = value;
     setTestCasesPreview(updated);
   };
+
   const generateScriptFromMapping = async () => {
     if (testCasesPreview.length === 0) {
       alert('No mapped test cases available. Extract routes first.');
@@ -346,6 +363,22 @@ const E2ETestingAgent = () => {
       setLoading(false);
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('session_token');
+    setSessionToken('');
+    setRepos([]);
+    setBranches([]);
+    setSelectedRepo('');
+    setSelectedBranch('');
+    setRouteFiles([]);
+    setSelectedFiles([]);
+    setLoginSuccessMessage('');
+    setRoutesPreview([]);
+    setTestCasesPreview([]);
+    setOutput('');
+  };
+
   // --- Common Download/Run Helpers (unchanged) ---
   const handleDownload = () => {
     const blob = new Blob([output], { type: "text/python" });
@@ -356,12 +389,14 @@ const E2ETestingAgent = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(runCommand);
     
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
+
   const handleRunWithDocker = async () => {
     if (!output) {
       alert("Please generate a test script first");
@@ -449,6 +484,7 @@ const E2ETestingAgent = () => {
       setDockerRunning(false);
     }
   };
+
   const downloadScript = () => {
     if (!output) {
       alert('No script generated yet');
@@ -456,6 +492,7 @@ const E2ETestingAgent = () => {
     }
     handleDownload();
   };
+
   const downloadReport = () => {
     if (!testResults || !testResults.reportUrl) {
       alert('Report not available yet');
@@ -463,6 +500,7 @@ const E2ETestingAgent = () => {
     }
     window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
   };
+
   const fetchReportData = async (reportUrl) => {
     setReportLoading(true);
     try {
@@ -479,6 +517,7 @@ const E2ETestingAgent = () => {
       setReportLoading(false);
     }
   };
+
   const runE2ETest = () => {
     if (!testScenario.trim()) return;
     setTestResults({
@@ -530,6 +569,7 @@ const E2ETestingAgent = () => {
       });
     }, 500);
   };
+
   // --- Effects ---
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -538,6 +578,9 @@ const E2ETestingAgent = () => {
       localStorage.setItem('session_token', tokenFromUrl);
       setSessionToken(tokenFromUrl);
       setLoginSuccessMessage('GitHub login successful ✅');
+      // Auto-select AI Agent > Git Auto Routing flow on login redirect
+      setSelectedFlow('ai_agent');
+      setAiSubFlow('git_auto');
       const cleanPath = window.location.pathname;
       window.history.replaceState({}, document.title, cleanPath);
       fetchRepos();
@@ -547,9 +590,13 @@ const E2ETestingAgent = () => {
     if (stored) {
       setSessionToken(stored);
       setLoginSuccessMessage('GitHub login successful ✅');
+      // Ensure we're in Git Auto flow if token exists
+      setSelectedFlow('ai_agent');
+      setAiSubFlow('git_auto');
       fetchRepos();
     }
   }, []);
+
   useEffect(() => {
     if (selectedRepo) {
       fetchBranches(selectedRepo);
@@ -557,21 +604,7 @@ const E2ETestingAgent = () => {
       setBranches([]);
     }
   }, [selectedRepo]);
-  // --- Logout ---
-  const handleLogout = () => {
-    localStorage.removeItem('session_token');
-    setSessionToken('');
-    setRepos([]);
-    setBranches([]);
-    setSelectedRepo('');
-    setSelectedBranch('');
-    setRouteFiles([]);
-    setSelectedFiles([]);
-    setLoginSuccessMessage('');
-    setRoutesPreview([]);
-    setTestCasesPreview([]);
-    setOutput('');
-  };
+
   // --- Render ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
@@ -691,231 +724,39 @@ const E2ETestingAgent = () => {
               />
             )}
             {selectedFlow === 'ai_agent' && aiSubFlow === 'git_auto' && (
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">
-                {sessionToken || localStorage.getItem('session_token') ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{loginSuccessMessage || 'GitHub login successful ✅'}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Select repository, branch, and frontend route files to extract routes</div>
-                      </div>
-                      <button
-                        onClick={handleLogout}
-                        className="px-3 py-1 bg-red-500 text-white rounded-md"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                    <div className="space-y-2 mt-3">
-                      <div>
-                        <label className="block text-sm font-medium">Project ID (for filtering test cases):</label>
-                        <input
-                          type="text"
-                          value={projectUrl}
-                          onChange={e => setProjectUrl(e.target.value)}
-                          placeholder="e.g., Srivarshini-iHUB/testing-agent-fe"
-                          className="mt-1 px-2 py-1 rounded-md w-full border"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Repo:</label>
-                        <select
-                          value={selectedRepo}
-                          onChange={e => setSelectedRepo(e.target.value)}
-                          className="mt-1 px-2 py-1 rounded-md w-full border"
-                        >
-                          <option value="">Select Repo</option>
-                          {repos.map(r => (
-                            <option key={r.id} value={`${r.owner.login}/${r.name}`}>
-                              {r.name} ({r.owner.login})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Branch:</label>
-                        <select
-                          value={selectedBranch}
-                          onChange={e => setSelectedBranch(e.target.value)}
-                          className="mt-1 px-2 py-1 rounded-md w-full border"
-                        >
-                          <option value="">Select Branch</option>
-                          {branches.map(b => (
-                            <option key={b.name} value={b.name}>
-                              {b.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <button
-                      onClick={fetchRouteFiles}
-                      disabled={loading || !selectedRepo || !selectedBranch}
-                      className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md disabled:opacity-50"
-                    >
-                      {loading ? 'Fetching...' : 'Fetch Route Files'}
-                    </button>
-                    {routeFiles.length > 0 && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium">Select Route Files ({routeFiles.length} found):</label>
-                        <select
-                          multiple
-                          value={selectedFiles}
-                          onChange={e => setSelectedFiles(Array.from(e.target.selectedOptions, option => option.value))}
-                          className="mt-1 px-2 py-1 rounded-md w-full border h-32"
-                        >
-                          {routeFiles.map(f => (
-                            <option key={f.path} value={f.path}>
-                              {f.name} ({f.path})
-                            </option>
-                          ))}
-                        </select>
-                        <div className="text-sm text-gray-600 mt-1">Hold Ctrl/Cmd to select multiple files</div>
-                      </div>
-                    )}
-                    <button
-                      onClick={extractAndMapTestCases}
-                      disabled={loading || selectedFiles.length === 0}
-                      className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md disabled:opacity-50"
-                    >
-                      {loading ? 'Mapping...' : 'Extract Routes & Map Test Cases'}
-                    </button>
-                    {routesPreview.length > 0 && (
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                        <h3 className="font-semibold mb-2">Routes Found ({routesPreview.length}):</h3>
-                        <ul className="text-sm space-y-1 max-h-40 overflow-y-auto">
-                          {routesPreview.map((route, idx) => (
-                            <li key={idx} className="flex justify-between">
-                              <span>{route.method || 'GET'} {route.path}</span>
-                              <span className="text-gray-500">{route.source_file}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {/* Updated Preview Section - Table Format with All DB Fields */}
-                    {testCasesPreview.length > 0 ? (
-                      <div className="mt-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold">
-                            Test Cases Preview (
-                            {testCasesPreview.filter(tc => tc.edited_route || tc.matched_route).length} auto-matched /
-                            {testCasesPreview.length} total
-                            ):
-                          </h3>
-                          {testCasesPreview.filter(tc => tc.edited_route || tc.matched_route).length === 0 && (
-                            <span className="text-yellow-600 text-sm font-medium bg-yellow-100 px-2 py-1 rounded">
-                              No auto-matches—edit routes manually below!
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">
-                          All test cases shown for preview. Auto-routes based on fuzzy matching; edit if needed. Only matched/edited ones generate in script.
-                        </div>
-                        <div className="overflow-x-auto max-h-96">
-                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-                            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
-                              <tr>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test Case ID</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Feature Name</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test Scenario</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test Type</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Preconditions</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test Steps</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test Data</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Expected Result & Route Edit</th>
-                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Priority</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Automation Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                              {testCasesPreview.map((tc, idx) => {
-                                const currentRoute = tc.edited_route || (tc.matched_route ? `${tc.matched_route.method || 'GET'} ${tc.matched_route.path}` : 'Unmatched');
-                                const isMatched = tc.edited_route || tc.matched_route;
-                                const rowClass = isMatched ? 'bg-green-50 dark:bg-green-900/20' : 'bg-yellow-50 dark:bg-yellow-900/20';
-                                const routeClass = isMatched ? 'bg-green-100 dark:bg-green-900 text-green-800' : 'bg-orange-100 dark:bg-orange-900 text-orange-800';
-                                return (
-                                  <tr key={idx} className={rowClass}>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.testcase_id || 'N/A'}</td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.feature_name || 'Unnamed Feature'}</td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.test_scenario || 'N/A'}</td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.test_type || 'N/A'}</td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.preconditions || 'None'}</td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">
-                                      {Array.isArray(tc.test_steps) ? tc.test_steps.join('; ') : (tc.test_steps || 'N/A')}
-                                    </td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">
-                                      {Array.isArray(tc.test_data) ? tc.test_data.join('; ') : (tc.test_data || 'N/A')}
-                                    </td>
-                                    <td className="px-3 py-2 text-xs">
-                                      <div className="mb-1">{tc.expected_result || 'N/A'}</div>
-                                      <div className={`p-1 rounded ${routeClass} mb-1`}>
-                                        <strong>Route:</strong> {currentRoute}
-                                        {tc.match_score && <span className="ml-1"> (Auto-Score: {tc.match_score}%)</span>}
-                                        {tc.edited_route && <span className="ml-1 text-green-600"> (Manual)</span>}
-                                      </div>
-                                      <input
-                                        type="text"
-                                        value={tc.edited_route || (tc.matched_route ? `${tc.matched_route.method || 'GET'} ${tc.matched_route.path}` : '')}
-                                        onChange={e => handleRouteEdit(idx, e.target.value)}
-                                        placeholder={tc.matched_route ? `Current: ${tc.matched_route.path}` : 'Assign a route from above list'}
-                                        className="px-2 py-1 rounded-md w-full border text-xs focus:border-blue-500 focus:outline-none"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.priority || 'N/A'}</td>
-                                    <td className="px-3 py-2 whitespace-pre-wrap text-xs text-gray-900 dark:text-gray-300">{tc.automation_status || 'N/A'}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        <button
-                          onClick={generateScriptFromMapping}
-                          disabled={loading || testCasesPreview.filter(tc => tc.edited_route || tc.matched_route).length === 0}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed mt-4 w-full"
-                          title={testCasesPreview.filter(tc => tc.edited_route || tc.matched_route).length === 0 ? 'Assign at least one route first' : ''}
-                        >
-                          {loading ? 'Generating...' : `Generate Script (${testCasesPreview.filter(tc => tc.edited_route || tc.matched_route).length} routes ready)`}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded text-center">
-                        <h3 className="font-semibold text-red-600">No Test Cases Available</h3>
-                        <p className="text-sm text-red-700 mt-1">Preview cannot be shown—ingest test cases into MongoDB (use sample insert script) or check project_id.</p>
-                        <button
-                          onClick={() => alert('Run: python insert_sample_testcases.py\nThen re-extract.')}
-                          className="mt-2 px-3 py-1 bg-red-500 text-white rounded text-xs"
-                        >
-                          View Insert Instructions
-                        </button>
-                      </div>
-                    )}
-                    {output && (
-                      <div className="mt-4">
-                        <button
-                          onClick={handleDownload}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md mr-2"
-                        >
-                          Download Script
-                        </button>
-                        <button
-                          onClick={handleRunWithDocker}
-                          disabled={dockerRunning}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-md disabled:opacity-50"
-                        >
-                          {dockerRunning ? 'Running...' : 'Run with Docker'}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <button onClick={handleGitLogin} className="px-4 py-2 bg-blue-500 text-white rounded-md">Login with GitHub</button>
-                    <div className="text-sm text-gray-600">Login to auto-map routes from your repo</div>
-                  </div>
-                )}
-              </div>
+              <GitAutoRouting
+                loading={loading}
+                projectUrl={projectUrl}
+                setProjectUrl={setProjectUrl}
+                sessionToken={sessionToken}
+                repos={repos}
+                branches={branches}
+                selectedRepo={selectedRepo}
+                setSelectedRepo={setSelectedRepo}
+                selectedBranch={selectedBranch}
+                setSelectedBranch={setSelectedBranch}
+                routeFiles={routeFiles}
+                setRouteFiles={setRouteFiles}
+                selectedFiles={selectedFiles}
+                setSelectedFiles={setSelectedFiles}
+                routesPreview={routesPreview}
+                setRoutesPreview={setRoutesPreview}
+                testCasesPreview={testCasesPreview}
+                setTestCasesPreview={setTestCasesPreview}
+                loginSuccessMessage={loginSuccessMessage}
+                handleGitLogin={handleGitLogin}
+                fetchRepos={fetchRepos}
+                fetchBranches={fetchBranches}
+                fetchRouteFiles={fetchRouteFiles}
+                extractAndMapTestCases={extractAndMapTestCases}
+                handleUpdateTestCase={handleUpdateTestCase}
+                generateScriptFromMapping={generateScriptFromMapping}
+                handleLogout={handleLogout}
+                output={output}
+                handleDownload={handleDownload}
+                handleRunWithDocker={handleRunWithDocker}
+                dockerRunning={dockerRunning}
+              />
             )}
           </div>
           {/* Results Panel */}
