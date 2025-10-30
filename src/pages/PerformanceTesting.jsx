@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -30,10 +30,41 @@ const PerformanceTesting = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
   const [progress, setProgress] = useState(0);
+  const [isFetchingProject, setIsFetchingProject] = useState(true);
+
+  // Fetch project details on component mount
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        setIsFetchingProject(true);
+        const response = await fetch('http://localhost:8080/api/projects/PROJ_1', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const project = await response.json();
+        setConfig(prev => ({ ...prev, url: project.project_url }));
+        setError(null);
+      } catch (err) {
+        setError(`Failed to fetch project details: ${err.message}`);
+        setConfig(prev => ({ ...prev, url: '' }));
+      } finally {
+        setIsFetchingProject(false);
+      }
+    };
+
+    fetchProject();
+  }, []);
 
   const runTest = async () => {
     if (!config.url) {
-      setError('Please enter a target URL');
+      setError('Project URL not available. Please check project configuration.');
       return;
     }
 
@@ -233,15 +264,15 @@ const PerformanceTesting = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Target URL <span className="text-rose-500 dark:text-rose-400">*</span>
+                  Target URL (from project) <span className="text-rose-500 dark:text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="https://api.example.com/endpoint"
+                  placeholder={isFetchingProject ? "Fetching project URL..." : "Project URL not available"}
                   value={config.url}
-                  onChange={(e) => setConfig({ ...config, url: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:focus:ring-rose-400"
-                  disabled={isRunning}
+                  disabled={isRunning || isFetchingProject}
+                  readOnly
                 />
               </div>
 
@@ -429,14 +460,19 @@ const PerformanceTesting = () => {
               <div className="space-y-3">
                 <button
                   onClick={runTest}
-                  disabled={isRunning || !config.url}
+                  disabled={isRunning || !config.url || isFetchingProject}
                   className={`w-full ${
-                    isRunning
+                    isRunning || isFetchingProject || !config.url
                       ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
                       : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                   } text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center space-x-2`}
                 >
-                  {isRunning ? (
+                  {isFetchingProject ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      <span>Fetching project...</span>
+                    </>
+                  ) : isRunning ? (
                     <>
                       <i className="fas fa-spinner fa-spin"></i>
                       <span>Running Test...</span>
