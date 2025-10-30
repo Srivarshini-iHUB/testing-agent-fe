@@ -4,6 +4,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useUser } from "../contexts/UserContext";
 import EditProjectModal from "../components/EditProjectModal";
 import AgentHistory from "../components/AgentHistory";
+import { projectApi } from "../api/projectApi";
 
 const Dashboard = () => {
   const { theme, isDark, toggleTheme } = useTheme();
@@ -15,38 +16,47 @@ const Dashboard = () => {
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // All user projects (replace with actual data from context/API)
-  const allProjects = [
-    {
-      id: 'project-1',
-      name: 'E-Commerce Platform',
-      repository: 'https://github.com/ajay/ecommerce',
-      frdDocument: 'Ecommerce_FRD.pdf',
-      userStories: 'Ecommerce_UserStories.pdf',
-      postmanCollection: 'Ecommerce_Postman.json',
-      createdAt: '2025-10-15',
-      lastActive: '2025-10-24',
-    },
-        {
-      id: 'project-2',
-      name: 'E-Commerce Platform',
-      repository: 'https://github.com/ajay/ecommerce',
-      frdDocument: 'Ecommerce_FRD.pdf',
-      userStories: 'Ecommerce_UserStories.pdf',
-      postmanCollection: 'Ecommerce_Postman.json',
-      createdAt: '2025-10-15',
-      lastActive: '2025-10-24',
-    },
-    // Add more projects or leave empty for first-time users
-  ];
+  // Projects from API
+  const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState("");
 
   // Check if user is new (no projects)
-  const isFirstTimeUser = allProjects.length === 0;
+  const isFirstTimeUser = projects.length === 0;
 
-  // Find current project or use first one
-  const [currentProject, setCurrentProject] = useState(
-    allProjects.find(p => p.name === project?.name) || allProjects[0]
-  );
+  // Current project from state or first from API
+  const [currentProject, setCurrentProject] = useState(null);
+
+  // Load projects for the user
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      const userId = user.user_id;
+      if (!userId) return;
+      setProjectsLoading(true);
+      setProjectsError("");
+      try {
+        const list = await projectApi.getProjects({ userId });
+        setProjects(list);
+        const preferred = list.find((p) => p.name === project?.name) || list[0] || null;
+        if (preferred) {
+          setCurrentProject(preferred);
+          updateProject({
+            name: preferred.name,
+            repository: preferred.repository,
+            frdDocument: preferred.frdDocument,
+            userStories: preferred.userStories,
+            postmanCollection: preferred.postmanCollection,
+          });
+        }
+      } catch (e) {
+        setProjectsError(e?.message || "Failed to load projects");
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    load();
+  }, [user, project?.name, updateProject]);
 
   // Agents data
   const agents = [
@@ -192,7 +202,13 @@ const Dashboard = () => {
 
   const handleProjectSwitch = (proj) => {
     setCurrentProject(proj);
-    updateProject(proj);
+    updateProject({
+      name: proj.name,
+      repository: proj.repository,
+      frdDocument: proj.frdDocument,
+      userStories: proj.userStories,
+      postmanCollection: proj.postmanCollection,
+    });
     setShowProjectDropdown(false);
     
     // Success notification
@@ -208,7 +224,7 @@ const Dashboard = () => {
   };
 
   const handleSaveProject = (updatedData) => {
-    setCurrentProject({ ...currentProject, ...updatedData });
+    setCurrentProject(currentProject ? { ...currentProject, ...updatedData } : updatedData);
     updateProject(updatedData);
     alert("Project configuration updated successfully!");
     setShowEditModal(false);
@@ -328,7 +344,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
                     <i className="fas fa-calendar-alt"></i>
-                    Last updated: {currentProject?.lastActive || 'Today'}
+                    Last updated: {currentProject?.updatedAt ? new Date(currentProject.updatedAt).toLocaleDateString() : '—'}
                   </p>
                 </div>
               </div>
@@ -355,7 +371,7 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">Your Projects</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{allProjects.length} total</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{projects.length} total</p>
                       </div>
                       <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                         <i className="fas fa-folder text-white"></i>
@@ -364,7 +380,7 @@ const Dashboard = () => {
                   </div>
                   
                   <div className="max-h-80 overflow-y-auto">
-                    {allProjects.map((proj) => (
+                    {projects.map((proj) => (
                       <button
                         key={proj.id}
                         onClick={() => handleProjectSwitch(proj)}
@@ -391,7 +407,7 @@ const Dashboard = () => {
                             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                               <span className="flex items-center gap-1">
                                 <i className="fas fa-calendar-alt"></i>
-                                {proj?.lastActive}
+                                {proj?.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : ''}
                               </span>
                             </div>
                           </div>
@@ -456,7 +472,7 @@ const Dashboard = () => {
               { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository },
               { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument },
               { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories },
-              { icon: 'fas fa-cube', label: 'Postman Collection', value: currentProject?.postmanCollection || project?.postmanCollection }
+              { icon: 'fas fa-cube', label: 'Postman/Swagger', value: currentProject?.postmanCollection || project?.postmanCollection }
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
