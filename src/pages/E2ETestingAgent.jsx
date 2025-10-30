@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { authConfig } from '../config/auth';
 import E2EHeader from '../components/e2e/E2EHeader';
 import E2EConfigPanel from '../components/e2e/E2EConfigPanel';
 import E2EResults from '../components/e2e/E2EResults';
@@ -131,6 +132,7 @@ const E2ETestingAgent = () => {
       const stableFile = new File([arrayBuffer], uploadedFiles.name, { type: uploadedFiles.type || 'application/octet-stream' });
       formData.append("file", stableFile);
       formData.append("project_url", applicationUrl);
+      formData.append("project_id", "PROJ_3");
 
       const res = await fetch("http://localhost:8080/parse_input", {
         method: "POST",
@@ -186,6 +188,7 @@ const E2ETestingAgent = () => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(runCommand);
+    
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
@@ -201,20 +204,26 @@ const E2ETestingAgent = () => {
     setDockerResults(null);
 
     try {
+      // Ensure Drive/Sheets consent via user gesture (popup); silently continue if user cancels
+      // Consent is now handled at login; do not prompt here
+
       const response = await fetch("http://localhost:8080/run_docker_tests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem(authConfig.tokenKey) || ''}`
         },
         body: JSON.stringify({
           test_script: output,
           project_url: applicationUrl,
           test_cases: testCases, // Pass the stored test case data
-          reportId: reportId // Pass the reportId to update the existing MongoDB document
+          reportId: reportId, // Pass the reportId to update the existing MongoDB document
+          user_token: localStorage.getItem(authConfig.tokenKey) // Include JWT so backend can use user's Google Drive
         }),
       });
 
       if (!response.ok) {
+        if (authConfig.debug) console.error('[Page] run_docker_tests HTTP error', response.status);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
