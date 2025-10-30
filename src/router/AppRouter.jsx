@@ -13,6 +13,7 @@ import VisualTestingAgent from '../pages/VisualTestingAgent';
 import E2EPytestReportPage from '../pages/E2EPytestReportPage';
 import PerformanceTesting from '../pages/PerformanceTesting';
 import SecurityTest from '../pages/SecurityTest';
+import RegressionTesting from '../pages/RegressionTesting';
 import NewProjectPopup from '../pages/NewProjectPopup';
 
 const Header = () => {
@@ -256,6 +257,7 @@ const AppRouter = () => {
               <Route path="/performance-testing" element={<PerformanceTesting />} />
               <Route path="/smoke-testing" element={<SmokeTesting />} />
               <Route path="/security-testing" element={<SecurityTest />} />
+              <Route path="/regression-testing" element={<RegressionTesting />} />
               
               {/* Catch-all redirect to landing page */}
               <Route path="*" element={<Navigate to="/" replace />} />
