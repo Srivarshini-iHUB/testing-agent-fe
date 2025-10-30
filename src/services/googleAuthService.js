@@ -18,6 +18,7 @@ class GoogleAuthService {
       // Check if already loaded
       if (window.google && window.google.accounts) {
         this.isGoogleLoaded = true;
+        if (authConfig.debug) console.debug('[GIS] Already loaded');
         resolve();
         return;
       }
@@ -29,10 +30,11 @@ class GoogleAuthService {
       script.defer = true;
       script.onload = () => {
         this.isGoogleLoaded = true;
-        console.log('Google Identity Services loaded successfully');
+        if (authConfig.debug) console.debug('[GIS] Loaded');
         resolve();
       };
       script.onerror = () => {
+        if (authConfig.debug) console.error('[GIS] Load error');
         reject(new Error('Failed to load Google Identity Services'));
       };
       document.head.appendChild(script);
@@ -54,18 +56,18 @@ class GoogleAuthService {
           return;
         }
 
-        console.log('Initializing Google Sign-In with Client ID:', this.googleClientId);
+        if (authConfig.debug) console.debug('[Auth] Initialize One Tap', { clientIdConfigured: !!this.googleClientId });
 
         // Initialize Google Identity Services
         window.google.accounts.id.initialize({
           client_id: this.googleClientId,
           callback: async (response) => {
-            console.log('Google OAuth callback received', response);
+            if (authConfig.debug) console.debug('[Auth] One Tap callback received', { hasCredential: !!response?.credential });
             try {
               const result = await this.handleGoogleResponse(response);
               resolve(result);
             } catch (error) {
-              console.error('Error handling Google response:', error);
+              if (authConfig.debug) console.error('[Auth] handleGoogleResponse error', error);
               reject(error);
             }
           },
@@ -75,7 +77,7 @@ class GoogleAuthService {
 
         // Use the One Tap flow
         window.google.accounts.id.prompt((notification) => {
-          console.log('Google prompt notification:', notification);
+          if (authConfig.debug) console.debug('[Auth] One Tap prompt', notification);
           
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
             console.log('One Tap not available, user needs to click the button manually');
@@ -85,7 +87,7 @@ class GoogleAuthService {
         });
       });
     } catch (error) {
-      console.error('Google Sign-In Error:', error);
+      if (authConfig.debug) console.error('[Auth] Sign-In Error', error);
       throw error;
     }
   }
@@ -93,8 +95,10 @@ class GoogleAuthService {
   async handleGoogleResponse(response) {
     try {
       // Send the Google ID token to our backend
+      if (authConfig.debug) console.debug('[Auth] Sending ID token to backend');
       const authResponse = await apiClient.post('/auth/google-login', {
-        token: response.credential
+        token: response.credential,
+        google_access_token: response.access_token  // Include access token if available
       });
 
       const { access_token, user } = authResponse.data;
@@ -114,15 +118,67 @@ class GoogleAuthService {
         last_login: user.last_login
       }));
 
+      // Optional: Immediately request Drive/Sheets consent and exchange code for refresh token
+      try {
+        if (authConfig.debug) console.debug('[Consent] Triggering Drive/Sheets consent');
+        await this.requestDriveSheetsConsent();
+      } catch (e) {
+        if (authConfig.debug) console.warn('[Consent] Not completed', e);
+      }
+
       return {
         success: true,
         user: user,
         token: access_token
       };
     } catch (error) {
-      console.error('Authentication Error:', error);
+      if (authConfig.debug) console.error('[Auth] Authentication Error', error);
       throw new Error(error.response?.data?.detail || 'Authentication failed');
     }
+  }
+
+  async requestDriveSheetsConsent() {
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+      // Load oauth2 script if not available
+      await this.initializeGoogleAuth();
+    }
+    return new Promise((resolve, reject) => {
+      try {
+        const client = window.google.accounts.oauth2.initCodeClient({
+          client_id: this.googleClientId,
+          scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
+          ux_mode: 'popup',
+          prompt: 'consent',
+          callback: async (resp) => {
+            if (resp.error) {
+              if (authConfig.debug) console.warn('[Consent] Error', resp.error);
+              reject(resp.error);
+              return;
+            }
+            try {
+              if (authConfig.debug) console.debug('[Consent] Received code, sending to backend');
+              const token = localStorage.getItem(authConfig.tokenKey);
+              await apiClient.post('/auth/google-oauth-callback', {
+                code: resp.code,
+                redirect_uri: 'postmessage'
+              }, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (authConfig.debug) console.debug('[Consent] Stored on backend');
+              resolve();
+            } catch (err) {
+              if (authConfig.debug) console.error('[Consent] Backend store error', err);
+              reject(err?.response?.data?.detail || err.message);
+            }
+          }
+        });
+        if (authConfig.debug) console.debug('[Consent] Requesting code');
+        client.requestCode();
+      } catch (e) {
+        if (authConfig.debug) console.error('[Consent] Init error', e);
+        reject(e);
+      }
+    });
   }
 
   async signOut() {
