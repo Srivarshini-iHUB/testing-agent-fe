@@ -290,6 +290,7 @@ const styles = {
   },
   metric: {
     padding: '6px 10px',
+    color:"#101111ff",
     background: '#f6f8fa',
     border: '1px solid #e1e4e8',
     borderRadius: 6,
