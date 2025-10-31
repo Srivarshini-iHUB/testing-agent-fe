@@ -162,6 +162,25 @@ const AgentHistory = ({ currentProject }) => {
           },
         ],
       },
+      {
+        id: 'e2e-testing',
+        name: 'Performance Testing',
+        icon: 'fa-route',
+        totalTests: 5,
+        lastRun: '2025-10-24',
+        tests: [
+          { 
+            id: 't7', 
+            name: 'Feed Loading', 
+            date: '2025-10-24',
+            time: '11:00 AM',
+            status: 'passed',
+            coverage: '94%',
+            duration: '3m 40s',
+            report: 'E2E test for feed loading performance and data accuracy. Average load time: 1.2s.'
+          },
+        ],
+      },
     ],
     'project-3': [
       {

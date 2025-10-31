@@ -6,6 +6,9 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Cartesia
 const PerformanceTesting = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+
+  const proj = JSON.parse(localStorage.getItem('project') || 'null');
+  const projectId = proj?.id;
   
   const [config, setConfig] = useState({
     url: '',
@@ -15,6 +18,7 @@ const PerformanceTesting = () => {
     connections: 10,
     headers: {},
     body: '',
+    projectId,
     stressConfig: {
       startConnections: 10,
       maxConnections: 100,
@@ -372,55 +376,9 @@ const PerformanceTesting = () => {
                 </div>
               )}
 
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 text-sm font-medium flex items-center gap-2"
-                disabled={isRunning}
-              >
-                <i className="fas fa-cog"></i>
-                {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-              </button>
+             
 
-              {showAdvanced && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Custom Headers
-                    </label>
-                    {Object.entries(config.headers).map(([key, value]) => (
-                      <div key={key} className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          value={key}
-                          className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400"
-                          disabled
-                        />
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) => updateHeader(key, e.target.value)}
-                          className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"
-                          disabled={isRunning}
-                        />
-                        <button
-                          onClick={() => removeHeader(key)}
-                          className="px-3 py-2 bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-500/30"
-                          disabled={isRunning}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => updateHeader(`header${Object.keys(config.headers).length + 1}`, '')}
-                      className="text-sm text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300"
-                      disabled={isRunning}
-                    >
-                      + Add Header
-                    </button>
-                  </div>
-                </div>
-              )}
+              
             </div>
 
 
