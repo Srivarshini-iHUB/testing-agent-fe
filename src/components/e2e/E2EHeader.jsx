@@ -8,7 +8,7 @@ const E2EHeader = () => {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Functionalo Testing Agent
+            Functional Testing Agent
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             Comprehensive testing of complete user workflows with automated execution and reporting
