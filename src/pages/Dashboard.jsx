@@ -42,6 +42,7 @@ const Dashboard = () => {
         if (preferred) {
           setCurrentProject(preferred);
           updateProject({
+            id: preferred.id,
             name: preferred.name,
             repository: preferred.repository,
             frdDocument: preferred.frdDocument,
@@ -203,6 +204,7 @@ const Dashboard = () => {
   const handleProjectSwitch = (proj) => {
     setCurrentProject(proj);
     updateProject({
+      id: proj.id,
       name: proj.name,
       repository: proj.repository,
       frdDocument: proj.frdDocument,
