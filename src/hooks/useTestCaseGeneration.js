@@ -21,11 +21,13 @@ export const useTestCaseGeneration = () => {
         throw new Error('Please upload User Story files');
       }
       
-      // Call API
+       const proj = JSON.parse(localStorage.getItem('project') || 'null');
+       const projectId = proj?.id;
+
       const data = await testCaseApi.generateTestCases(
         frdFiles, 
         userStoryFiles,
-        'PROJ_1',
+        projectId,
         (percent) => setProgress(percent)
       );
       
