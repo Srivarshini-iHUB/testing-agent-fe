@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "axios";
 import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Highlight, themes } from 'prism-react-renderer';
+import { toast } from 'react-toastify';
 
 const API_BASE = "http://localhost:8080";
 
@@ -29,6 +33,7 @@ function SmokeTesting() {
   const [generatedTestCases, setGeneratedTestCases] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const createdSmokeIdRef = useRef("");
 
   // Get session token from localStorage or URL
   useEffect(() => {
@@ -140,14 +145,25 @@ function SmokeTesting() {
       const formData = new FormData();
       formData.append("file", testCasesFile);
       formData.append("project_url", projectUrl);
+      formData.append("project_id", "PROJ_3");
       const res = await axios.post(
         `${API_BASE}/generate_smoke_tests`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      const scriptWithoutPythonLabel = res.data.script.replace(/^python\s*[\r\n]/, "");
-      setGeneratedScript(scriptWithoutPythonLabel);
+      let scriptRaw = res.data.script || "";
+      // Remove leading code fence/lang tag and trailing fence
+      scriptRaw = scriptRaw
+        .replace(/^\s*```(?:python)?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .replace(/^\s*python\s*[\r\n]+/i, "");
+      setGeneratedScript(scriptRaw);
       setGeneratedTestCases(res.data.test_cases);
+      const createdId = res.data.createdSmokeTestId || "";
+      if (createdId) {
+        createdSmokeIdRef.current = createdId;
+        try { localStorage.setItem('last_smoke_id', createdId); } catch (_) {}
+      }
     } catch (err) {
       setGenerateError(
         err.response?.data?.detail?.[0]?.msg ||
@@ -752,15 +768,44 @@ function SmokeTesting() {
                     <i className="fab fa-python text-3xl text-blue-600 dark:text-blue-400"></i>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Python Script</h3>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedScript);
-                      toast.success("Copied!", { position: "top-right", autoClose: 2000 });
-                    }}
-                    className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-lg transition-all"
-                  >
-                    <i className="fas fa-copy"></i> Copy
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedScript);
+                        toast.success("Copied!", { position: "top-right", autoClose: 2000 });
+                      }}
+                      className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-lg transition-all"
+                    >
+                      <i className="fas fa-copy"></i> Copy
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsRunning(true);
+                          const resp = await fetch(`${API_BASE}/run_smoke_docker_tests`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              test_script: generatedScript,
+                              project_url: projectUrl,
+                              smoke_test_id: (createdSmokeIdRef.current || localStorage.getItem('last_smoke_id') || ''),
+                            })
+                          });
+                          const data = await resp.json();
+                          if (!resp.ok) throw new Error(data?.error || 'Docker run failed');
+                          setReport(data?.result || {});
+                          toast.success('Docker run completed');
+                        } catch (e) {
+                          toast.error(e.message || 'Docker run failed');
+                        } finally {
+                          setIsRunning(false);
+                        }
+                      }}
+                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1 px-3 rounded-lg transition-all"
+                    >
+                      <i className="fas fa-play"></i> Run in Docker
+                    </button>
+                  </div>
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-900/50 rounded-lg p-4 overflow-x-auto">
                   <Highlight code={generatedScript} language="python" theme={themes.vsDark}>
@@ -784,6 +829,44 @@ function SmokeTesting() {
                   <i className="fas fa-download"></i>
                   <span>Download Script</span>
                 </button>
+              </div>
+            )}
+            {report && (
+              <div className="mt-6 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Docker Run Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Total</div>
+                    <div className="font-semibold">{Number(report.total_tests || report.total || 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Passed</div>
+                    <div className="font-semibold text-emerald-600">{Number(report.passed || 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Failed</div>
+                    <div className="font-semibold text-rose-600">{Number(report.failed || 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Duration</div>
+                    <div className="font-semibold">{report.duration || "0s"}</div>
+                  </div>
+                </div>
+                {report.json_report && report.json_report.summary && (
+                  <div className="mt-4 text-xs text-gray-600 dark:text-gray-300">
+                    <div>Pytest exit code: {Number(report.exit_code || 0)}</div>
+                    <div>Collected: {Number(report.json_report.summary.collected || 0)}</div>
+                    {typeof report.json_report.summary.error !== 'undefined' && (
+                      <div>Errors: {Number(report.json_report.summary.error || 0)}</div>
+                    )}
+                  </div>
+                )}
+                {report.execution_logs && (
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm font-semibold">Execution Logs</summary>
+                    <pre className="mt-2 max-h-64 overflow-auto text-xs bg-gray-100 dark:bg-gray-900/50 p-3 rounded">{report.execution_logs}</pre>
+                  </details>
+                )}
               </div>
             )}
             {generatedTestCases.length > 0 && (

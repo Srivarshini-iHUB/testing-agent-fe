@@ -43,7 +43,10 @@ const RegressionTesting = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem(authConfig.tokenKey) || ''}`
         },
-        body: JSON.stringify({ reportId })
+        body: JSON.stringify({ 
+          reportId,
+          project_id: "PROJ_3" // Explicitly send project_id
+        })
       });
 
       if (!response.ok) {
