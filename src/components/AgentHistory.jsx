@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import IntegrationHistory from './agentHistory/IntegrationHistory';
 
 const AgentHistory = ({ currentProject }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -144,7 +145,7 @@ const AgentHistory = ({ currentProject }) => {
     'project-2': [
       {
         id: 'e2e-testing',
-        name: 'Functional Testing',
+        name: 'Integration Testing',
         icon: 'fa-route',
         totalTests: 5,
         lastRun: '2025-10-24',
@@ -185,14 +186,16 @@ const AgentHistory = ({ currentProject }) => {
     ],
   };
 
-  const agentsForProject = projectAgentHistory[currentProject?.id] || [];
+  const agentsForProject = projectAgentHistory[currentProject?.id] || projectAgentHistory["project-2"];
 
   const handleAgentSelect = (agent) => {
     // Toggle agent selection
     if (selectedAgent?.id === agent.id) {
+      console.log('[AgentHistory] Deselected agent:', agent?.name || agent?.id);
       setSelectedAgent(null);
       setSelectedTest(null);
     } else {
+      console.log('[AgentHistory] Selected agent:', agent?.name || agent?.id);
       setSelectedAgent(agent);
       setSelectedTest(null);
     }
@@ -310,163 +313,44 @@ const AgentHistory = ({ currentProject }) => {
           {/* Test History List */}
           {selectedAgent && (
             <div className="mb-8 animate-fadeIn">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${getAgentColors(selectedAgent.id).bg} rounded-lg flex items-center justify-center`}>
-                    <i className={`fas ${selectedAgent.icon} ${getAgentColors(selectedAgent.id).text}`}></i>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                      {selectedAgent.name} - Test History
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {selectedAgent.tests.length} test execution{selectedAgent.tests.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    setSelectedAgent(null);
-                    setSelectedTest(null);
-                  }}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
-                  title="Close agent tests"
-                >
-                  <i className="fas fa-times text-gray-500 dark:text-gray-400"></i>
-                </button>
-              </div>
 
-              <div className="space-y-3">
-                {selectedAgent.tests.map((test) => {
-                  const isTestSelected = selectedTest?.id === test.id;
-                  
-                  return (
-                    <button
-                      key={test.id}
-                      onClick={() => handleTestSelect(test)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                        isTestSelected
-                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-md'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">
-                              {test.name}
-                            </h4>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(test.status)}`}>
-                              <i className={`fas ${getStatusIcon(test.status)}`}></i>
-                              {test.status}
-                            </span>
+              {selectedAgent?.name?.toLowerCase().includes('integration') && (
+                <div className="mb-6">
+                  {(() => {
+                    try {
+                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+                      const projectId = proj?.id;
+                      return projectId ? (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="font-semibold text-gray-900 dark:text-white">Integration Testing - Project Runs</h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
                           </div>
-                          
-                          <div className="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <i className="fas fa-calendar-alt"></i>
-                              {test.date}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <i className="fas fa-clock"></i>
-                              {test.time}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <i className="fas fa-hourglass-half"></i>
-                              {test.duration}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <i className="fas fa-chart-pie"></i>
-                              Coverage: {test.coverage}
-                            </span>
+                          <div className="bg-white dark:bg-gray-800">
+                            <IntegrationHistory projectId={projectId} />
                           </div>
                         </div>
-                        
-                        <i className={`fas fa-chevron-${isTestSelected ? 'up' : 'down'} text-indigo-600 dark:text-indigo-400 text-lg`}></i>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      ) : (
+                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                          No project selected in localStorage under key "project".
+                        </div>
+                      );
+                    } catch (e) {
+                      return (
+                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                          Failed to read project from localStorage.
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              )}
+
+             
             </div>
           )}
 
-          {/* Test Report */}
-          {selectedTest && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fadeIn">
-              <div className={`${getAgentColors(selectedAgent.id).bgLight} p-5 border-b border-gray-200 dark:border-gray-700`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-10 h-10 ${getAgentColors(selectedAgent.id).bg} rounded-lg flex items-center justify-center`}>
-                        <i className={`fas ${selectedAgent.icon} ${getAgentColors(selectedAgent.id).text}`}></i>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                          Test Report: {selectedTest.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Executed on {selectedTest.date} at {selectedTest.time}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2">
-                      <i className="fas fa-download"></i>
-                      Download
-                    </button>
-                    <button
-                      onClick={() => setSelectedTest(null)}
-                      className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-all"
-                      title="Close report"
-                    >
-                      <i className="fas fa-times text-gray-600 dark:text-gray-400"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                {/* Test Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Status</p>
-                    <p className={`text-lg font-bold ${getStatusColor(selectedTest.status).split(' ')[0]}`}>
-                      {selectedTest.status.toUpperCase()}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Duration</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedTest.duration}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Coverage</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedTest.coverage}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Agent</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedAgent.name}</p>
-                  </div>
-                </div>
-
-                {/* Report Details */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <i className={`fas fa-file-alt ${getAgentColors(selectedAgent.id).text}`}></i>
-                    Detailed Report
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {selectedTest.report}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+        
         </>
       )}
     </div>
