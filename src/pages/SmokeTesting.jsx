@@ -142,10 +142,20 @@ function SmokeTesting() {
     setIsGenerating(true);
     setGenerateError("");
     try {
+      // Get project ID from localStorage
+      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+      const projectId = proj?.id;
+      
+      if (!projectId) {
+        setGenerateError('Project ID not found in localStorage. Please select a project first.');
+        setIsGenerating(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", testCasesFile);
       formData.append("project_url", projectUrl);
-      formData.append("project_id", "PROJ_3");
+      formData.append("project_id", projectId);
       const res = await axios.post(
         `${API_BASE}/generate_smoke_tests`,
         formData,

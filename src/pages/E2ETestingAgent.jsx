@@ -137,12 +137,21 @@ const E2ETestingAgent = () => {
     setOutput('');
     setRunCommand('');
     try {
+      // Get project ID from localStorage
+      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+      const projectId = proj?.id;
+      
+      if (!projectId) {
+        alert('Project ID not found in localStorage. Please select a project first.');
+        return;
+      }
+
       const formData = new FormData();
       const arrayBuffer = await uploadedFiles.arrayBuffer();
       const stableFile = new File([arrayBuffer], uploadedFiles.name, { type: uploadedFiles.type || 'application/octet-stream' });
       formData.append("file", stableFile);
       formData.append("project_url", applicationUrl);
-      formData.append("project_id", "PROJ_3");
+      formData.append("project_id", projectId);
 
       const res = await fetch("http://localhost:8080/parse_input", {
         method: "POST",
