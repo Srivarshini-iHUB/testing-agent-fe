@@ -5,6 +5,7 @@ import { useUser } from '../contexts/UserContext'
 import GoogleSignIn from '../components/auth/GoogleSignIn'
 import GoogleSignInDebug from '../components/auth/GoogleSignInDebug'
 import ConfigDebug from '../components/auth/ConfigDebug'
+import { projectApi } from '../api/projectApi'
 
 const Onboarding = () => {
   const { isDark } = useTheme()
@@ -21,11 +22,26 @@ const Onboarding = () => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
   }
 
-  const handleGoogleLoginSuccess = (user) => {
-    console.log('Google sign-in successful:', user);
-    setIsSigningIn(false);
-    // User is already updated in the context, just navigate
-    navigate('/NewProjectPopup');
+  const handleGoogleLoginSuccess = async (user) => {
+    try {
+      setIsSigningIn(false);
+      // Decide destination based on whether the user already has any projects
+      const userId = user?.user_id || user?.id || JSON.parse(localStorage.getItem('user') || '{}')?.user_id;
+      if (!userId) {
+        // Fallback to onboarding if we cannot identify the user id
+        navigate('/NewProjectPopup');
+        return;
+      }
+      const projects = await projectApi.getProjects({ userId });
+      if (Array.isArray(projects) && projects.length > 0) {
+        navigate('/dashboard');
+      } else {
+        navigate('/NewProjectPopup');
+      }
+    } catch (e) {
+      console.error('Post-login routing error:', e);
+      navigate('/NewProjectPopup');
+    }
   }
 
   const handleGoogleLoginError = (error) => {
@@ -34,11 +50,30 @@ const Onboarding = () => {
     alert(`Google sign-in failed: ${error}`);
   }
 
-  // Redirect authenticated users away from onboarding
+  // Redirect authenticated users: if they have projects -> dashboard, else -> new project
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/NewProjectPopup');
-    }
+    const decideRoute = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const stored = JSON.parse(localStorage.getItem('user') || 'null');
+        const userId = stored?.user_id || stored?.id;
+        if (!userId) {
+          navigate('/NewProjectPopup');
+          return;
+        }
+        const projects = await projectApi.getProjects({ userId });
+        if (Array.isArray(projects) && projects.length > 0) {
+          window.location.reload();
+          navigate('/dashboard');
+        } else {
+          navigate('/NewProjectPopup');
+        }
+      } catch (err) {
+        console.error('Auto routing failed:', err);
+        navigate('/NewProjectPopup');
+      }
+    };
+    decideRoute();
   }, [isAuthenticated, navigate]);
 
   const handleEmailLogin = (e) => {
