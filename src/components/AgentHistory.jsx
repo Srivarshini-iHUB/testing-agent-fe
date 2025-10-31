@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import IntegrationHistory from './agentHistory/IntegrationHistory';
+import PerformanceHistory from './agentHistory/PerformanceHistory';
 
 const AgentHistory = ({ currentProject }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -163,14 +164,14 @@ const AgentHistory = ({ currentProject }) => {
         ],
       },
       {
-        id: 'e2e-testing',
+        id: 'e2e-testing-1',
         name: 'Performance Testing',
         icon: 'fa-route',
         totalTests: 5,
         lastRun: '2025-10-24',
         tests: [
           { 
-            id: 't7', 
+            id: 't10', 
             name: 'Feed Loading', 
             date: '2025-10-24',
             time: '11:00 AM',
@@ -365,7 +366,38 @@ const AgentHistory = ({ currentProject }) => {
                 </div>
               )}
 
-             
+              {selectedAgent?.name?.toLowerCase().includes('performance') && (
+                <div className="mb-6">
+                  {(() => {
+                    try {
+                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+                      const projectId = proj?.id;
+                      return projectId ? (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="font-semibold text-gray-900 dark:text-white">Performance Testing - Project Runs</h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
+                          </div>
+                          <div className="bg-white dark:bg-gray-800">
+                            <PerformanceHistory />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                          No project selected in localStorage under key "project".
+                        </div>
+                      );
+                    } catch (e) {
+                      return (
+                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                          Failed to read project from localStorage.
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              )}
+
             </div>
           )}
 
