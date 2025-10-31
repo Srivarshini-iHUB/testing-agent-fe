@@ -56,7 +56,7 @@ const Dashboard = () => {
       }
     };
     load();
-  }, [user, project?.name, updateProject]);
+  }, []);
 
   // Agents data
   const agents = [
