@@ -387,7 +387,7 @@ const AgentHistory = ({ currentProject }) => {
                 </div>
               )}
 
-              {(selectedAgent?.id === 'test-case-generator' || selectedAgent?.name?.toLowerCase().includes('test case')) && (
+              {(selectedAgent?.id === 'test-case-generator' || selectedAgent?.name?.toLowerCase().includes('test case') || selectedAgent?.name?.toLowerCase().includes('performance')) && (
                 <div className="mb-6">
                   {(() => {
                     try {
