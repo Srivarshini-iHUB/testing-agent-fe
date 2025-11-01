@@ -33,6 +33,7 @@ const UserProfile = ({ className = '' }) => {
   const handleLogout = async () => {
     try {
       await logout();
+      localStorage.clear(); 
       setIsDropdownOpen(false);
       navigate('/');
     } catch (error) {
