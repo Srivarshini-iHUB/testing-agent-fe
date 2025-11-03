@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://security-test-qzba.onrender.com";
 
 const SecurityTesting = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
-
   const [sessionToken, setSessionToken] = useState("");
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState("");
@@ -19,6 +18,8 @@ const SecurityTesting = () => {
   const [sarifJson, setSarifJson] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [activeTab, setActiveTab] = useState("semgrep");
+  const [urlInput, setUrlInput] = useState("");
 
   // Read session_token from URL on page load
   useEffect(() => {
@@ -78,31 +79,25 @@ const SecurityTesting = () => {
     setMessage({ type: "", text: "" });
     setScanResults([]);
     setSarifJson(null);
-
     const filesList = filesInput
       ? filesInput.split(",").map((f) => f.trim())
       : null;
-
     const payload = {
       repo_url: `https://github.com/${selectedRepo}.git`,
       token: sessionToken,
       branch: selectedBranch,
       files: filesList,
     };
-
     try {
       const res = await axios.post(`${API_BASE}/scan/advanced`, payload);
       const data = res.data;
-
       if (!data.sarif) {
         setMessage({ type: "error", text: "❌ Scan failed or no SARIF output." });
         setLoading(false);
         return;
       }
-
       const sarif = JSON.parse(data.sarif);
       setSarifJson(data.sarif);
-
       const results = [];
       sarif.runs?.forEach((run) => {
         run.results?.forEach((result) => {
@@ -117,7 +112,6 @@ const SecurityTesting = () => {
           });
         });
       });
-
       setScanResults(results);
       setMessage({
         type: "success",
@@ -177,6 +171,31 @@ const SecurityTesting = () => {
     navigate("/");
   };
 
+  // AIS-DAST Perform Named action
+  const performNamed = () => {
+    if (!urlInput) {
+      setMessage({ type: "error", text: "⚠️ Please enter a URL." });
+      return;
+    }
+    setLoading(true);
+    setMessage({ type: "info", text: "🔍 Performing AIS-DAST scan..." });
+    // Replace with your actual API call
+    setTimeout(() => {
+      setLoading(false);
+      setMessage({ type: "success", text: "✅ AIS-DAST scan completed!" });
+    }, 2000);
+  };
+
+  // AIS-DAST Open Report action
+  const openReport = () => {
+    if (!urlInput) {
+      setMessage({ type: "error", text: "⚠️ No URL provided for report." });
+      return;
+    }
+    setMessage({ type: "info", text: "📄 Opening report for: " + urlInput });
+    // Replace with your actual report opening logic
+  };
+
   // Login Screen
   if (!sessionToken) {
     return (
@@ -209,16 +228,36 @@ const SecurityTesting = () => {
           >
             ← Back to Dashboard
           </button>
-          {/* <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-          >
-            Logout
-          </button> */}
         </div>
 
         {/* Header */}
         <h1 className="text-3xl font-bold mb-6">Security Testing Dashboard</h1>
+
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-4">
+            <button
+              onClick={() => setActiveTab("semgrep")}
+              className={`py-2 px-4 font-semibold ${
+                activeTab === "semgrep"
+                  ? "border-b-2 border-emerald-500 text-emerald-500"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              Semgrep Scan
+            </button>
+            <button
+              onClick={() => setActiveTab("AIS-DAST")}
+              className={`py-2 px-4 font-semibold ${
+                activeTab === "AIS-DAST"
+                  ? "border-b-2 border-emerald-500 text-emerald-500"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              AIS-DAST Security
+            </button>
+          </nav>
+        </div>
 
         {/* Message */}
         {message.text && (
@@ -226,77 +265,117 @@ const SecurityTesting = () => {
             className={`mb-6 p-4 rounded-lg text-sm font-medium ${
               message.type === "success"
                 ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
-                : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
+                : message.type === "error"
+                ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
+                : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200"
             }`}
           >
             {message.text}
           </div>
         )}
 
-        {/* Scan Configuration */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
-          {/* Repository */}
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold">Repository</label>
-            <select
-              className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
-              value={selectedRepo}
-              onChange={(e) => setSelectedRepo(e.target.value)}
+        {/* Tab Content */}
+        {activeTab === "semgrep" ? (
+          // Semgrep Tab Content
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
+            {/* Repository */}
+            <div className="mb-4">
+              <label className="block mb-2 font-semibold">Repository</label>
+              <select
+                className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+                value={selectedRepo}
+                onChange={(e) => setSelectedRepo(e.target.value)}
+              >
+                <option value="">-- Select Repository --</option>
+                {repos.map((r) => (
+                  <option key={r.full_name} value={r.full_name}>
+                    {r.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Branch */}
+            <div className="mb-4">
+              <label className="block mb-2 font-semibold">Branch</label>
+              <select
+                className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+              >
+                <option value="">-- Select Branch --</option>
+                {branches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Files */}
+            <div className="mb-4">
+              <label className="block mb-2 font-semibold">Files/Folders to scan</label>
+              <textarea
+                className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+                value={filesInput}
+                onChange={(e) => setFilesInput(e.target.value)}
+                rows={3}
+                placeholder="e.g. src/, app/, requirements.txt"
+              />
+            </div>
+            {/* Run Scan */}
+            <button
+              onClick={runScan}
+              disabled={loading || !selectedRepo || !selectedBranch}
+              className={`w-full py-3 rounded-lg text-white font-semibold transition ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
-              <option value="">-- Select Repository --</option>
-              {repos.map((r) => (
-                <option key={r.full_name} value={r.full_name}>
-                  {r.full_name}
-                </option>
-              ))}
-            </select>
+              {loading ? "Scanning..." : "Run Security Scan"}
+            </button>
           </div>
-
-          {/* Branch */}
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold">Branch</label>
-            <select
-              className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+        ) : (
+          // AIS-DAST Tab Content
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
+            <div className="mb-4">
+              <label className="block mb-2 font-semibold">Target URL</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com"
+                />
+                <button
+                  onClick={performNamed}
+                  disabled={loading}
+                  className={`px-4 py-2 rounded-lg text-white font-semibold transition ${
+                    loading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700"
+                  }`}
+                >
+                  {loading ? "Scanning..." : "Perform"}
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={openReport}
+              disabled={!urlInput}
+              className={`w-full py-2 rounded-lg font-semibold transition ${
+                !urlInput
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700 text-white"
+              }`}
             >
-              <option value="">-- Select Branch --</option>
-              {branches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+              Open Report
+            </button>
           </div>
+        )}
 
-          {/* Files */}
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold">Files/Folders to scan</label>
-            <textarea
-              className="w-full p-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
-              value={filesInput}
-              onChange={(e) => setFilesInput(e.target.value)}
-              rows={3}
-              placeholder="e.g. src/, app/, requirements.txt"
-            />
-          </div>
-
-          {/* Run Scan */}
-          <button
-            onClick={runScan}
-            disabled={loading || !selectedRepo || !selectedBranch}
-            className={`w-full py-3 rounded-lg text-white font-semibold transition ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
-          >
-            {loading ? "Scanning..." : "Run Security Scan"}
-          </button>
-        </div>
-
-        {/* Results */}
-        {scanResults.length > 0 && (
+        {/* Results (only for Semgrep tab) */}
+        {activeTab === "semgrep" && scanResults.length > 0 && (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between mb-4">
               <h2 className="font-semibold text-lg">Detected Security Issues</h2>
@@ -315,7 +394,6 @@ const SecurityTesting = () => {
                 </button>
               </div>
             </div>
-
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
