@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
@@ -9,6 +9,15 @@ const LandingPage = () => {
   const { isDark, toggleTheme } = useTheme();
   const { isAuthenticated, user } = useUser();
   const [activeTab, setActiveTab] = useState('all');
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const agents = [
     {
@@ -180,27 +189,30 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 transition-colors duration-300">
       {/* Navigation Header */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
+      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 animate-pulse-slow">
                 <i className="fas fa-flask text-white text-lg"></i>
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Testing Agents</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">Testing Agents</span>
             </div>
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
+              <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 Features
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
-              <a href="#agents" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
+              <a href="#agents" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 Agents
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
-              <a href="#workflow" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
+              <a href="#workflow" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 How It Works
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
             </div>
 
@@ -230,22 +242,48 @@ const LandingPage = () => {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Floating Testing Icons */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[
+            { icon: 'fa-flask', left: '10%', top: '15%', delay: '0s', duration: '6s' },
+            { icon: 'fa-code', left: '85%', top: '20%', delay: '1s', duration: '7s' },
+            { icon: 'fa-check-circle', left: '15%', top: '60%', delay: '2s', duration: '5s' },
+            { icon: 'fa-bug', left: '80%', top: '65%', delay: '0.5s', duration: '8s' },
+            { icon: 'fa-shield-alt', left: '50%', top: '10%', delay: '1.5s', duration: '6s' },
+            { icon: 'fa-tachometer-alt', left: '45%', top: '75%', delay: '2.5s', duration: '7s' }
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="absolute text-indigo-400/10 dark:text-indigo-600/10 text-6xl animate-float"
+              style={{
+                left: item.left,
+                top: item.top,
+                animationDelay: item.delay,
+                animationDuration: item.duration
+              }}
+            >
+              <i className={`fas ${item.icon}`}></i>
+            </div>
+          ))}
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-full text-sm font-semibold mb-6">
-              <i className="fas fa-star"></i>
-              AI-Powered Quality Assurance Platform
+            <div className="inline-flex items-center gap-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-full text-sm font-semibold mb-6 animate-fade-in-up hover:scale-105 transition-all duration-300 cursor-default relative overflow-hidden group">
+              <i className="fas fa-star animate-spin-slow text-yellow-500"></i>
+              <span className="relative z-10">AI-Powered Quality Assurance Platform</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent group-hover:animate-shimmer"></div>
             </div>
             
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight animate-fade-in-up-delay-1">
               Automate Your Testing
               <br />
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient-xy">
                 With Intelligent Agents
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed animate-fade-in-up-delay-2">
               Revolutionize your QA process with AI-powered testing agents that automatically generate, execute, and analyze comprehensive test suites for your applications.
             </p>
 
@@ -290,8 +328,12 @@ const LandingPage = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
               {stats.map((stat, index) => (
-                <div key={index} className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-                  <i className={`fas ${stat.icon} text-3xl text-indigo-600 dark:text-indigo-400 mb-3`}></i>
+                <div 
+                  key={index} 
+                  className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl hover:scale-105 hover:-translate-y-2 transition-all duration-300 cursor-pointer group animate-fade-in-up-delay-3"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <i className={`fas ${stat.icon} text-3xl text-indigo-600 dark:text-indigo-400 mb-3 group-hover:animate-bounce`}></i>
                   {/* <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div> */}
                   <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
                 </div>
@@ -321,9 +363,15 @@ const LandingPage = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group"
+                className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group hover:scale-105 hover:-translate-y-2 duration-300 animate-fade-in-up"
+                style={{ 
+                  animationDelay: `${index * 100}ms`,
+                  opacity: scrollY > 200 ? 1 : 0.3,
+                  transform: scrollY > 200 ? 'translateY(0)' : 'translateY(30px)',
+                  transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
               >
-                <div className={`${feature.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <div className={`${feature.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
                   <i className={`fas ${feature.icon} text-2xl ${feature.color}`}></i>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
@@ -357,13 +405,13 @@ const LandingPage = () => {
                 <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-2 hover:scale-105 ${
                     activeTab === tab.id
-                        ? 'bg-indigo-600 text-white shadow-md'
+                        ? 'bg-indigo-600 text-white shadow-md scale-105'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                     }`}
                 >
-                    <i className={`fas ${tab.icon} text-xs`}></i>
+                    <i className={`fas ${tab.icon} text-xs ${activeTab === tab.id ? 'animate-pulse' : ''}`}></i>
                     {tab.label}
                 </button>
                 ))}
@@ -375,19 +423,23 @@ const LandingPage = () => {
             {filteredAgents.map((agent, index) => (
                 <div
                 key={agent.id}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-lg transition-all duration-200 group"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-2xl transition-all duration-300 group hover:scale-105 hover:-translate-y-2 cursor-pointer"
+                style={{
+                  animationDelay: `${index * 50}ms`
+                }}
                 >
                 <div className="p-5">
                     <div className="flex items-start gap-3 mb-3">
-                    <div className={`${agent.iconBg} w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                    <div className={`${agent.iconBg} w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 relative`}>
                         <i className={`fas ${agent.icon} ${agent.iconColor} text-xl`}></i>
+                        <div className="absolute inset-0 rounded-lg bg-white/20 group-hover:animate-ping opacity-0 group-hover:opacity-100"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 leading-tight">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {agent.name}
                         </h3>
                         <div className="flex items-center text-xs text-emerald-600 dark:text-emerald-400">
-                        <i className="fas fa-circle text-[6px] mr-1.5"></i>
+                        <i className="fas fa-circle text-[6px] mr-1.5 animate-pulse"></i>
                         Ready
                         </div>
                     </div>
@@ -438,14 +490,15 @@ const LandingPage = () => {
                     )}
 
                     {/* Content Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-xl transition-all w-full h-full flex flex-col group">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-xl transition-all w-full h-full flex flex-col group hover:scale-105 hover:-translate-y-2 duration-300">
                     {/* Icon */}
-                    <div className="bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <i className={`fas ${step.icon} text-2xl text-indigo-600 dark:text-indigo-400`}></i>
+                    <div className="bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 relative">
+                        <i className={`fas ${step.icon} text-2xl text-indigo-600 dark:text-indigo-400 z-10`}></i>
+                        <div className="absolute inset-0 rounded-xl bg-indigo-200/50 dark:bg-indigo-800/50 group-hover:animate-pulse"></div>
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {step.title}
                     </h3>
 
@@ -456,7 +509,7 @@ const LandingPage = () => {
 
                     {/* Step Indicator */}
                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide group-hover:tracking-wider transition-all">
                         Step {index + 1}
                         </span>
                     </div>
@@ -479,13 +532,14 @@ const LandingPage = () => {
       {/* CTA Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-12 shadow-2xl">
-            <h2 className="text-4xl font-bold text-white mb-4">
-              Ready to Revolutionize Your Testing?
-            </h2>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              Join thousands of developers who trust Testing Agents for their quality assurance needs
-            </p>
+          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-12 shadow-2xl relative overflow-hidden hover:shadow-indigo-500/50 transition-all duration-300">
+            <div className="relative z-10">
+              <h2 className="text-4xl font-bold text-white mb-4 animate-fadeIn">
+                Ready to Revolutionize Your Testing?
+              </h2>
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fadeIn">
+                Join thousands of developers who trust Testing Agents for their quality assurance needs
+              </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {isAuthenticated ? (
                 <>
@@ -523,6 +577,7 @@ const LandingPage = () => {
                 </>
               )}
             </div>
+            </div>
           </div>
         </div>
       </section>
@@ -532,11 +587,11 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="flex items-center gap-3 mb-4 group cursor-default">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                   <i className="fas fa-flask text-white"></i>
                 </div>
-                <span className="text-xl font-bold">Testing Agents</span>
+                <span className="text-xl font-bold group-hover:text-indigo-400 transition-colors">Testing Agents</span>
               </div>
               <p className="text-gray-400 leading-relaxed max-w-md">
                 Empowering developers with AI-driven quality assurance. Automate your testing workflow and ship with confidence.
@@ -554,14 +609,14 @@ const LandingPage = () => {
             <div>
               <h3 className="font-bold mb-4">Connect</h3>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-colors">
-                  <i className="fab fa-github"></i>
+                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                  <i className="fab fa-github group-hover:animate-pulse"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-colors">
-                  <i className="fab fa-twitter"></i>
+                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                  <i className="fab fa-twitter group-hover:animate-pulse"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-colors">
-                  <i className="fab fa-linkedin"></i>
+                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                  <i className="fab fa-linkedin group-hover:animate-pulse"></i>
                 </a>
               </div>
             </div>
