@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code } from "lucide-react"
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { integrationApi } from '../api/integrationApi'; // Adjust path as needed
+import { integrationApi } from '../api/integrationApi'
 
 export default function IntegrationTestingPlatform() {
   const navigate = useNavigate()
@@ -11,12 +11,12 @@ export default function IntegrationTestingPlatform() {
   const [scenariosDocId, setScenariosDocId] = useState(null)
   const [scenarios, setScenarios] = useState([])
   const [selectedScenario, setSelectedScenario] = useState(null)
-  const [baseUrl, setBaseUrl] = useState("")
   const [testScript, setTestScript] = useState("")
   const [testRunId, setTestRunId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [report, setReport] = useState(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     try {
@@ -25,7 +25,7 @@ export default function IntegrationTestingPlatform() {
         const parsed = JSON.parse(storedProject)
         setProject(parsed)
       } else {
-        setError("No project found in localStorage. Please create a project first.")
+        setError("No project found. Please create a project first.")
       }
     } catch (err) {
       setError("Failed to load project from localStorage.")
@@ -55,7 +55,7 @@ export default function IntegrationTestingPlatform() {
 
   const generateTestScript = async () => {
     if (!selectedScenario || !scenariosDocId) {
-      setError("No scenario or document ID available")
+      setError("No scenario selected")
       return
     }
 
@@ -75,8 +75,8 @@ export default function IntegrationTestingPlatform() {
   }
 
   const executeTests = async () => {
-    if (!selectedScenario || !scenariosDocId ) {
-      setError("Please select a scenario and provide a base URL")
+    if (!selectedScenario || !scenariosDocId) {
+      setError("Please select a scenario")
       return
     }
 
@@ -85,9 +85,7 @@ export default function IntegrationTestingPlatform() {
     setStep("running")
 
     try {
-   
-
-      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name);
+      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name)
       setReport(response.report)
       setStep("report")
     } catch (err) {
@@ -113,7 +111,6 @@ export default function IntegrationTestingPlatform() {
     setScenariosDocId(null)
     setScenarios([])
     setSelectedScenario(null)
-    setBaseUrl("")
     setTestScript("")
     setTestRunId(null)
     setReport(null)
@@ -122,7 +119,7 @@ export default function IntegrationTestingPlatform() {
 
   const testTimelineData = report?.test_details?.map((test, idx) => ({
     name: `Test ${idx + 1}`,
-    duration: Math.random() * 500 + 100, // Placeholder; no actual duration provided
+    duration: Math.random() * 500 + 100,
     status: test.passed ? "passed" : "failed",
   })) || []
 
