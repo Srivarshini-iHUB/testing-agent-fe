@@ -43,7 +43,16 @@ export const projectApi = {
   },
 
   async updateProject(projectId, updates) {
-    const res = await apiClient.patch(`/api/projects/${encodeURIComponent(projectId)}`, updates);
+    // Check if updates is FormData or regular object
+    const config = updates instanceof FormData 
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {};
+    
+    const res = await apiClient.patch(
+      `/api/projects/${encodeURIComponent(projectId)}`, 
+      updates, 
+      config
+    );
     return mapProjectToUI(res.data);
   },
 

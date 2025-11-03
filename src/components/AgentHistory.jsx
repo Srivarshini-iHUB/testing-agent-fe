@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import IntegrationHistory from './agentHistory/IntegrationHistory';
-import PerformanceHistory from './agentHistory/PerformanceHistory';
-import TestCaseHistory from './agentHistory/TestCaseHistory';
-import E2EHistory from './agentHistory/E2EHistory';
-import RegressionHistory from './agentHistory/RegressionHistory';
-import SmokeHistory from './agentHistory/SmokeHistory';
+import { useNavigate } from 'react-router-dom';
 import { integrationApi } from '../api/integrationApi';
 import { testCaseApi } from '../api/testCaseApi';
 import { e2eApi } from '../api/e2eApi';
@@ -12,8 +7,7 @@ import { regressionApi } from '../api/regressionApi';
 import { smokeApi } from '../api/smokeApi';
 
 const AgentHistory = ({ currentProject }) => {
-  const [selectedAgent, setSelectedAgent] = useState(null);
-  const [selectedTest, setSelectedTest] = useState(null);
+  const navigate = useNavigate();
   const [agentsForProject, setAgentsForProject] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,6 +35,13 @@ const AgentHistory = ({ currentProject }) => {
       bgLight: 'bg-purple-50 dark:bg-purple-900/20',
       hover: 'hover:border-purple-300 dark:hover:border-purple-700'
     },
+    'integration-testing': {
+      bg: 'bg-teal-100 dark:bg-teal-900/30',
+      text: 'text-teal-600 dark:text-teal-400',
+      border: 'border-teal-500',
+      bgLight: 'bg-teal-50 dark:bg-teal-900/20',
+      hover: 'hover:border-teal-300 dark:hover:border-teal-700'
+    },
     'security-testing': {
       bg: 'bg-red-100 dark:bg-red-900/30',
       text: 'text-red-600 dark:text-red-400',
@@ -54,6 +55,13 @@ const AgentHistory = ({ currentProject }) => {
       border: 'border-emerald-500',
       bgLight: 'bg-emerald-50 dark:bg-emerald-900/20',
       hover: 'hover:border-emerald-300 dark:hover:border-emerald-700'
+    },
+    'regression-testing': {
+      bg: 'bg-cyan-100 dark:bg-cyan-900/30',
+      text: 'text-cyan-600 dark:text-cyan-400',
+      border: 'border-cyan-500',
+      bgLight: 'bg-cyan-50 dark:bg-cyan-900/20',
+      hover: 'hover:border-cyan-300 dark:hover:border-cyan-700'
     },
     'smoke-testing': {
       bg: 'bg-orange-100 dark:bg-orange-900/30',
@@ -97,7 +105,7 @@ const AgentHistory = ({ currentProject }) => {
               : 'N/A';
 
             agents.push({
-              id: 'e2e-testing',
+              id: 'integration-testing',
               name: 'Integration Testing',
               icon: 'fa-route',
               totalTests: totalRuns,
@@ -218,43 +226,41 @@ const AgentHistory = ({ currentProject }) => {
     };
   }, [currentProject?.id]);
 
+  // Map agent IDs/names to their routes
+  const getAgentRoute = (agent) => {
+    const routeMap = {
+      'integration-testing': '/integration-testing',
+      'test-case-generator': '/test-case-generator',
+      'e2e-testing': '/e2e-testing',
+      'regression-testing': '/regression-testing',
+      'smoke-testing': '/smoke-testing',
+      'performance-testing': '/performance-testing',
+    };
+
+    // Check by ID first
+    if (routeMap[agent.id]) {
+      return routeMap[agent.id];
+    }
+
+    // Fallback: check by name (case-insensitive)
+    const nameLower = agent.name?.toLowerCase() || '';
+    if (nameLower.includes('integration')) return '/integration-testing';
+    if (nameLower.includes('test case') || nameLower.includes('test-case')) return '/test-case-generator';
+    if (nameLower.includes('functional') || nameLower.includes('e2e')) return '/e2e-testing';
+    if (nameLower.includes('regression')) return '/regression-testing';
+    if (nameLower.includes('smoke')) return '/smoke-testing';
+    if (nameLower.includes('performance')) return '/performance-testing';
+
+    return null;
+  };
+
   const handleAgentSelect = (agent) => {
-    // Toggle agent selection
-    if (selectedAgent?.id === agent.id) {
-      console.log('[AgentHistory] Deselected agent:', agent?.name || agent?.id);
-      setSelectedAgent(null);
-      setSelectedTest(null);
+    const route = getAgentRoute(agent);
+    if (route) {
+      console.log('[AgentHistory] Navigating to:', route, 'for agent:', agent?.name || agent?.id);
+      navigate(route);
     } else {
-      console.log('[AgentHistory] Selected agent:', agent?.name || agent?.id);
-      setSelectedAgent(agent);
-      setSelectedTest(null);
-    }
-  };
-
-  const handleTestSelect = (test) => {
-    // Toggle test selection
-    if (selectedTest?.id === test.id) {
-      setSelectedTest(null);
-    } else {
-      setSelectedTest(test);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'passed': return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30';
-      case 'failed': return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30';
-      case 'warning': return 'text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30';
-      default: return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'passed': return 'fa-check-circle';
-      case 'failed': return 'fa-times-circle';
-      case 'warning': return 'fa-exclamation-triangle';
-      default: return 'fa-circle';
+      console.warn('[AgentHistory] No route found for agent:', agent);
     }
   };
 
@@ -275,18 +281,6 @@ const AgentHistory = ({ currentProject }) => {
           </p>
         </div>
         
-        {(selectedAgent || selectedTest) && (
-          <button
-            onClick={() => {
-              setSelectedAgent(null);
-              setSelectedTest(null);
-            }}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium"
-          >
-            <i className="fas fa-times"></i>
-            Clear Selection
-          </button>
-        )}
       </div>
 
       {loading ? (
@@ -314,17 +308,12 @@ const AgentHistory = ({ currentProject }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {agentsForProject.map((agent) => {
               const colors = getAgentColors(agent.id);
-              const isSelected = selectedAgent?.id === agent.id;
               
               return (
                 <button
                   key={agent.id}
                   onClick={() => handleAgentSelect(agent)}
-                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-lg ${
-                    isSelected
-                      ? `${colors.border} ${colors.bgLight} shadow-md`
-                      : `border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover}`
-                  }`}
+                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover}`}
                 >
                   <div className="flex items-start gap-3 mb-3">
                     <div className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center`}>
@@ -344,187 +333,13 @@ const AgentHistory = ({ currentProject }) => {
                       <i className="fas fa-clock"></i>
                       Last: {agent.lastRun}
                     </span>
-                    <i className={`fas fa-chevron-${isSelected ? 'up' : 'right'} ${colors.text}`}></i>
+                    <i className={`fas fa-arrow-right ${colors.text}`}></i>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Test History List */}
-          {selectedAgent && (
-            <div className="mb-8 animate-fadeIn">
-
-              {selectedAgent?.name?.toLowerCase().includes('integration') && (
-                <div className="mb-6">
-                  {(() => {
-                    try {
-                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-                      const projectId = proj?.id;
-                      return projectId ? (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Integration Testing - Project Runs</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <IntegrationHistory projectId={projectId} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                          No project selected in localStorage under key "project".
-                        </div>
-                      );
-                    } catch (e) {
-                      return (
-                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          Failed to read project from localStorage.
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              )}
-
-              {(selectedAgent?.id === 'test-case-generator' || selectedAgent?.name?.toLowerCase().includes('test case') || selectedAgent?.name?.toLowerCase().includes('performance')) && (
-                <div className="mb-6">
-                  {(() => {
-                    try {
-                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-                      const projectId = proj?.id;
-                      return projectId ? (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Performance Testing - Project Runs</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <PerformanceHistory />
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Test Case Generation - History</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <TestCaseHistory projectId={projectId} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                          No project selected in localStorage under key "project".
-                        </div>
-                      );
-                    } catch (e) {
-                      return (
-                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          Failed to read project from localStorage.
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              )}
-
-              {(selectedAgent?.id === 'e2e-testing' || selectedAgent?.name?.toLowerCase().includes('functional')) && (
-                <div className="mb-6">
-                  {(() => {
-                    try {
-                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-                      const projectId = proj?.id;
-                      return projectId ? (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Functional Testing - History</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <E2EHistory projectId={projectId} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                          No project selected in localStorage under key "project".
-                        </div>
-                      );
-                    } catch (e) {
-                      return (
-                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          Failed to read project from localStorage.
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              )}
-
-              {(selectedAgent?.id === 'regression-testing' || selectedAgent?.name?.toLowerCase().includes('regression')) && (
-                <div className="mb-6">
-                  {(() => {
-                    try {
-                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-                      const projectId = proj?.id;
-                      return projectId ? (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Regression Testing - History</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <RegressionHistory projectId={projectId} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                          No project selected in localStorage under key "project".
-                        </div>
-                      );
-                    } catch (e) {
-                      return (
-                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          Failed to read project from localStorage.
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              )}
-
-              {(selectedAgent?.id === 'smoke-testing' || selectedAgent?.name?.toLowerCase().includes('smoke')) && (
-                <div className="mb-6">
-                  {(() => {
-                    try {
-                      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-                      const projectId = proj?.id;
-                      return projectId ? (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">Smoke Testing - History</h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Project ID: {projectId}</p>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800">
-                            <SmokeHistory projectId={projectId} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                          No project selected in localStorage under key "project".
-                        </div>
-                      );
-                    } catch (e) {
-                      return (
-                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          Failed to read project from localStorage.
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              )}
-
-             
-            </div>
-          )}
-
-        
         </>
       )}
     </div>

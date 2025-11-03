@@ -42,7 +42,7 @@ const DownloadJsonButton = ({ fileName, data }) => {
   );
 };
 
-const TestCaseHistory = ({ projectId }) => {
+const TestCaseHistory = ({ projectId, onLoadHistory }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
@@ -147,6 +147,20 @@ const TestCaseHistory = ({ projectId }) => {
                       <div style={styles.badge}>
                         Test Cases: {generation.test_cases?.length ?? 0}
                       </div>
+                      {onLoadHistory && (
+                        <button
+                          onClick={() => onLoadHistory(generationId)}
+                          title="Load this generation into results view"
+                          aria-label="Load generation into results view"
+                          style={styles.viewBtn}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          View
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleGeneration(generationId)}
                         title="Toggle generation details"
@@ -461,6 +475,19 @@ const styles = {
     border: '1px solid #e1e4e8',
     color: '#586069',
     cursor: 'pointer',
+  },
+  viewBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 12px',
+    background: '#1f6feb',
+    color: 'white',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 600,
   },
   typeBadge: (type) => ({
     padding: '4px 8px',

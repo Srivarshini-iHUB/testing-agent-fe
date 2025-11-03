@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTestCaseGeneration } from '../hooks/useTestCaseGeneration';
 import { useDownload } from '../hooks/useDownload';
 import { useTheme } from '../contexts/ThemeContext';
+import { testCaseApi } from '../api/testCaseApi';
 import InsufficientAlert from '../components/testcase/InsufficientAlert';
 import MismatchAlert from '../components/testcase/MismatchAlert';
 import IncompleteStoriesAlert from '../components/testcase/IncompleteStoriesAlert';
@@ -10,6 +11,7 @@ import ProgressBar from '../components/testcase/ProgressBar';
 import ResultsDashboard from '../components/testcase/ResultsDashboard';
 import TestCaseTable from '../components/testcase/TestCaseTable';
 import TestCaseModal from '../components/testcase/TestCaseModal';
+import TestCaseHistory from '../components/agentHistory/TestCaseHistory';
 
 function TestCaseGenerator() {
   const navigate = useNavigate();
@@ -20,12 +22,71 @@ function TestCaseGenerator() {
   const { loading, progress, result, error, generate } = useTestCaseGeneration();
   const { downloading, downloadExcel, downloadJSON } = useDownload();
   const { isDark } = useTheme();
+  
+  // Agent History states
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyResult, setHistoryResult] = useState(null); // Override result when viewing history
+  
+  // Use historyResult if available, otherwise use current result
+  const displayResult = historyResult || result;
 
   const handleGenerate = async () => {
     try {
+      setHistoryResult(null); // Clear history result when generating new
+      setShowHistory(false); // Reset to show results, not history
       await generate(frdFiles, userStoryFiles);
     } catch (err) {
       // Error handled in hook
+    }
+  };
+
+  // Open history view in results section
+  const handleOpenHistory = () => {
+    setShowHistory(true);
+    setHistoryResult(null); // Clear any loaded history result
+    // Scroll to results section
+    setTimeout(() => {
+      const resultsSection = document.querySelector('[data-results-section]');
+      if (resultsSection) {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  // Load historical result into display format
+  const handleLoadHistory = async (generationId) => {
+    try {
+      const data = await testCaseApi.getTestCaseGeneration(generationId);
+      
+      // Transform history data to match the result format expected by components
+      const transformedResult = {
+        status: 'ok',
+        extraction: {
+          total_features: data.generation_metadata?.total_features || 0,
+          total_stories: data.generation_metadata?.total_stories || 0,
+        },
+        analysis: {
+          total_features_mapped: data.generation_metadata?.total_features_mapped || 0,
+        },
+        test_cases: {
+          total_test_cases: data.generation_metadata?.total_test_cases || data.test_cases?.length || 0,
+          test_cases: data.test_cases || [],
+        },
+        mismatched_features: data.generation_metadata?.mismatched_features,
+        incomplete_user_stories: data.generation_metadata?.incomplete_user_stories,
+      };
+      
+      setHistoryResult(transformedResult);
+      setShowHistory(false); // Switch to show results view
+      // Scroll to results section
+      setTimeout(() => {
+        const resultsSection = document.querySelector('[data-results-section]');
+        if (resultsSection) {
+          resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Failed to load historical result:', err);
     }
   };
 
@@ -250,6 +311,30 @@ function TestCaseGenerator() {
                 </div>
               </div>
             </div>
+
+            {/* Agent History */}
+            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-history text-indigo-500 dark:text-indigo-400"></i>
+                <h3 className="font-bold text-gray-900 dark:text-white">Agent History</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <i className="fas fa-clock text-indigo-600 dark:text-indigo-400 mt-1"></i>
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-gray-300">Previous Runs</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs">View and revisit past test case generations</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleOpenHistory}
+                  className="w-full mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <i className="fas fa-list"></i>
+                  View History
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -274,53 +359,120 @@ function TestCaseGenerator() {
         )}
 
         {/* Alerts */}
-        <div className="mt-6">
-          <InsufficientAlert data={result} />
-          {result?.mismatched_features && (
-            <MismatchAlert mismatched_features={result.mismatched_features} />
-          )}
-          {result?.incomplete_user_stories && (
-            <IncompleteStoriesAlert incomplete_user_stories={result.incomplete_user_stories} />
-          )}
-        </div>
-
-        {/* Results Section */}
-        {result?.status === 'ok' && (
-          <div className="mt-6 space-y-6">
-            <ResultsDashboard result={result} />
-            <TestCaseTable
-              testCases={result.test_cases?.test_cases || []}
-              onSelectTestCase={setSelectedTestCase}
-            />
-
-            {/* Download Section */}
-            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Cases</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => downloadExcel(result.test_cases?.test_cases || [])}
-                    disabled={downloading}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition-all shadow-md"
-                  >
-                    <i className="fas fa-file-excel"></i>
-                    {downloading ? 'Downloading...' : 'Excel'}
-                  </button>
-                  <button
-                    onClick={() => downloadJSON(result.test_cases)}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
-                  >
-                    <i className="fas fa-code"></i>
-                    JSON
-                  </button>
-                </div>
-              </div>
-            </div>
+        {!showHistory && (
+          <div className="mt-6">
+            <InsufficientAlert data={displayResult} />
+            {displayResult?.mismatched_features && (
+              <MismatchAlert mismatched_features={displayResult.mismatched_features} />
+            )}
+            {displayResult?.incomplete_user_stories && (
+              <IncompleteStoriesAlert incomplete_user_stories={displayResult.incomplete_user_stories} />
+            )}
           </div>
         )}
+
+        {/* Results Section */}
+        <div className="mt-6 space-y-6" data-results-section>
+          {showHistory ? (
+            /* Show TestCaseHistory component */
+            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-lg overflow-hidden">
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-history text-indigo-600 dark:text-indigo-400"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Test Case Generation History</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">View and load previous generations</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-all flex items-center gap-2"
+                >
+                  <i className="fas fa-times"></i>
+                  Close History
+                </button>
+              </div>
+              <div className="p-6">
+                {(() => {
+                  try {
+                    const proj = JSON.parse(localStorage.getItem('project') || 'null');
+                    const projectId = proj?.id;
+                    return projectId ? (
+                      <TestCaseHistory projectId={projectId} onLoadHistory={handleLoadHistory} />
+                    ) : (
+                      <div className="p-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                        No project selected in localStorage under key "project".
+                      </div>
+                    );
+                  } catch (e) {
+                    return (
+                      <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                        Failed to read project from localStorage.
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            </div>
+          ) : displayResult?.status === 'ok' ? (
+            /* Show Current/Historical Results */
+            <>
+              {historyResult && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-history text-blue-600 dark:text-blue-400"></i>
+                      <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                        Viewing Historical Result
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setHistoryResult(null)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition-all"
+                    >
+                      <i className="fas fa-times mr-1"></i>
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+              <ResultsDashboard result={displayResult} />
+              <TestCaseTable
+                testCases={displayResult.test_cases?.test_cases || []}
+                onSelectTestCase={setSelectedTestCase}
+              />
+
+              {/* Download Section */}
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Cases</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => downloadExcel(displayResult.test_cases?.test_cases || [])}
+                      disabled={downloading}
+                      className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition-all shadow-md"
+                    >
+                      <i className="fas fa-file-excel"></i>
+                      {downloading ? 'Downloading...' : 'Excel'}
+                    </button>
+                    <button
+                      onClick={() => downloadJSON(displayResult.test_cases)}
+                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                    >
+                      <i className="fas fa-code"></i>
+                      JSON
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {/* Test Case Detail Modal */}
