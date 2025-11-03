@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from "framer-motion"
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { integrationApi } from '../api/integrationApi'
+import { integrationApi } from '../api/integrationApi'
 
 export default function IntegrationTestingPlatform() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ export default function IntegrationTestingPlatform() {
   const [error, setError] = useState(null)
   const [report, setReport] = useState(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     try {
@@ -25,6 +27,7 @@ export default function IntegrationTestingPlatform() {
         const parsed = JSON.parse(storedProject)
         setProject(parsed)
       } else {
+        setError("No project found. Please create a project first.")
         setError("No project found. Please create a project first.")
       }
     } catch (err) {
@@ -56,6 +59,7 @@ export default function IntegrationTestingPlatform() {
   const generateTestScript = async () => {
     if (!selectedScenario || !scenariosDocId) {
       setError("No scenario selected")
+      setError("No scenario selected")
       return
     }
 
@@ -77,6 +81,8 @@ export default function IntegrationTestingPlatform() {
   const executeTests = async () => {
     if (!selectedScenario || !scenariosDocId) {
       setError("Please select a scenario")
+    if (!selectedScenario || !scenariosDocId) {
+      setError("Please select a scenario")
       return
     }
 
@@ -85,6 +91,7 @@ export default function IntegrationTestingPlatform() {
     setStep("running")
 
     try {
+      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name)
       const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name)
       setReport(response.report)
       setStep("report")
@@ -119,6 +126,7 @@ export default function IntegrationTestingPlatform() {
 
   const testTimelineData = report?.test_details?.map((test, idx) => ({
     name: `Test ${idx + 1}`,
+    duration: Math.random() * 500 + 100,
     duration: Math.random() * 500 + 100,
     status: test.passed ? "passed" : "failed",
   })) || []
@@ -655,3 +663,4 @@ export default function IntegrationTestingPlatform() {
     </div>
   )
 }
+

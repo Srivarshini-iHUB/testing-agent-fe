@@ -51,6 +51,22 @@ export const testCaseApi = {
   },
 
   /**
+   * Get test case generations by project ID
+   */
+  getProjectTestCaseGenerations: async (projectId) => {
+    const response = await apiClient.get(`/api/testcase-generator/project/${encodeURIComponent(projectId)}`);
+    return response.data;
+  },
+
+  /**
+   * Get test case generation by ID
+   */
+  getTestCaseGeneration: async (testcaseId) => {
+    const response = await apiClient.get(`/api/testcase-generator/${encodeURIComponent(testcaseId)}`);
+    return response.data;
+  },
+
+  /**
    * Health check
    */
   healthCheck: async () => {

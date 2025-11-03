@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { performanceApi } from '../../api/performanceApi';
+import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -136,7 +137,7 @@ const PerformanceHistory = () => {
                     aria-label={(expandedItems[it.id] ?? true) ? 'Collapse' : 'Expand'}
                     style={styles.toggleBtn}
                   >
-                    {(expandedItems[it.id] ?? true) ? '▼' : '▶'}
+                    {(expandedItems[it.id] ?? true) ? <FiChevronDown /> : <FiChevronRight />}
                   </button>
                 </div>
               </div>
@@ -168,7 +169,7 @@ const PerformanceHistory = () => {
                               aria-label={(expandedRuns[runId] ?? true) ? 'Collapse run' : 'Expand run'}
                               style={styles.toggleBtn}
                             >
-                              {(expandedRuns[runId] ?? true) ? '▼' : '▶'}
+                              {(expandedRuns[runId] ?? true) ? <FiChevronDown /> : <FiChevronRight />}
                             </button>
                             <DownloadJsonButton fileName={`performance_run_${it.id}_${idx}`} data={downloadable} />
                           </div>
