@@ -9,6 +9,8 @@ const ResultsDashboard = ({ result }) => {
   };
 
   const testCases = result.test_cases?.test_cases || [];
+  console.log("testCases:", testCases);
+  
   const testStats = {
     positive: testCases.filter(tc => tc.test_type === 'Positive').length,
     negative: testCases.filter(tc => tc.test_type === 'Negative').length,

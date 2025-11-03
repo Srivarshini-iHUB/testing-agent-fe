@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTestCaseGeneration } from '../hooks/useTestCaseGeneration';
@@ -14,64 +14,130 @@ import TestCaseModal from '../components/testcase/TestCaseModal';
 
 function TestCaseGenerator() {
   const navigate = useNavigate();
-
-  // === State ===
+  const [selectedFrdUrl, setSelectedFrdUrl] = useState("");
+  const [selectedUserStoryUrl, setSelectedUserStoryUrl] = useState("");
   const [frdFiles, setFrdFiles] = useState([]);
   const [userStoryFiles, setUserStoryFiles] = useState([]);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  // Upload state
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-
+  const [project, setProject] = useState(null);
+  const [frdPreviewUrl, setFrdPreviewUrl] = useState(null);
+  const [userStoryPreviewUrl, setUserStoryPreviewUrl] = useState(null);
   const { loading, progress, result, error, generate } = useTestCaseGeneration();
   const { downloading, downloadExcel, downloadJSON } = useDownload();
   const { isDark } = useTheme();
 
-  // === CONFIRM UPLOAD HANDLER ===
-  const handleConfirmUpload = async () => {
-    if (!frdFiles.length || !userStoryFiles.length) {
-      toast.error('Please upload both FRD and User Story files.');
+  // Load project from localStorage on mount
+  useEffect(() => {
+    const storedProject = localStorage.getItem('project');
+    if (storedProject) {
+      const parsedProject = JSON.parse(storedProject);
+      console.log("Loaded project:", parsedProject); // Debug log
+      setProject(parsedProject);
+    } else {
+      toast.error("No project found. Redirecting to dashboard...");
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
+  // Cleanup preview URLs
+  useEffect(() => {
+    return () => {
+      if (frdPreviewUrl) URL.revokeObjectURL(frdPreviewUrl);
+      if (userStoryPreviewUrl) URL.revokeObjectURL(userStoryPreviewUrl);
+    };
+  }, [frdPreviewUrl, userStoryPreviewUrl]);
+
+  // Generate test cases using selected URLs or uploaded files
+  const handleGenerateTestCases = async () => {
+    if ((!selectedFrdUrl && frdFiles.length === 0) || (!selectedUserStoryUrl && userStoryFiles.length === 0)) {
+      toast.error("Please select or upload both FRD and User Story files.");
       return;
     }
 
-    setUploadLoading(true);
-    setUploadSuccess(false);
-
-    const form = new FormData();
-    frdFiles.forEach((file) => form.append('frd', file));
-    userStoryFiles.forEach((file) => form.append('user_story', file));
+    if (!project) {
+      toast.error("Project not loaded. Please refresh the page.");
+      return;
+    }
 
     try {
-      const response = await fetch('http://localhost:8080/api/projects/PROJ_1', {
-        method: 'PATCH',
-        body: form,
-      });
+      const formData = new FormData();
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${response.status}`);
+      // Use project.id (not project._id)
+      if (!project.id) {
+        toast.error("Project ID is missing. Please check your project data.");
+        return;
+      }
+      formData.append("project_id", project.id);
+
+      // Add FRD (URL or file)
+      if (selectedFrdUrl) {
+        console.log("Using selected FRD URL:", selectedFrdUrl); // Debug log
+        formData.append("frd_url", selectedFrdUrl);
+      } else if (frdFiles.length > 0) {
+        formData.append("frd_file", frdFiles[0]);
       }
 
-      await response.json();
-      toast.success('Files uploaded and project updated successfully!');
-      setUploadSuccess(true);
+      // Add User Story (URL or file)
+      if (selectedUserStoryUrl) {
+        console.log("Using selected User Story URL:", selectedUserStoryUrl); // Debug log
+        formData.append("user_story_url", selectedUserStoryUrl);
+      } else if (userStoryFiles.length > 0) {
+        formData.append("user_story_file", userStoryFiles[0]);
+      }
+
+      // Log FormData for debugging
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
+      await generate(formData);
+      console.log("formData", formData);
     } catch (err) {
-      toast.error(err.message || 'Failed to upload files');
-      console.error('Upload error:', err);
-    } finally {
-      setUploadLoading(false);
+      console.error('Error generating test cases:', err);
+      toast.error(err.message || 'Failed to generate test cases');
     }
   };
 
-  // === GENERATE TEST CASES ===
-  const handleGenerate = async () => {
-    try {
-      await generate(frdFiles, userStoryFiles);
-    } catch (err) {
-      console.error('Error generating test cases:', err);
+  const handleFrdSelect = (e) => {
+    const value = e.target.value;
+    setSelectedFrdUrl(value);
+    setFrdFiles([]);
+    setFrdPreviewUrl(null);
+  };
+
+  const handleFrdUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    setFrdFiles(files);
+    setSelectedFrdUrl("");
+    if (files[0]) {
+      setFrdPreviewUrl(URL.createObjectURL(files[0]));
+    } else {
+      setFrdPreviewUrl(null);
     }
+  };
+
+  const handleUserStorySelect = (e) => {
+    const value = e.target.value;
+    setSelectedUserStoryUrl(value);
+    setUserStoryFiles([]);
+    setUserStoryPreviewUrl(null);
+  };
+
+  const handleUserStoryUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    setUserStoryFiles(files);
+    setSelectedUserStoryUrl("");
+    if (files[0]) {
+      setUserStoryPreviewUrl(URL.createObjectURL(files[0]));
+    } else {
+      setUserStoryPreviewUrl(null);
+    }
+  };
+
+  const getFilename = (url) => {
+    if (!url) return '';
+    return decodeURIComponent(url.split('/').pop());
   };
 
   return (
@@ -106,119 +172,191 @@ function TestCaseGenerator() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Test Configuration</h2>
             </div>
 
-            {/* FRD Upload Section */}
+            {/* FRD Section */}
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Functional Requirements Document <span className="text-rose-500 dark:text-rose-400">*</span>
                 </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.docx,.txt"
-                    onChange={(e) => setFrdFiles(Array.from(e.target.files || []))}
-                    id="frd-upload"
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="frd-upload"
-                    className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
-                  >
-                    <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload FRD</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
-                  </label>
-                </div>
-
-                {frdFiles.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                        <i className="fas fa-check-circle mr-1"></i>
-                        {frdFiles.length} file{frdFiles.length > 1 ? 's' : ''} selected
-                      </span>
-                      <button
-                        onClick={() => setFrdFiles([])}
-                        className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-semibold"
-                      >
-                        <i className="fas fa-times mr-1"></i>Clear
-                      </button>
-                    </div>
-                    <div className="space-y-2 max-h-24 overflow-y-auto custom-scrollbar">
-                      {frdFiles.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 bg-gray-100 dark:bg-gray-900/50 p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                        >
-                          <i className="fas fa-file-pdf text-blue-500 dark:text-blue-400"></i>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{file.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">
-                              {(file.size / 1024).toFixed(1)} KB
-                            </p>
-                          </div>
-                        </div>
+                {project?.frd?.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={selectedFrdUrl}
+                      onChange={handleFrdSelect}
+                      className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="">Select FRD</option>
+                      {project.frd.map((url, idx) => (
+                        <option key={idx} value={url}>
+                          {getFilename(url)}
+                        </option>
                       ))}
+                    </select>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="file"
+                        id="frd-upload"
+                        className="hidden"
+                        onChange={handleFrdUpload}
+                        accept=".pdf,.docx,.txt"
+                      />
+                      <label
+                        htmlFor="frd-upload"
+                        className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold transition-colors cursor-pointer"
+                      >
+                        <i className="fas fa-plus-circle"></i>
+                        Quick Upload FRD
+                      </label>
                     </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      onChange={handleFrdUpload}
+                      id="frd-upload"
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="frd-upload"
+                      className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
+                    >
+                      <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload FRD</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
+                    </label>
+                  </div>
+                )}
+
+                {/* Selected FRD Display */}
+                {selectedFrdUrl && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <a
+                      href={selectedFrdUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2 text-sm font-medium"
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                      View FRD: {getFilename(selectedFrdUrl)}
+                    </a>
+                  </div>
+                )}
+
+                {/* Uploaded FRD Preview */}
+                {frdFiles.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      Uploaded: {frdFiles[0].name}
+                    </p>
+                    {frdFiles[0].type === 'application/pdf' && frdPreviewUrl ? (
+                      <iframe
+                        src={frdPreviewUrl}
+                        className="w-full h-64 border rounded-lg shadow-sm"
+                        title="FRD Preview"
+                      />
+                    ) : (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {frdFiles[0].type} file uploaded. Preview available for PDFs only.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* User Stories Upload Section */}
+              {/* User Stories Section */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   User Stories Document <span className="text-rose-500 dark:text-rose-400">*</span>
                 </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.docx,.txt"
-                    onChange={(e) => setUserStoryFiles(Array.from(e.target.files || []))}
-                    id="userstory-upload"
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="userstory-upload"
-                    className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
-                  >
-                    <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload User Stories</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
-                  </label>
-                </div>
-
-                {userStoryFiles.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                        <i className="fas fa-check-circle mr-1"></i>
-                        {userStoryFiles.length} file{userStoryFiles.length > 1 ? 's' : ''} selected
-                      </span>
-                      <button
-                        onClick={() => setUserStoryFiles([])}
-                        className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-semibold"
-                      >
-                        <i className="fas fa-times mr-1"></i>Clear
-                      </button>
-                    </div>
-                    <div className="space-y-2 max-h-24 overflow-y-auto custom-scrollbar">
-                      {userStoryFiles.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 bg-gray-100 dark:bg-gray-900/50 p-2 rounded-lg border border-gray-200 dark:border-gray-700"
-                        >
-                          <i className="fas fa-file-word text-purple-500 dark:text-purple-400"></i>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{file.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">
-                              {(file.size / 1024).toFixed(1)} KB
-                            </p>
-                          </div>
-                        </div>
+                {project?.user_story?.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={selectedUserStoryUrl}
+                      onChange={handleUserStorySelect}
+                      className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="">Select User Story</option>
+                      {project.user_story.map((url, idx) => (
+                        <option key={idx} value={url}>
+                          {getFilename(url)}
+                        </option>
                       ))}
+                    </select>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="file"
+                        id="userstory-upload"
+                        className="hidden"
+                        onChange={handleUserStoryUpload}
+                        accept=".pdf,.docx,.txt"
+                      />
+                      <label
+                        htmlFor="userstory-upload"
+                        className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold transition-colors cursor-pointer"
+                      >
+                        <i className="fas fa-plus-circle"></i>
+                        Quick Upload User Story
+                      </label>
                     </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      onChange={handleUserStoryUpload}
+                      id="userstory-upload"
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="userstory-upload"
+                      className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
+                    >
+                      <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload User Stories</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
+                    </label>
+                  </div>
+                )}
+
+                {/* Selected User Story Display */}
+                {selectedUserStoryUrl && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <a
+                      href={selectedUserStoryUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2 text-sm font-medium"
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                      View User Story: {getFilename(selectedUserStoryUrl)}
+                    </a>
+                  </div>
+                )}
+
+                {/* Uploaded User Story Preview */}
+                {userStoryFiles.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      Uploaded: {userStoryFiles[0].name}
+                    </p>
+                    {userStoryFiles[0].type === 'application/pdf' && userStoryPreviewUrl ? (
+                      <iframe
+                        src={userStoryPreviewUrl}
+                        className="w-full h-64 border rounded-lg shadow-sm"
+                        title="User Story Preview"
+                      />
+                    ) : (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {userStoryFiles[0].type} file uploaded. Preview available for PDFs only.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -231,36 +369,6 @@ function TestCaseGenerator() {
                 <i className={`fas fa-cog ${showAdvanced ? 'fa-spin' : ''}`}></i>
                 {showAdvanced ? 'Hide' : 'Show'} Advanced Options
               </button>
-
-              {/* Confirm Upload Button */}
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={handleConfirmUpload}
-                  disabled={uploadLoading || !frdFiles.length || !userStoryFiles.length}
-                  className={`
-                    px-6 py-2 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2
-                    ${
-                      uploadLoading
-                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                        : uploadSuccess
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                    }
-                  `}
-                >
-                  {uploadLoading ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin"></i> Uploading...
-                    </>
-                  ) : uploadSuccess ? (
-                    <>
-                      <i className="fas fa-check-circle"></i> Uploaded
-                    </>
-                  ) : (
-                    'Confirm Upload'
-                  )}
-                </button>
-              </div>
 
               {/* Advanced Options Panel */}
               {showAdvanced && (
@@ -295,17 +403,17 @@ function TestCaseGenerator() {
             <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
               <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
               <button
-                onClick={handleGenerate}
-                disabled={loading || !frdFiles.length || !userStoryFiles.length}
+                onClick={handleGenerateTestCases}
+                disabled={loading || (!selectedFrdUrl && frdFiles.length === 0) || (!selectedUserStoryUrl && userStoryFiles.length === 0)}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-play'}`}></i>
                 {loading ? 'Generating...' : 'Start Test Generation'}
               </button>
-              {(!frdFiles.length || !userStoryFiles.length) && (
+              {((!selectedFrdUrl && frdFiles.length === 0) || (!selectedUserStoryUrl && userStoryFiles.length === 0)) && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
                   <i className="fas fa-info-circle mr-1"></i>
-                  Upload both documents to continue
+                  Select or upload both documents to continue
                 </p>
               )}
             </div>

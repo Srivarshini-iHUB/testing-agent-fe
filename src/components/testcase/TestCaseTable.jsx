@@ -1,8 +1,73 @@
 import React, { useState } from 'react';
 
-const TestCaseTable = ({ testCases, onSelectTestCase }) => {
+const TestCaseTable = ({ result, onRowClick: onSelectTestCase }) => {
   const [filterType, setFilterType] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
+  
+  // Guard: Ensure testCases is an array; fallback to empty array if missing
+  const testCases = result?.test_cases?.test_cases || [];
+  
+  if (!result || testCases.length === 0) {
+    return (
+      <div className="space-y-4">
+        {/* Filters - Keep for consistency, but disabled */}
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-lg p-5 border border-gray-200 dark:border-gray-700/50">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter by Type:</span>
+              <select 
+                value={filterType} 
+                onChange={(e) => setFilterType(e.target.value)}
+                disabled
+                className="px-3 py-2 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent opacity-50 cursor-not-allowed"
+              >
+                <option value="all">All Types</option>
+                <option value="Positive">Positive</option>
+                <option value="Negative">Negative</option>
+                <option value="Edge Case">Edge Case</option>
+                <option value="Boundary">Boundary</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter by Priority:</span>
+              <select 
+                value={filterPriority} 
+                onChange={(e) => setFilterPriority(e.target.value)}
+                disabled
+                className="px-3 py-2 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent opacity-50 cursor-not-allowed"
+              >
+                <option value="all">All Priorities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            
+            <div className="ml-auto">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Showing <span className="font-bold text-indigo-600 dark:text-indigo-400">0</span> of <span className="font-bold">0</span> test cases
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State */}
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700/50 text-center p-12">
+          <i className="fas fa-file-alt text-6xl text-gray-300 dark:text-gray-600 mb-4 block mx-auto"></i>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Test Cases Generated</h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">Generate test cases using the configuration above to see results here.</p>
+          <button 
+            onClick={() => { /* Optional: Scroll to top or trigger generation */ }}
+            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            Generate Test Cases
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   const filteredTestCases = testCases.filter(tc => {
     const typeMatch = filterType === 'all' || tc.test_type === filterType;
@@ -73,52 +138,64 @@ const TestCaseTable = ({ testCases, onSelectTestCase }) => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800/20 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredTestCases.map((tc, idx) => (
-                <tr 
-                  key={idx} 
-                  onClick={() => onSelectTestCase(tc)}
-                  className="hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer transition-colors duration-150"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{tc.test_case_id}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{tc.feature_name}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{tc.test_scenario}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1.5 text-xs font-bold rounded-full
-                      ${tc.test_type === 'Positive' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : ''}
-                      ${tc.test_type === 'Negative' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : ''}
-                      ${tc.test_type === 'Edge Case' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : ''}
-                      ${tc.test_type === 'Boundary' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : ''}
-                    `}>
-                      {tc.test_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1.5 text-xs font-bold rounded-full
-                      ${tc.priority === 'Critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : ''}
-                      ${tc.priority === 'High' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : ''}
-                      ${tc.priority === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : ''}
-                      ${tc.priority === 'Low' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
-                    `}>
-                      {tc.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1.5 text-xs font-bold rounded-full
-                      ${tc.automation_status === 'Automated' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : ''}
-                      ${tc.automation_status === 'Manual' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
-                      ${tc.automation_status === 'To Be Automated' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : ''}
-                    `}>
-                      {tc.automation_status}
-                    </span>
+              {filteredTestCases.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <i className="fas fa-search text-3xl mb-2 block mx-auto"></i>
+                    No test cases match the current filters. Try adjusting the filters above.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredTestCases.map((tc, idx) => (
+                  <tr 
+                    key={tc.test_case_id || idx} 
+                    onClick={() => onSelectTestCase(tc)}
+                    className="hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer transition-colors duration-150"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{tc.test_case_id || `TC-${idx + 1}`}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{tc.feature_name || 'N/A'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{tc.test_scenario || 'N/A'}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1.5 text-xs font-bold rounded-full
+                        ${tc.test_type === 'Positive' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : ''}
+                        ${tc.test_type === 'Negative' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : ''}
+                        ${tc.test_type === 'Edge Case' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : ''}
+                        ${tc.test_type === 'Boundary' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : ''}
+                        ${!tc.test_type ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
+                      `}>
+                        {tc.test_type || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1.5 text-xs font-bold rounded-full
+                        ${tc.priority === 'Critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : ''}
+                        ${tc.priority === 'High' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : ''}
+                        ${tc.priority === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : ''}
+                        ${tc.priority === 'Low' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
+                        ${!tc.priority ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
+                      `}>
+                        {tc.priority || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1.5 text-xs font-bold rounded-full
+                        ${tc.automation_status === 'Automated' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : ''}
+                        ${tc.automation_status === 'Manual' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
+                        ${tc.automation_status === 'To Be Automated' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : ''}
+                        ${!tc.automation_status ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' : ''}
+                      `}>
+                        {tc.automation_status || 'N/A'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
