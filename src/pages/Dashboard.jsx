@@ -18,11 +18,11 @@ const Dashboard = () => {
 
   // Projects from API
   const [projects, setProjects] = useState([]);
-  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(true); // Start as true to indicate initial loading
   const [projectsError, setProjectsError] = useState("");
 
-  // Check if user is new (no projects)
-  const isFirstTimeUser = projects.length === 0;
+  // Check if user is new (no projects) - only after loading is complete
+  const isFirstTimeUser = !projectsLoading && projects.length === 0;
 
   // Current project from state or first from API
   const [currentProject, setCurrentProject] = useState(null);
@@ -30,9 +30,15 @@ const Dashboard = () => {
   // Load projects for the user
   useEffect(() => {
     const load = async () => {
-      if (!user) return;
+      if (!user) {
+        setProjectsLoading(false);
+        return;
+      }
       const userId = user.user_id;
-      if (!userId) return;
+      if (!userId) {
+        setProjectsLoading(false);
+        return;
+      }
       setProjectsLoading(true);
       setProjectsError("");
       try {
@@ -57,7 +63,7 @@ const Dashboard = () => {
       }
     };
     load();
-  }, []);
+  }, [user]);
 
   // Agents data
   const agents = [
@@ -238,6 +244,18 @@ const Dashboard = () => {
       navigate(agent.path);
     }
   };
+
+  // Show loading screen while projects are being fetched
+  if (projectsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading your projects...</p>
+        </div>
+      </div>
+    );
+  }
 
   // First-Time User Welcome Screen
   if (isFirstTimeUser) {
