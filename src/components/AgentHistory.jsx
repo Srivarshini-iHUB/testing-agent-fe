@@ -258,7 +258,12 @@ const AgentHistory = ({ currentProject }) => {
     const route = getAgentRoute(agent);
     if (route) {
       console.log('[AgentHistory] Navigating to:', route, 'for agent:', agent?.name || agent?.id);
-      navigate(route);
+      // For test-case-generator, navigate to history tab
+      if (route === '/test-case-generator') {
+        navigate('/test-case-generator#history', { replace: false });
+      } else {
+        navigate(route);
+      }
     } else {
       console.warn('[AgentHistory] No route found for agent:', agent);
     }

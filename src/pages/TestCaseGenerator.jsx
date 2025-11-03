@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTestCaseGeneration } from '../hooks/useTestCaseGeneration';
 import { useDownload } from '../hooks/useDownload';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,6 +15,7 @@ import TestCaseHistory from '../components/agentHistory/TestCaseHistory';
 
 function TestCaseGenerator() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [frdFiles, setFrdFiles] = useState([]);
   const [userStoryFiles, setUserStoryFiles] = useState([]);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
@@ -24,14 +25,31 @@ function TestCaseGenerator() {
   const { isDark } = useTheme();
   
   // Tab and History states
-  const [activeTab, setActiveTab] = useState('generator'); // 'generator' or 'history'
+  // Check if URL hash is #history to open history tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return location.hash === '#history' ? 'history' : 'generator';
+  });
   const [historyResult, setHistoryResult] = useState(null); // Override result when viewing history
   const [historyList, setHistoryList] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   
-  // Use historyResult if available, otherwise use current result
-  const displayResult = historyResult || result;
+  // Use historyResult only in history tab, otherwise use current result
+  const displayResult = activeTab === 'history' ? (historyResult || null) : result;
+
+  // Handle URL hash changes to switch tabs
+  useEffect(() => {
+    if (location.hash === '#history') {
+      setActiveTab('history');
+      setHistoryResult(null);
+      setSelectedHistoryId(null);
+      fetchHistoryList();
+    } else if (location.hash === '#generator' || !location.hash) {
+      setActiveTab('generator');
+      setHistoryResult(null);
+      setSelectedHistoryId(null);
+    }
+  }, [location.hash]);
 
   const handleGenerate = async () => {
     try {
@@ -66,8 +84,16 @@ function TestCaseGenerator() {
   };
 
   // Load historical result into display format (using data from history list)
+  // Toggle: if already selected, deselect it; otherwise, load it
   const handleLoadHistory = (generationId) => {
     try {
+      // If clicking the same generation that's already selected, toggle it off
+      if (selectedHistoryId === generationId && historyResult) {
+        setHistoryResult(null);
+        setSelectedHistoryId(null);
+        return;
+      }
+      
       // Find the generation in the history list
       const generation = historyList.find(
         (gen) => (gen.id || gen.testcase_id) === generationId
@@ -108,6 +134,7 @@ function TestCaseGenerator() {
     setActiveTab('history');
     setHistoryResult(null);
     setSelectedHistoryId(null);
+    window.location.hash = '#history';
     fetchHistoryList();
   };
 
@@ -137,7 +164,12 @@ function TestCaseGenerator() {
         <div className="mb-6 bg-transparent rounded-t-xl overflow-hidden">
           <div className="flex border-b-2 border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setActiveTab('generator')}
+              onClick={() => {
+                setActiveTab('generator');
+                setHistoryResult(null); // Clear history result when switching to generator tab
+                setSelectedHistoryId(null);
+                window.location.hash = '#generator';
+              }}
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'generator'
                   ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
@@ -398,25 +430,6 @@ function TestCaseGenerator() {
                 {/* Results Section */}
                 {displayResult?.status === 'ok' && (
                   <div className="space-y-6" data-results-section>
-                    {historyResult && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <i className="fas fa-history text-blue-600 dark:text-blue-400"></i>
-                            <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-                              Viewing Historical Result
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => setHistoryResult(null)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition-all"
-                          >
-                            <i className="fas fa-times mr-1"></i>
-                            Close
-                          </button>
-                        </div>
-                      </div>
-                    )}
                     <ResultsDashboard result={displayResult} />
                     <TestCaseTable
                       testCases={displayResult.test_cases?.test_cases || []}
