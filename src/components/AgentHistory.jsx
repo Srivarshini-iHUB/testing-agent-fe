@@ -148,7 +148,7 @@ const AgentHistory = ({ currentProject }) => {
         id: 'e2e-testing',
         name: 'Integration Testing',
         icon: 'fa-route',
-        totalTests: 5,
+        totalTests: 12,
         lastRun: '2025-10-24',
         tests: [
           { 
@@ -167,7 +167,7 @@ const AgentHistory = ({ currentProject }) => {
         id: 'e2e-testing-1',
         name: 'Performance Testing',
         icon: 'fa-route',
-        totalTests: 5,
+        totalTests: 1,
         lastRun: '2025-10-24',
         tests: [
           { 
@@ -318,13 +318,13 @@ const AgentHistory = ({ currentProject }) => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
+                  {/* <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
                       <i className="fas fa-clock"></i>
                       Last: {agent.lastRun}
                     </span>
                     <i className={`fas fa-chevron-${isSelected ? 'up' : 'right'} ${colors.text}`}></i>
-                  </div>
+                  </div> */}
                 </button>
               );
             })}

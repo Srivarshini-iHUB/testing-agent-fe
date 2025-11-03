@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react"
-import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code } from "lucide-react"
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from "framer-motion"
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { integrationApi } from '../api/integrationApi'; // Adjust path as needed
+import { integrationApi } from '../api/integrationApi'
 
 export default function IntegrationTestingPlatform() {
-  const [step, setStep] = useState("upload") // upload, scenarios, script, running, report
+  const navigate = useNavigate()
+  const [step, setStep] = useState("upload")
   const [project, setProject] = useState(null)
   const [scenariosDocId, setScenariosDocId] = useState(null)
   const [scenarios, setScenarios] = useState([])
   const [selectedScenario, setSelectedScenario] = useState(null)
-  const [baseUrl, setBaseUrl] = useState("")
   const [testScript, setTestScript] = useState("")
   const [testRunId, setTestRunId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [report, setReport] = useState(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     try {
@@ -23,7 +25,7 @@ export default function IntegrationTestingPlatform() {
         const parsed = JSON.parse(storedProject)
         setProject(parsed)
       } else {
-        setError("No project found in localStorage. Please create a project first.")
+        setError("No project found. Please create a project first.")
       }
     } catch (err) {
       setError("Failed to load project from localStorage.")
@@ -53,7 +55,7 @@ export default function IntegrationTestingPlatform() {
 
   const generateTestScript = async () => {
     if (!selectedScenario || !scenariosDocId) {
-      setError("No scenario or document ID available")
+      setError("No scenario selected")
       return
     }
 
@@ -73,8 +75,8 @@ export default function IntegrationTestingPlatform() {
   }
 
   const executeTests = async () => {
-    if (!selectedScenario || !scenariosDocId ) {
-      setError("Please select a scenario and provide a base URL")
+    if (!selectedScenario || !scenariosDocId) {
+      setError("Please select a scenario")
       return
     }
 
@@ -83,9 +85,7 @@ export default function IntegrationTestingPlatform() {
     setStep("running")
 
     try {
-   
-
-      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name);
+      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name)
       setReport(response.report)
       setStep("report")
     } catch (err) {
@@ -111,7 +111,6 @@ export default function IntegrationTestingPlatform() {
     setScenariosDocId(null)
     setScenarios([])
     setSelectedScenario(null)
-    setBaseUrl("")
     setTestScript("")
     setTestRunId(null)
     setReport(null)
@@ -120,7 +119,7 @@ export default function IntegrationTestingPlatform() {
 
   const testTimelineData = report?.test_details?.map((test, idx) => ({
     name: `Test ${idx + 1}`,
-    duration: Math.random() * 500 + 100, // Placeholder; no actual duration provided
+    duration: Math.random() * 500 + 100,
     status: test.passed ? "passed" : "failed",
   })) || []
 
@@ -136,395 +135,403 @@ export default function IntegrationTestingPlatform() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 p-0.5 shadow-lg shadow-blue-500/20">
-                <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">IT</span>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Integration Tester</h1>
-                <p className="text-sm text-slate-400">API Testing & Validation Platform</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto">
+        {/* Back Button & Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mb-4 flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+          >
+            <i className="fas fa-arrow-left"></i>
+            Back to Dashboard
+          </button>
+
+          <div className="flex items-center gap-3">
+            <i className="fas fa-link text-4xl text-indigo-600 dark:text-indigo-400"></i>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Integration Testing</h1>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">API Testing & Validation Platform</p>
             </div>
-            {step !== "upload" && (
-              <button
-                onClick={resetAll}
-                className="group flex items-center gap-2 px-4 py-2.5 bg-slate-800/50 hover:bg-slate-700/50 text-slate-200 hover:text-white rounded-lg transition-all duration-300 border border-slate-700/50 hover:border-slate-600/50 font-medium"
-              >
-                <RotateCcw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
-                Start Over
-              </button>
-            )}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Error Alert */}
-        {error && (
-          <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 flex items-start gap-4 backdrop-blur-sm">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={22} />
-              <div className="flex-1">
-                <p className="text-red-200 font-semibold">Something went wrong</p>
-                <p className="text-red-300/80 text-sm mt-1.5 leading-relaxed">{error}</p>
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-6 bg-rose-50 dark:bg-rose-900/20 border border-rose-300 dark:border-rose-500 rounded-xl p-4"
+            >
+              <div className="flex items-start gap-3">
+                <i className="fas fa-exclamation-triangle text-rose-600 dark:text-rose-400 text-xl"></i>
+                <div className="flex-1">
+                  <h3 className="font-bold text-rose-800 dark:text-rose-300">Error</h3>
+                  <p className="text-sm text-rose-700 dark:text-rose-200 mt-1">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-200"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
               </div>
-              <button
-                onClick={() => setError(null)}
-                className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0 hover:bg-red-500/10 p-1 rounded"
-              >
-                ✕
-              </button>
-            </div>
-            {step !== "upload" && (
-              <button
-                onClick={() => {
-                  if (step === "scenarios") {
-                    setError(null)
-                  } else if (step === "script") {
-                    setError(null)
-                  } else if (step === "running") {
-                    setStep(step === "script" ? "script" : "scenarios")
-                    setError(null)
-                  }
-                }}
-                className="mt-4 px-5 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-lg transition-all duration-200 text-sm font-semibold border border-red-500/20 hover:border-red-500/40"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* UPLOAD STEP (Now Project Info) */}
+        {/* UPLOAD STEP */}
         {step === "upload" && (
-          <div className="animate-in fade-in duration-500">
-            <div className="mb-12">
-              <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Project Configuration</h2>
-              <p className="text-slate-400 text-lg">
-                Using stored project data to generate test scenarios
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Configuration Panel */}
+            <div className="lg:col-span-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+              <div className="flex items-center gap-2 mb-6">
+                <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Project Configuration</h2>
+              </div>
+
+              {project ? (
+                <div className="space-y-6">
+                  {/* Project Info */}
+                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i className="fas fa-folder text-indigo-600 dark:text-indigo-400"></i>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 dark:text-white truncate">{project.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">ID: {project.id}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Files Display */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* API Spec */}
+                    <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        <i className="fas fa-file-code text-blue-500 dark:text-blue-400 mr-2"></i>
+                        API Specification
+                      </label>
+                      {project.postmanCollection ? (
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <i className="fas fa-check-circle text-emerald-600 dark:text-emerald-400"></i>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {project.postmanCollection.split('/').pop()}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">Postman Collection</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No file uploaded</p>
+                      )}
+                    </div>
+
+                    {/* FRD */}
+                    <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        <i className="fas fa-file-alt text-purple-500 dark:text-purple-400 mr-2"></i>
+                        Requirements Document
+                      </label>
+                      {project.frdDocument?.[0] ? (
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <i className="fas fa-check-circle text-emerald-600 dark:text-emerald-400"></i>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {project.frdDocument[0].split('/').pop()}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">FRD Document</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No file uploaded</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Success Status */}
+                  {(project.postmanCollection || project.frdDocument?.[0]) && (
+                    <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-500 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <i className="fas fa-check-circle text-emerald-600 dark:text-emerald-400"></i>
+                        <div>
+                          <p className="font-semibold text-emerald-800 dark:text-emerald-300">Project Files Ready</p>
+                          <p className="text-sm text-emerald-700 dark:text-emerald-200 mt-1">All required documents are available for testing</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced Options */}
+                  <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold transition-colors"
+                  >
+                    <i className={`fas fa-cog ${showAdvanced ? 'fa-spin' : ''}`}></i>
+                    {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Test Mode</label>
+                        <select className="w-full bg-white dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:outline-none">
+                          <option>Full Test Suite</option>
+                          <option>Quick Smoke Test</option>
+                          <option>Critical Paths Only</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Retry Policy</label>
+                        <select className="w-full bg-white dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:outline-none">
+                          <option>No Retry</option>
+                          <option>1 Retry</option>
+                          <option>3 Retries</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <i className="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
+                  <p className="text-gray-600 dark:text-gray-400">Loading project...</p>
+                </div>
+              )}
             </div>
 
-            {project ? (
-              <div className="space-y-6 mb-10">
-                <div className="p-6 bg-slate-800/30 border border-slate-700/50 rounded-xl">
-                  <h3 className="text-lg font-bold text-white mb-4">Project: {project.name}</h3>
-                  <p className="text-sm text-slate-400 mb-4">ID: {project.id}</p>
-                </div>
+            {/* Actions Panel */}
+            <div className="space-y-6">
+              {/* Start Button */}
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
+                <button
+                  onClick={generateScenarios}
+                  disabled={loading || !project}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 dark:disabled:from-gray-600 dark:disabled:to-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-play'}`}></i>
+                  {loading ? 'Generating...' : 'Generate Test Scenarios'}
+                </button>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* API Spec */}
-                  <div className="group">
-                    <label className="block text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                      <FileJson size={18} className="text-blue-400" />
-                      API Specification
-                    </label>
-                    <div className="p-6 border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/30">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-14 h-14 bg-blue-500/15 rounded-lg flex items-center justify-center">
-                          <FileJson className="text-blue-400" size={28} />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-white font-semibold text-base">{project.postmanCollection ? project.postmanCollection.split('/').pop() : "No file"}</p>
-                          {project.postmanCollection ? (
-                            <a
-                              href={project.postmanCollection}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 text-sm mt-1.5 inline-flex items-center gap-1"
-                            >
-                              View File <span aria-hidden="true">→</span>
-                            </a>
-                          ) : (
-                            <p className="text-slate-400 text-sm mt-1.5">Postman Collection URL</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* FRD */}
-                  <div className="group">
-                    <label className="block text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                      <FileText size={18} className="text-cyan-400" />
-                      Requirements Document
-                    </label>
-                    <div className="p-6 border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/30">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-14 h-14 bg-cyan-500/15 rounded-lg flex items-center justify-center">
-                          <FileText className="text-cyan-400" size={28} />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-white font-semibold text-base">{project.frdDocument?.[0] ? project.frdDocument[0].split('/').pop() : "No file"}</p>
-                          {project.frdDocument?.[0] ? (
-                            <a
-                              href={project.frdDocument[0]}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-cyan-400 hover:text-cyan-300 text-sm mt-1.5 inline-flex items-center gap-1"
-                            >
-                              View File <span aria-hidden="true">→</span>
-                            </a>
-                          ) : (
-                            <p className="text-slate-400 text-sm mt-1.5">FRD Document URL</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* File Status */}
-                {(project.postmanCollection || project.frdDocument?.[0]) && (
-                  <div className="mb-10 p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl border border-green-500/30 animate-in fade-in duration-300">
-                    <div className="flex items-center gap-3 mb-4">
-                      <CheckCircle className="text-green-500 flex-shrink-0" size={20} />
-                      <p className="text-green-400 font-semibold">Project Files Ready</p>
-                    </div>
-                    <div className="space-y-2 text-sm text-slate-300 ml-7">
-                      {project.postmanCollection && (
-                        <p className="flex items-center gap-2">
-                          <span className="text-green-400">✓</span> API Spec: {project.postmanCollection.split('/').pop()}
-                        </p>
-                      )}
-                      {project.frdDocument?.[0] && (
-                        <p className="flex items-center gap-2">
-                          <span className="text-green-400">✓</span> FRD: {project.frdDocument[0].split('/').pop()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                {!project && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    Loading project configuration...
+                  </p>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-slate-400 text-lg">Loading project...</p>
-              </div>
-            )}
 
-            {/* Generate Button */}
-            <button
-              onClick={generateScenarios}
-              disabled={!project || loading}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 disabled:shadow-none text-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin" size={22} />
-                  Generating Scenarios...
-                </>
-              ) : (
-                <>
-                  <Play size={22} className="group-hover:translate-x-1 transition-transform" />
-                  Generate Test Scenarios
-                </>
-              )}
-            </button>
+              {/* Quick Tips */}
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <i className="fas fa-lightbulb text-yellow-500 dark:text-yellow-400"></i>
+                  <h3 className="font-bold text-gray-900 dark:text-white">Quick Tips</h3>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <i className="fas fa-check text-emerald-600 dark:text-emerald-400 mt-1"></i>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-300">API Flow Testing</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs">Tests complete integration scenarios</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <i className="fas fa-robot text-indigo-600 dark:text-indigo-400 mt-1"></i>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-300">Auto Script Generation</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs">Python test scripts created automatically</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <i className="fas fa-chart-line text-purple-600 dark:text-purple-400 mt-1"></i>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-300">Detailed Reports</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs">Comprehensive test results & analytics</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* SCENARIOS STEP */}
         {step === "scenarios" && (
-          <div className="animate-in fade-in duration-500">
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Select Test Scenario</h2>
-              <p className="text-slate-400 text-lg">Choose a scenario to generate script and run integration tests</p>
-            </div>
-
-            <div className="grid gap-4 mb-10">
-              {scenarios.map((scenario, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedScenario(scenario)}
-                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${selectedScenario?.scenario_name === scenario.scenario_name
-                      ? "border-blue-500/60 bg-blue-500/10 shadow-lg shadow-blue-500/10"
-                      : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50 hover:bg-slate-800/50"
-                    }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-white mb-3">{scenario.scenario_name}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {scenario.flow_names.map((flow, fidx) => (
-                          <span
-                            key={fidx}
-                            className="px-3 py-1.5 bg-slate-700/50 text-slate-300 text-xs rounded-lg font-mono font-semibold border border-slate-600/50"
-                          >
-                            {flow}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ml-4 ${selectedScenario?.scenario_name === scenario.scenario_name
-                          ? "border-blue-500 bg-blue-500"
-                          : "border-slate-600"
-                        }`}
-                    >
-                      {selectedScenario?.scenario_name === scenario.scenario_name && (
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                      )}
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <div className="flex items-center gap-2 mb-6">
+                  <i className="fas fa-list text-indigo-600 dark:text-indigo-400"></i>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Test Scenario</h2>
                 </div>
-              ))}
+
+                <div className="space-y-3">
+                  {scenarios.map((scenario, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.01 }}
+                      onClick={() => setSelectedScenario(scenario)}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedScenario?.scenario_name === scenario.scenario_name
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                          : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 dark:text-white mb-2">{scenario.scenario_name}</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {scenario.flow_names.map((flow, fidx) => (
+                              <span
+                                key={fidx}
+                                className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium"
+                              >
+                                {flow}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
+                            selectedScenario?.scenario_name === scenario.scenario_name
+                              ? "border-indigo-500 bg-indigo-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }`}
+                        >
+                          {selectedScenario?.scenario_name === scenario.scenario_name && (
+                            <i className="fas fa-check text-white text-xs"></i>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* <div className="mb-10">
-              <label className="block text-sm font-semibold text-white mb-3">Base URL *</label>
-              <input
-                type="text"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full px-5 py-3.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 font-mono text-sm"
-                placeholder="e.g., http://host.docker.internal:8000"
-              />
-            </div> */}
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
+                <button
+                  onClick={generateTestScript}
+                  disabled={!selectedScenario || loading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-400 disabled:to-gray-500 dark:disabled:from-gray-600 dark:disabled:to-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-code'}`}></i>
+                  {loading ? 'Generating...' : 'Generate Test Script'}
+                </button>
 
-            {/* Generate Script Button */}
-            <button
-              onClick={generateTestScript}
-              disabled={!selectedScenario  || loading}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 disabled:shadow-none text-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin" size={22} />
-                  Generating Script...
-                </>
-              ) : (
-                <>
-                  <Code size={22} className="group-hover:translate-x-1 transition-transform" />
-                  Generate Test Script
-                </>
-              )}
-            </button>
+                {!selectedScenario && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    Select a scenario to continue
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
         {/* SCRIPT STEP */}
         {step === "script" && (
-          <div className="animate-in fade-in duration-500">
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Test Script Preview</h2>
-              <p className="text-slate-400 text-lg">Review the generated Python test script for {selectedScenario?.scenario_name}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-file-code text-purple-600 dark:text-purple-400"></i>
+                    <h3 className="font-bold text-gray-900 dark:text-white">test_script.py</h3>
+                  </div>
+                  <button
+                    onClick={downloadScript}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-all font-medium text-sm"
+                  >
+                    <i className="fas fa-download"></i>
+                    Download
+                  </button>
+                </div>
+                <pre className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 overflow-auto text-sm font-mono text-gray-800 dark:text-gray-200 max-h-96 border border-gray-200 dark:border-gray-700">
+                  {testScript || "// No script generated yet"}
+                </pre>
+              </div>
             </div>
 
-            {/* Script Display */}
-            <div className="mb-10">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Code size={20} className="text-purple-400" />
-                  test_script.py
-                </h3>
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
                 <button
-                  onClick={downloadScript}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-200 hover:text-white rounded-lg transition-all duration-300 border border-slate-700/50 hover:border-slate-600/50 font-medium"
+                  onClick={executeTests}
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 rounded-xl font-semibold shadow-lg disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
-                  <Download size={16} />
-                  Download
+                  <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-play'}`}></i>
+                  {loading ? 'Running...' : 'Run Tests'}
                 </button>
               </div>
-              <pre className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-6 overflow-auto text-sm font-mono text-slate-200 max-h-96">
-                {testScript || "// No script generated yet"}
-              </pre>
             </div>
-
-            {/* Run Button */}
-            <button
-              onClick={executeTests}
-              disabled={ loading}
-              className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg shadow-green-500/20 hover:shadow-green-500/40 disabled:shadow-none text-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin" size={22} />
-                  Running Tests...
-                </>
-              ) : (
-                <>
-                  <Play size={22} className="group-hover:translate-x-1 transition-transform" />
-                  Run Tests
-                </>
-              )}
-            </button>
           </div>
         )}
 
         {/* RUNNING STEP */}
         {step === "running" && (
-          <div className="animate-in fade-in duration-500 flex flex-col items-center justify-center py-24">
-            <div className="relative w-24 h-24 mb-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full animate-pulse opacity-75 blur-xl" />
-              <div
-                className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full animate-spin opacity-50"
-                style={{ animationDuration: "3s" }}
-              />
-              <div className="absolute inset-3 bg-slate-900 rounded-full flex items-center justify-center">
-                <Loader className="animate-spin text-blue-400" size={40} />
+          <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-lg">
+            <div className="relative w-20 h-20 mb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-ping opacity-75"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
+                <i className="fas fa-spinner fa-spin text-white text-2xl"></i>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-3 text-center">Running Tests</h2>
-            <p className="text-slate-400 text-center max-w-md text-lg">
-              Executing scenario: <span className="text-blue-300 font-semibold">{selectedScenario?.scenario_name}</span>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Running Tests</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-center max-w-md">
+              Executing scenario: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedScenario?.scenario_name}</span>
             </p>
-            <div className="mt-10 w-full max-w-md h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 animate-pulse" />
-            </div>
           </div>
         )}
 
         {/* REPORT STEP */}
         {step === "report" && report && (
-          <div className="animate-in fade-in duration-500">
+          <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">{report.scenario_summary}</h2>
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
-                  <p className="text-slate-400 text-sm font-semibold mb-3">Total Tests</p>
-                  <p className="text-4xl font-bold text-white">{report.total_tests}</p>
-                </div>
-                <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-xl hover:border-green-500/50 transition-all duration-300">
-                  <p className="text-green-400 text-sm font-semibold mb-3">Passed</p>
-                  <p className="text-4xl font-bold text-green-400">{report.passed_tests}</p>
-                </div>
-                <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl hover:border-red-500/50 transition-all duration-300">
-                  <p className="text-red-400 text-sm font-semibold mb-3">Failed</p>
-                  <p className="text-4xl font-bold text-red-400">{report.failed_tests}</p>
-                </div>
-                <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
-                  <p className="text-slate-400 text-sm font-semibold mb-3">Status</p>
-                  <div className="flex items-center gap-2">
-                    {["Passed", "PASSED", "passed"].includes(report.overall_status) ? (
-                      <>
-                        <CheckCircle className="text-green-500" size={28} />
-                        <span className="text-green-400 font-bold text-lg">PASSED</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="text-red-500" size={28} />
-                        <span className="text-red-400 font-bold text-lg">FAILED</span>
-                      </>
-                    )}
-                  </div>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">Total Tests</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{report.total_tests}</p>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                <p className="text-emerald-700 dark:text-emerald-400 text-sm mb-2">Passed</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{report.passed_tests}</p>
+              </div>
+              <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-6 border border-rose-200 dark:border-rose-800 shadow-sm">
+                <p className="text-rose-700 dark:text-rose-400 text-sm mb-2">Failed</p>
+                <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{report.failed_tests}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">Status</p>
+                <div className="flex items-center gap-2">
+                  {["Passed", "PASSED", "passed"].includes(report.overall_status) ? (
+                    <>
+                      <i className="fas fa-check-circle text-emerald-500 text-2xl"></i>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">PASSED</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-times-circle text-rose-500 text-2xl"></i>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">FAILED</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Charts */}
-            <div className="grid md:grid-cols-2 gap-6 mb-10">
-              {/* Pass/Fail/Skipped Pie Chart */}
-              <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
-                <h3 className="text-lg font-bold text-white mb-6">Test Results Distribution</h3>
-                <ResponsiveContainer width="100%" height={300}>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Test Results Distribution</h3>
+                <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
                       data={passFailData}
@@ -533,137 +540,118 @@ export default function IntegrationTestingPlatform() {
                       labelLine={false}
                       label={({ name, value }) => `${name}: ${value}`}
                       outerRadius={80}
-                      fill="#8884d8"
                       dataKey="value"
                     >
                       {passFailData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #475569",
-                        borderRadius: "8px",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-                      }}
-                      labelStyle={{ color: "#fff", fontWeight: "bold" }}
-                    />
+                    <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* Test Timeline */}
-              <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300">
-                <h3 className="text-lg font-bold text-white mb-6">Test Timeline (Estimated Duration ms)</h3>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Test Timeline</h3>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={testTimelineData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                    <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #475569",
-                        borderRadius: "8px",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-                      }}
-                      labelStyle={{ color: "#fff", fontWeight: "bold" }}
-                    />
-                    <Bar dataKey="duration" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip />
+                    <Bar dataKey="duration" fill="#6366f1" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-        
-
             {/* Test Details */}
-            <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-slate-600/50 transition-all duration-300 mb-10">
-              <h3 className="text-lg font-bold text-white mb-6">Test Details</h3>
-              <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Test Details</h3>
+              <div className="space-y-3">
                 {report.test_details?.map((test, idx) => (
                   <div
                     key={idx}
-                    className={`p-5 rounded-lg border transition-all duration-300 ${test.passed
-                        ? "bg-green-500/5 border-green-500/30 hover:border-green-500/50"
-                        : "bg-red-500/5 border-red-500/30 hover:border-red-500/50"
-                      }`}
+                    className={`p-4 rounded-lg border ${
+                      test.passed
+                        ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800"
+                        : "bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-800"
+                    }`}
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-1">
-                        {test.passed ? (
-                          <CheckCircle className="text-green-500 flex-shrink-0" size={22} />
-                        ) : (
-                          <XCircle className="text-red-500 flex-shrink-0" size={22} />
-                        )}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <i className={`fas ${test.passed ? 'fa-check-circle text-emerald-600 dark:text-emerald-400' : 'fa-times-circle text-rose-600 dark:text-rose-400'}`}></i>
                         <div>
-                          <p className="font-bold text-white">{test.test_name}</p>
-                          <p className="text-sm text-slate-400 font-mono">{test.endpoint}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{test.test_name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{test.endpoint}</p>
                         </div>
                       </div>
-                      <span
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 ${test.passed ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                          }`}
-                      >
-                        {test.status_code} (exp: {test.expected_status})
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        test.passed ? 'bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200' : 'bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-200'
+                      }`}>
+                        {test.status_code}
                       </span>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-slate-300 mb-2">Request Payload</p>
-                        <pre className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg font-mono overflow-auto">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Request</p>
+                        <pre className="text-xs bg-gray-100 dark:bg-gray-900/50 p-3 rounded font-mono overflow-auto max-h-32 text-gray-800 dark:text-gray-200">
                           {JSON.stringify(test.payload, null, 2)}
                         </pre>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-300 mb-2">Response</p>
-                        <pre className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg font-mono overflow-auto">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Response</p>
+                        <pre className="text-xs bg-gray-100 dark:bg-gray-900/50 p-3 rounded font-mono overflow-auto max-h-32 text-gray-800 dark:text-gray-200">
                           {JSON.stringify(test.response, null, 2)}
                         </pre>
                       </div>
                     </div>
                     {!test.passed && test.failure_reason && (
-                      <p className="text-sm text-red-300 bg-red-500/10 p-3 rounded border border-red-500/20 mt-4">
-                        Failure Reason: {test.failure_reason}
+                      <p className="text-sm text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/20 p-3 rounded mt-3">
+                        <strong>Failure:</strong> {test.failure_reason}
                       </p>
                     )}
                   </div>
-                )) || <p className="text-slate-400 text-center py-8">No test details available.</p>}
+                ))}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={resetAll}
-                className="flex-1 py-4 bg-slate-800/50 hover:bg-slate-700/50 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-slate-700/50 hover:border-slate-600/50 group"
-              >
-                <RotateCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
-                Run Another Test
-              </button>
-              <button
-                onClick={() => {
-                  const element = document.createElement("a")
-                  element.setAttribute(
-                    "href",
-                    "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2)),
-                  )
-                  element.setAttribute("download", "test-report.json")
-                  element.style.display = "none"
-                  document.body.appendChild(element)
-                  element.click()
-                  document.body.removeChild(element)
-                }}
-                className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 group"
-              >
-                <Download size={20} className="group-hover:translate-x-1 transition-transform" />
-                Download Report
-              </button>
+            {/* Download Section */}
+            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-sm">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Download results in your preferred format</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={resetAll}
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-all"
+                  >
+                    <i className="fas fa-redo"></i>
+                    Run Another Test
+                  </button>
+                  <button
+                    onClick={() => {
+                      const element = document.createElement("a")
+                      element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2)))
+                      element.setAttribute("download", "test-report.json")
+                      element.style.display = "none"
+                      document.body.appendChild(element)
+                      element.click()
+                      document.body.removeChild(element)
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg font-semibold transition-all shadow-lg"
+                  >
+                    <i className="fas fa-download"></i>
+                    Download JSON
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }
