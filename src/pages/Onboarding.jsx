@@ -22,11 +22,15 @@ const Onboarding = () => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
   }
 
-  const handleGoogleLoginSuccess = async (user) => {
+  const handleGoogleLoginSuccess = async (userData) => {
     try {
       setIsSigningIn(false);
+      // Update UserContext with the user data
+      if (userData) {
+        updateUser(userData);
+      }
       // Decide destination based on whether the user already has any projects
-      const userId = user?.user_id || user?.id || JSON.parse(localStorage.getItem('user') || '{}')?.user_id;
+      const userId = userData?.user_id || userData?.id || JSON.parse(localStorage.getItem('user') || '{}')?.user_id;
       if (!userId) {
         // Fallback to onboarding if we cannot identify the user id
         navigate('/NewProjectPopup');
