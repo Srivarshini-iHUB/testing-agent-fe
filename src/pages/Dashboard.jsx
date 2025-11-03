@@ -245,6 +245,46 @@ const Dashboard = () => {
     }
   };
 
+  // Extract filename from URL
+  const getFileNameFromUrl = (url) => {
+    if (!url) return '';
+    
+    try {
+      // Try to decode the URL, but if it fails (already decoded), use the original
+      let decodedUrl = url;
+      try {
+        decodedUrl = decodeURIComponent(url);
+      } catch (e) {
+        // URL might already be decoded, use original
+        decodedUrl = url;
+      }
+      
+      // Split by '/' and find the last segment that contains a file extension
+      const segments = decodedUrl.split('/');
+      
+      // Start from the end and find the first segment with a file extension
+      for (let i = segments.length - 1; i >= 0; i--) {
+        const segment = segments[i];
+        // Check if segment contains a file extension (has a dot and at least one char after)
+        if (segment.includes('.') && segment.split('.').pop().length > 0 && segment.split('.').pop().length < 10) {
+          // Remove query parameters if any
+          const cleanFileName = segment.split('?')[0];
+          // Remove hash if any
+          const finalFileName = cleanFileName.split('#')[0];
+          return finalFileName;
+        }
+      }
+      
+      // Fallback: return last segment if no extension found
+      const lastSegment = segments[segments.length - 1].split('?')[0].split('#')[0];
+      return lastSegment || url.split('/').pop() || url;
+    } catch (e) {
+      // Fallback: return last part of URL
+      const segments = url.split('/');
+      return segments[segments.length - 1].split('?')[0] || url;
+    }
+  };
+
   // Show loading screen while projects are being fetched
   if (projectsLoading) {
     return (
@@ -489,21 +529,74 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository },
-              { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument },
-              { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories },
-              { icon: 'fas fa-cube', label: 'Postman/Swagger', value: currentProject?.postmanCollection || project?.postmanCollection }
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <i className={`${item.icon} text-indigo-600 dark:text-indigo-400 text-xl`}></i>
+              { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository, isUrl: true, isRepo: true },
+              { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument, isUrl: true, isRepo: false },
+              { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories, isUrl: true, isRepo: false },
+              { icon: 'fas fa-cube', label: 'Postman/Swagger', value: currentProject?.postmanCollection || project?.postmanCollection, isUrl: true, isRepo: false }
+            ].map((item, idx) => {
+              // For repository, format the display value and URL
+              const getRepositoryInfo = (repoValue) => {
+                if (!repoValue) return { display: '', url: null };
+                
+                // If it already starts with http:// or https://
+                if (repoValue.startsWith('http://') || repoValue.startsWith('https://')) {
+                  // Extract a cleaner display name (e.g., "user/repo" from "https://github.com/user/repo")
+                  const githubMatch = repoValue.match(/github\.com\/([^\/]+\/[^\/\s?#]+)/);
+                  const display = githubMatch ? githubMatch[1] : repoValue.replace(/^https?:\/\//, '').replace(/^www\./, '');
+                  return { display, url: repoValue };
+                }
+                
+                // If it looks like a GitHub repo path (e.g., "user/repo" or "github.com/user/repo")
+                if (repoValue.includes('/') && !repoValue.includes(' ')) {
+                  // Remove "github.com/" if present
+                  const cleanPath = repoValue.replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/^github\.com\//, '');
+                  return { display: cleanPath, url: `https://github.com/${cleanPath}` };
+                }
+                
+                return { display: repoValue, url: null };
+              };
+
+              // For documents, extract filename. For repository, format it
+              const getDisplayAndUrl = () => {
+                if (!item.value) return { display: '', url: null };
+                
+                if (item.isRepo) {
+                  return getRepositoryInfo(item.value);
+                }
+                
+                if (item.isUrl) {
+                  return { display: getFileNameFromUrl(item.value), url: item.value };
+                }
+                
+                return { display: item.value, url: null };
+              };
+
+              const { display: displayValue, url: linkUrl } = getDisplayAndUrl();
+
+              return (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i className={`${item.icon} text-indigo-600 dark:text-indigo-400 text-xl`}></i>
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h4>
+                    {linkUrl ? (
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 break-words hover:underline flex items-center gap-1"
+                      >
+                        <i className="fas fa-external-link-alt text-xs"></i>
+                        {displayValue || (item.isRepo ? 'View Repository' : 'View Document')}
+                      </a>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{displayValue || 'Not set'}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{item.value}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
