@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { integrationApi } from '../../api/integrationApi';
+import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -124,7 +125,7 @@ const IntegrationHistory = ({ projectId }) => {
                     aria-label={(expandedRuns[run.doc_id] ?? true) ? 'Collapse run' : 'Expand run'}
                     style={styles.toggleBtn}
                   >
-                    {(expandedRuns[run.doc_id] ?? true) ? '▼' : '▶'}
+                    {(expandedRuns[run.doc_id] ?? true) ? <FiChevronDown /> : <FiChevronRight />}
                   </button>
                 </div>
               </div>
@@ -149,7 +150,7 @@ const IntegrationHistory = ({ projectId }) => {
                               aria-label={isScenarioOpen ? 'Collapse scenario' : 'Expand scenario'}
                               style={styles.toggleBtn}
                             >
-                              {isScenarioOpen ? '▼' : '▶'}
+                              {isScenarioOpen ? <FiChevronDown /> : <FiChevronRight />}
                             </button>
                             <DownloadJsonButton fileName={`report_${run.doc_id}_${sc.scenario_name}`} data={sc.report || {}} />
                           </div>
