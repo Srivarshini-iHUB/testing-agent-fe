@@ -87,34 +87,82 @@ export default function GitRepoBranchPicker() {
       setLoading(false);
     }
   };
+  const runTestsInDocker = async () => {
+  const token = localStorage.getItem("github_token");
+  const [owner, repoName] = selectedRepo.split("/");
 
-  const generateAndRunTests = async (fileUrl, filename) => {
-    try {
-      setStatusMessage(`⚙️ Generating Jest tests for ${filename}...`);
-      const fileCode = await axios.get(fileUrl);
+  const formData = new FormData();
+  formData.append("owner", owner);
+  formData.append("repo", repoName);
+  formData.append("path", selectedFile);
+  formData.append("ref", selectedCommit.sha);
+  formData.append("run_jest", "true"); // Tell backend to run Jest
 
-      // Step 1: Generate Jest code via backend agent
-      const jestRes = await axios.post(`${API_URL}/unittest/generate`, {
-        js_code: fileCode.data,
-      });
-      const jestCode = jestRes.data.jest_code || jestRes.data.output || "";
-      setJestCode(jestCode);
+  try {
+    setLoading(true);
+    setStatusMessage("Running Jest in Docker...");
 
-      // Step 2: Run Jest tests
-      setStatusMessage("🚀 Running Jest tests...");
-      const runRes = await axios.post(`${API_URL}/unittest/run`, {
-        js_code: fileCode.data,
-        jest_code: jestCode,
-        file_path: filename,
-      });
+    const res = await fetch(`${API_URL}/unit-test/run-jest`, {
+      method: "POST",
+      headers: {
+        Authorization: `token ${token}`,
+      },
+      body: formData,
+    });
 
-      setJestOutput(JSON.stringify(runRes.data, null, 2));
-      setStatusMessage("✅ Test completed!");
-    } catch (err) {
-      console.error("Test generation or execution failed:", err);
-      setStatusMessage("❌ Error running tests.");
+    if (!res.ok) throw new Error(await res.text());
+
+    const data = await res.json();
+    setStatusMessage("Jest completed! Fetching report...");
+
+    // Poll for report
+    pollForResults(selectedFile, selectedCommit.sha);
+
+  } catch (err) {
+    setStatusMessage(`Error: ${err.message}`);
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const generateAndRunTests = async (file) => {
+  const token = localStorage.getItem("github_token");
+  const [owner, repoName] = selectedRepo.split("/"); // Use selectedRepo
+
+  const formData = new FormData();
+  formData.append("owner", owner);
+  formData.append("repo", repoName);
+  formData.append("path", file.filename);
+  formData.append("ref", selectedCommit.sha); // Use selectedCommit.sha
+
+  try {
+    setStatusMessage("Generating Jest tests...");
+    const res = await fetch(`${API_URL}/unit-test/generate-jest`, {
+      method: "POST",
+      headers: {
+        Authorization: `token ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || "Failed to generate tests");
     }
-  };
+
+    const data = await res.json();
+    setJestCode(data.jest_code);
+    setStatusMessage("Jest tests generated! Running...");
+    
+    // Optional: poll for results
+    pollForResults(file.filename, selectedCommit.sha);
+
+  } catch (err) {
+    setStatusMessage(`Error: ${err.message}`);
+    console.error(err);
+  }
+};
 
   return (
     <div className="p-4 border rounded-md bg-gray-50 space-y-4">
@@ -169,13 +217,12 @@ export default function GitRepoBranchPicker() {
             {commits.map((c) => (
               <li key={c.sha}>
                 <button
-                  className={`text-left w-full px-2 py-1 rounded ${
-                    selectedCommit === c.sha
+                  className={`text-left w-full px-2 py-1 rounded ${selectedCommit === c.sha
                       ? "bg-blue-100"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => {
-                    setSelectedCommit(c.sha);
+                    setSelectedCommit(c);
                     setFiles([]);
                     fetchFiles(c.sha);
                   }}
@@ -192,29 +239,29 @@ export default function GitRepoBranchPicker() {
       {/* Files */}
       {files.length > 0 && (
         <div className="border-t pt-3">
-          <h4 className="font-semibold mb-2">📄 Changed Files</h4>
+          <h4 className="font-semibold mb-2">Changed Files</h4>
           <ul className="space-y-1">
             {files.map((f) => (
               <li key={f.filename}>
                 <button
-                  className={`text-left w-full px-2 py-1 rounded ${
-                    selectedFile === f.filename
-                      ? "bg-blue-100"
+                  className={`text-left w-full px-2 py-1 rounded text-sm ${selectedFile === f.filename
+                      ? "bg-blue-100 text-blue-800"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => {
                     setSelectedFile(f.filename);
-                    generateAndRunTests(f.raw_url, f.filename);
+                    if (!jestCode) {
+                      generateAndRunTests(f);
+                    }
                   }}
                 >
-                  {f.filename} ({f.status})
+                  {f.filename}
                 </button>
               </li>
             ))}
           </ul>
         </div>
       )}
-
       {/* Results */}
       {statusMessage && (
         <p className="text-sm text-gray-700 italic mt-2">{statusMessage}</p>
@@ -228,6 +275,18 @@ export default function GitRepoBranchPicker() {
           </pre>
         </div>
       )}
+
+      {jestCode && !jestOutput && (
+  <div className="mt-4">
+    <button
+      onClick={() => runTestsInDocker()}
+      disabled={loading}
+      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+    >
+      {loading ? "Running..." : "Run with Docker"}
+    </button>
+  </div>
+)}
 
       {jestOutput && (
         <div className="mt-3">
