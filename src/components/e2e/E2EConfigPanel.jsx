@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const E2EConfigPanel = ({
   selectedFlow,
@@ -33,6 +33,21 @@ const E2EConfigPanel = ({
   setupInstructions
 }) => {
   const [scriptCopied, setScriptCopied] = useState(false);
+
+  // Auto-fill Application URL from localStorage on mount
+  useEffect(() => {
+    const storedProject = localStorage.getItem('project');
+    if (storedProject) {
+      try {
+        const project = JSON.parse(storedProject);
+        if (project?.project_url && !applicationUrl) {
+          setApplicationUrl(project.project_url);
+        }
+      } catch (error) {
+        console.warn('Failed to parse project from localStorage:', error);
+      }
+    }
+  }, []); // Empty dependency → runs only once on mount
 
   const flows = [
     { id: 'manual', name: 'Manual Setup', icon: 'fa-hand-pointer', description: 'Playwright configuration and CSV upload' },
@@ -179,7 +194,7 @@ const E2EConfigPanel = ({
               </div>
             </div>
 
-            {/* Application URL */}
+            {/* Application URL - Auto-filled from localStorage */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Application URL <span className="text-rose-500">*</span>
@@ -289,7 +304,7 @@ const E2EConfigPanel = ({
               </div>
             </div>
 
-            {/* Application URL */}
+            {/* Application URL - Auto-filled from localStorage */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Application URL <span className="text-rose-500">*</span>

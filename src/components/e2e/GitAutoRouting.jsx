@@ -55,7 +55,7 @@ const GitAutoRouting = ({
           </div>
           <div className="space-y-2 mt-3">
             <div>
-              <label className="block text-sm font-medium">Project ID (for filtering test cases):</label>
+              <label className="block text-sm font-medium">Project URL:</label>
               <input
                 type="text"
                 value={projectUrl}

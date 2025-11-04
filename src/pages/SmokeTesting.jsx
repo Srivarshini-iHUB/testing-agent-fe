@@ -24,6 +24,14 @@ function SmokeTesting() {
   const [report, setReport] = useState(null);
   const createdSmokeIdRef = useRef("");
 
+  // Load project URL from localStorage on component mount
+  useEffect(() => {
+    const proj = JSON.parse(localStorage.getItem('project') || 'null');
+    if (proj?.project_url) {
+      setProjectUrl(proj.project_url);
+    }
+  }, []);
+
   // Generate Smoke Tests
   const handleGenerateTests = async (e) => {
     e.preventDefault();
@@ -40,42 +48,40 @@ function SmokeTesting() {
     setIsGenerating(true);
     setGenerateError("");
     try {
-      // Get project ID from localStorage
       const proj = JSON.parse(localStorage.getItem('project') || 'null');
       const projectId = proj?.id;
-      
+
       if (!projectId) {
         setGenerateError('Project ID not found in localStorage. Please select a project first.');
         setIsGenerating(false);
         return;
       }
-
       const formData = new FormData();
       formData.append("file", testCasesFile);
       formData.append("project_url", projectUrl);
       formData.append("project_id", "PROJ_3");
-      
+
       const res = await axios.post(`${API_BASE}/generate_smoke_tests`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
-      
+
       let scriptRaw = res.data.script || "";
       scriptRaw = scriptRaw
         .replace(/^\s*```python\s*/i, "")
         .replace(/```\s*$/i, "")
         .replace(/^\s*python\s*[\r\n]+/i, "");
-      
+
       setGeneratedScript(scriptRaw);
       setGeneratedTestCases(res.data.test_cases || []);
-      
+
       const createdId = res.data.createdSmokeTestId || "";
       if (createdId) {
         createdSmokeIdRef.current = createdId;
-        try { 
-          localStorage.setItem('last_smoke_id', createdId); 
+        try {
+          localStorage.setItem('last_smoke_id', createdId);
         } catch (_) {}
       }
-      
+
       toast.success("Test script generated successfully!");
     } catch (err) {
       const msg = err.response?.data?.detail?.[0]?.msg ||
@@ -131,7 +137,6 @@ function SmokeTesting() {
             <i className="fas fa-arrow-left"></i>
             Back to Dashboard
           </button>
-
           <div className="flex items-center gap-3">
             <i className="fas fa-fire text-4xl text-orange-600 dark:text-orange-400"></i>
             <div>
@@ -144,7 +149,6 @@ function SmokeTesting() {
             </div>
           </div>
         </div>
-
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Configuration Panel */}
@@ -156,7 +160,6 @@ function SmokeTesting() {
                   Test Configuration
                 </h2>
               </div>
-
               <form onSubmit={handleGenerateTests} className="space-y-6">
                 {/* Project URL */}
                 <div>
@@ -172,7 +175,6 @@ function SmokeTesting() {
                     className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-orange-500 focus:outline-none"
                   />
                 </div>
-
                 {/* Test Cases File */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -214,7 +216,6 @@ function SmokeTesting() {
                     </div>
                   )}
                 </div>
-
                 {/* Error Display */}
                 {generateError && (
                   <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-300 dark:border-rose-500 rounded-xl p-4">
@@ -229,7 +230,6 @@ function SmokeTesting() {
                 )}
               </form>
             </div>
-
             {/* Generated Script Display */}
             {generatedScript && (
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -275,7 +275,6 @@ function SmokeTesting() {
                 </div>
               </div>
             )}
-
             {/* Test Cases Table */}
             {generatedTestCases.length > 0 && (
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -306,13 +305,12 @@ function SmokeTesting() {
               </div>
             )}
           </div>
-
           {/* Actions & Results Panel */}
           <div className="space-y-6">
             {/* Actions Card */}
             <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
               <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
-              
+
               {/* Generate Button */}
               <button
                 onClick={handleGenerateTests}
@@ -322,7 +320,6 @@ function SmokeTesting() {
                 <i className={`fas ${isGenerating ? 'fa-spinner fa-spin' : 'fa-magic'}`}></i>
                 {isGenerating ? 'Generating...' : 'Generate Tests'}
               </button>
-
               {/* Run Docker Button */}
               {generatedScript && (
                 <button
@@ -334,7 +331,6 @@ function SmokeTesting() {
                   {isRunning ? 'Running...' : 'Run in Docker'}
                 </button>
               )}
-
               {!generatedScript && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
                   <i className="fas fa-info-circle mr-1"></i>
@@ -342,7 +338,6 @@ function SmokeTesting() {
                 </p>
               )}
             </div>
-
             {/* Quick Tips */}
             <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
               <div className="flex items-center gap-2 mb-4">
@@ -373,7 +368,6 @@ function SmokeTesting() {
                 </div>
               </div>
             </div>
-
             {/* Test Results */}
             {report && (
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -381,7 +375,7 @@ function SmokeTesting() {
                   <i className="fas fa-chart-bar text-green-600 dark:text-green-400 mr-2"></i>
                   Test Results
                 </h3>
-                
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3 text-center">
@@ -409,7 +403,6 @@ function SmokeTesting() {
                     </p>
                   </div>
                 </div>
-
                 {/* Additional Details */}
                 {report.json_report?.summary && (
                   <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -429,7 +422,6 @@ function SmokeTesting() {
                     </div>
                   </div>
                 )}
-
                 {/* Execution Logs */}
                 {report.execution_logs && (
                   <details className="mt-4">
