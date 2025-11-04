@@ -192,44 +192,74 @@ const E2EHistory = ({ projectId }) => {
 
                   {isReportOpen && (
                     <div className="space-y-6 mt-4">
-                      {/* Test Execution Summary */}
-                      <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="font-semibold text-gray-900 dark:text-white mb-3">Test Execution Summary</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="text-sm">
-                            <strong className="text-gray-700 dark:text-gray-300">Duration:</strong>{' '}
-                            <span className="text-gray-900 dark:text-white">{report.duration || '-'}</span>
-                          </div>
-                          <div className="text-sm">
-                            <strong className="text-gray-700 dark:text-gray-300">Exit Code:</strong>{' '}
-                            <span className="text-gray-900 dark:text-white">{report.exit_code || 0}</span>
-                          </div>
-                          {report.bug_sheet_url && (
-                            <div className="text-sm">
-                              <strong className="text-gray-700 dark:text-gray-300">Bug Sheet:</strong>{' '}
-                              <a
-                                href={report.bug_sheet_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                              >
-                                View Sheet
-                              </a>
+                      {/* Test Results Summary - Same UI as E2EResults */}
+                      <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Test Results Summary</h2>
+                        <div className="space-y-4">
+                          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            <div className="flex items-center gap-2">
+                              <i className="fas fa-check-circle text-2xl text-emerald-600 dark:text-emerald-400"></i>
+                              <span className="text-emerald-800 dark:text-emerald-200 font-semibold">
+                                Test execution completed!
+                              </span>
                             </div>
-                          )}
-                          {report.bug_csv_url && (
-                            <div className="text-sm">
-                              <strong className="text-gray-700 dark:text-gray-300">Bug CSV:</strong>{' '}
-                              <a
-                                href={report.bug_csv_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                              >
-                                Download CSV
-                              </a>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                                {Number(report.passed || 0)}
+                              </div>
+                              <div className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">Tests Passed</div>
                             </div>
-                          )}
+                            <div className="text-center p-4 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800">
+                              <div className="text-3xl font-bold text-rose-600 dark:text-rose-400 mb-1">
+                                {Number(report.failed || 0)}
+                              </div>
+                              <div className="text-xs text-rose-700 dark:text-rose-300 font-semibold">Tests Failed</div>
+                            </div>
+                            {report.total_tests && (
+                              <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 col-span-2">
+                                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                                  {Number(report.total_tests || 0)}
+                                </div>
+                                <div className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">Total Tests</div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            {report.duration && (
+                              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Duration</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{report.duration}</span>
+                              </div>
+                            )}
+                            {report.bug_sheet_url && (
+                              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Bug Sheet</span>
+                                <a
+                                  href={report.bug_sheet_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                                >
+                                  View Sheet
+                                </a>
+                              </div>
+                            )}
+                            {report.bug_csv_url && (
+                              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Bug CSV</span>
+                                <a
+                                  href={report.bug_csv_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                                >
+                                  Download CSV
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -340,55 +370,50 @@ const E2EHistory = ({ projectId }) => {
                         )}
                       </div>
 
-                      {/* Test Results */}
+                      {/* Test Results - Same UI as E2EResults Detailed Report */}
                       {report.test_results && report.test_results.length > 0 && (
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white mb-3">
+                        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                             Test Results ({report.test_results.length})
-                          </div>
-                          <div className="space-y-3">
+                          </h3>
+                          <div className="space-y-4">
                             {report.test_results.map((result, resultIdx) => (
                               <div
                                 key={resultIdx}
-                                className={`p-4 rounded-lg border ${
-                                  result.status === 'passed'
-                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-                                    : result.status === 'failed'
-                                    ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
-                                    : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
-                                }`}
+                                className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30"
                               >
-                                <div className="flex justify-between items-center mb-2">
-                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">
                                     {result.name || `Test ${resultIdx + 1}`}
-                                  </span>
+                                  </h4>
                                   <span
                                     className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                                      result.status === 'passed'
+                                      result.status === 'passed' || result.status === 'PASSED'
                                         ? 'bg-emerald-500 text-white'
-                                        : result.status === 'failed'
+                                        : result.status === 'failed' || result.status === 'FAILED'
                                         ? 'bg-rose-500 text-white'
                                         : 'bg-gray-500 text-white'
                                     }`}
                                   >
-                                    {result.status || 'unknown'}
+                                    {(result.status || 'UNKNOWN').toUpperCase()}
                                   </span>
                                 </div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                  <div>
-                                    <strong>Duration:</strong> {result.duration || '-'}
-                                  </div>
-                                  {result.error_message && (
-                                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs">
-                                      <strong>Error:</strong> {result.error_message}
-                                    </div>
-                                  )}
-                                  {result.actual_result && (
-                                    <div>
-                                      <strong>Actual Result:</strong> {result.actual_result}
-                                    </div>
-                                  )}
+                                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                                  Duration: {result.duration || '-'}
                                 </div>
+                                {(result.status === 'failed' || result.status === 'FAILED') && result.error_message && (
+                                  <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <h5 className="font-medium text-red-800 dark:text-red-200 mb-2">Error Details:</h5>
+                                    <div className="text-sm text-red-700 dark:text-red-300 font-mono whitespace-pre-wrap">
+                                      {result.error_message}
+                                    </div>
+                                  </div>
+                                )}
+                                {result.actual_result && (
+                                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                    <strong>Actual Result:</strong> {result.actual_result}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
