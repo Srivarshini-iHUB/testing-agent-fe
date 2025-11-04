@@ -437,7 +437,7 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <i className="fas fa-cube text-orange-600 dark:text-orange-400"></i>
-                  Postman Collection
+                  Swagger File
                 </label>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                   Current: {project.postmanCollection || 'None'}

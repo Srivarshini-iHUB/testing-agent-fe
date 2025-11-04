@@ -10,6 +10,8 @@ import { testCaseApi } from '../api/testCaseApi';
 import { e2eApi } from '../api/e2eApi';
 import { regressionApi } from '../api/regressionApi';
 import { smokeApi } from '../api/smokeApi';
+import { performanceApi } from '../api/performanceApi';
+import { projectApi } from '../api/projectApi';
 
 const AgentHistory = ({ currentProject }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -64,18 +66,18 @@ const AgentHistory = ({ currentProject }) => {
     }
   };
 
-  // Fetch agents dynamically based on actual data
+  // Fetch agents dynamically based on test status
   useEffect(() => {
     let mounted = true;
     const fetchAgents = async () => {
       setLoading(true);
       setError('');
-      
+
       try {
         // Get project ID from localStorage
         const proj = JSON.parse(localStorage.getItem('project') || 'null');
         const projectId = proj?.id;
-        
+
         if (!projectId) {
           if (mounted) {
             setAgentsForProject([]);
@@ -84,119 +86,64 @@ const AgentHistory = ({ currentProject }) => {
           return;
         }
 
+        // Get the test status to see which agents have been run
+        const testStatusData = await projectApi.getProjectTestStatus(projectId);
+        const testStatuses = testStatusData?.test_statuses || [];
+
+        // Filter only agents that have been run (runned: true)
+        const runnedAgents = testStatuses.filter(status => status.runned === true);
+
         const agents = [];
 
-        // Check for Integration Testing data
-        try {
-          const integrationData = await integrationApi.getProjectTestRuns(projectId);
-          if (integrationData?.test_runs && integrationData.test_runs.length > 0) {
-            const totalRuns = integrationData.total_test_runs || integrationData.test_runs.length;
-            const latestRun = integrationData.test_runs[0];
-            const lastRunDate = latestRun?.created_at 
-              ? new Date(latestRun.created_at).toISOString().split('T')[0]
+        // Map test_type to agent configurations
+        const agentConfigMap = {
+          'integration': {
+            id: 'integration-testing',
+            name: 'Integration Testing',
+            icon: 'fa-route'
+          },
+          'testcase_generator': {
+            id: 'test-case-generator',
+            name: 'Test Case Generation',
+            icon: 'fa-file-alt'
+          },
+          'e2e': {
+            id: 'e2e-testing',
+            name: 'Functional Testing',
+            icon: 'fa-check-circle'
+          },
+          'regression': {
+            id: 'regression-testing',
+            name: 'Regression Testing',
+            icon: 'fa-undo'
+          },
+          'smoke': {
+            id: 'smoke-testing',
+            name: 'Smoke Testing',
+            icon: 'fa-fire'
+          },
+          'performance': {
+            id: 'performance-testing',
+            name: 'Performance Testing',
+            icon: 'fa-tachometer-alt'
+          }
+        };
+
+        // Process each runned agent
+        for (const status of runnedAgents) {
+          const config = agentConfigMap[status.test_type];
+          if (config) {
+            const lastRun = status.last_run_date
+              ? new Date(status.last_run_date).toISOString().split('T')[0]
               : 'N/A';
 
             agents.push({
-              id: 'e2e-testing',
-              name: 'Integration Testing',
-              icon: 'fa-route',
-              totalTests: totalRuns,
-              lastRun: lastRunDate,
+              id: config.id,
+              name: config.name,
+              icon: config.icon,
+              lastRun: lastRun,
             });
           }
-        } catch (e) {
-          console.warn('Failed to fetch integration test runs:', e);
-        }
-
-        // Check for Test Case Generation data
-        try {
-          const testCaseData = await testCaseApi.getProjectTestCaseGenerations(projectId);
-          if (testCaseData && Array.isArray(testCaseData) && testCaseData.length > 0) {
-            // Each entry in testCaseData represents a separate generation
-            // Count unique generations by generation_index or testcase_id
-            const totalGenerations = testCaseData.length;
-            const latestGeneration = testCaseData[0];
-            const lastRunDate = latestGeneration?.created_at 
-              ? new Date(latestGeneration.created_at).toISOString().split('T')[0]
-              : 'N/A';
-
-            agents.push({
-              id: 'test-case-generator',
-              name: 'Test Case Generation',
-              icon: 'fa-file-alt',
-              totalTests: totalGenerations,  // This shows number of generations (results)
-              lastRun: lastRunDate,
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to fetch test case generations:', e);
-        }
-
-        // Check for E2E (Functional) Testing data
-        try {
-          const e2eData = await e2eApi.getProjectE2EReports(projectId);
-          if (e2eData?.reports && Array.isArray(e2eData.reports) && e2eData.reports.length > 0) {
-            const totalReports = e2eData.reports.length;
-            const latestReport = e2eData.reports[0];
-            const lastRunDate = latestReport?.created_at 
-              ? new Date(latestReport.created_at).toISOString().split('T')[0]
-              : 'N/A';
-
-            agents.push({
-              id: 'e2e-testing',
-              name: 'Functional Testing',
-              icon: 'fa-check-circle',
-              totalTests: totalReports,
-              lastRun: lastRunDate,
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to fetch E2E reports:', e);
-        }
-
-        // Check for Regression Testing data
-        try {
-          const regressionData = await regressionApi.getProjectRegressionTests(projectId);
-          if (regressionData?.regression_test && regressionData.regression_test.regression_runs && 
-              regressionData.regression_test.regression_runs.length > 0) {
-            const totalRuns = regressionData.regression_test.regression_runs.length;
-            const latestRun = regressionData.regression_test.regression_runs[0];
-            const lastRunDate = latestRun?.created_at 
-              ? new Date(latestRun.created_at).toISOString().split('T')[0]
-              : 'N/A';
-
-            agents.push({
-              id: 'regression-testing',
-              name: 'Regression Testing',
-              icon: 'fa-undo',
-              totalTests: totalRuns,
-              lastRun: lastRunDate,
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to fetch regression tests:', e);
-        }
-
-        // Check for Smoke Testing data
-        try {
-          const smokeData = await smokeApi.getProjectSmokeTests(projectId);
-          if (smokeData && Array.isArray(smokeData) && smokeData.length > 0) {
-            const totalTests = smokeData.length;
-            const latestTest = smokeData[0];
-            const lastRunDate = latestTest?.created_at 
-              ? new Date(latestTest.created_at).toISOString().split('T')[0]
-              : 'N/A';
-
-            agents.push({
-              id: 'smoke-testing',
-              name: 'Smoke Testing',
-              icon: 'fa-fire',
-              totalTests: totalTests,
-              lastRun: lastRunDate,
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to fetch smoke tests:', e);
         }
 
         if (mounted) {
@@ -218,23 +165,140 @@ const AgentHistory = ({ currentProject }) => {
     };
   }, [currentProject?.id]);
 
-  const handleAgentSelect = (agent) => {
-    // Toggle agent selection
-    if (selectedAgent?.id === agent.id) {
-      console.log('[AgentHistory] Deselected agent:', agent?.name || agent?.id);
-      setSelectedAgent(null);
-      setSelectedTest(null);
-    } else {
-      console.log('[AgentHistory] Selected agent:', agent?.name || agent?.id);
-      setSelectedAgent(agent);
-      setSelectedTest(null);
+  // Agent API configurations for on-click fetching
+  const agentApiConfig = {
+    'integration-testing': {
+      api: integrationApi.getProjectTestRuns,
+      dataProcessor: (data) => ({
+        totalTests: data.total_test_runs || data.test_runs.length,
+        lastRun: data.test_runs[0]?.created_at
+          ? new Date(data.test_runs[0].created_at).toISOString().split('T')[0]
+          : 'N/A'
+      })
+    },
+    'test-case-generator': {
+      api: testCaseApi.getProjectTestCaseGenerations,
+      dataProcessor: (data) => ({
+        totalTests: data.length,
+        lastRun: data[0]?.created_at
+          ? new Date(data[0].created_at).toISOString().split('T')[0]
+          : 'N/A'
+      })
+    },
+    'e2e-testing': {
+      api: e2eApi.getProjectE2EReports,
+      dataProcessor: (data) => ({
+        totalTests: data.reports.length,
+        lastRun: data.reports[0]?.created_at
+          ? new Date(data.reports[0].created_at).toISOString().split('T')[0]
+          : 'N/A'
+      })
+    },
+    'regression-testing': {
+      api: regressionApi.getProjectRegressionTests,
+      dataProcessor: (data) => ({
+        totalTests: data.regression_test.regression_runs.length,
+        lastRun: data.regression_test.regression_runs[0]?.created_at
+          ? new Date(data.regression_test.regression_runs[0].created_at).toISOString().split('T')[0]
+          : 'N/A'
+      })
+    },
+    'smoke-testing': {
+      api: smokeApi.getProjectSmokeTests,
+      dataProcessor: (data) => ({
+        totalTests: data.length,
+        lastRun: data[0]?.created_at
+          ? new Date(data[0].created_at).toISOString().split('T')[0]
+          : 'N/A'
+      })
+    },
+    'performance-testing': {
+      api: performanceApi.getProjectTestRuns,
+      dataProcessor: (data) => {
+        const totalRuns = data.items.reduce((sum, item) => sum + (item.runs?.length || 0), 0);
+        let latestTimestamp = null;
+        data.items.forEach(item => {
+          if (item.runs && item.runs.length > 0) {
+            item.runs.forEach(run => {
+              if (run.timestamp && (!latestTimestamp || new Date(run.timestamp) > new Date(latestTimestamp))) {
+                latestTimestamp = run.timestamp;
+              }
+            });
+          }
+        });
+        return {
+          totalTests: totalRuns,
+          lastRun: latestTimestamp
+            ? new Date(latestTimestamp).toISOString().split('T')[0]
+            : 'N/A'
+        };
+      }
     }
   };
 
-  const handleTestSelect = (test) => {
-    // Toggle test selection
-    if (selectedTest?.id === test.id) {
-      setSelectedTest(null);
+  // Map agent IDs/names to their routes
+  const getAgentRoute = (agent) => {
+    const routeMap = {
+      'integration-testing': '/integration-testing',
+      'test-case-generator': '/test-case-generator',
+      'e2e-testing': '/e2e-testing',
+      'regression-testing': '/regression-testing',
+      'smoke-testing': '/smoke-testing',
+      'performance-testing': '/performance-testing',
+    };
+
+    // Check by ID first
+    if (routeMap[agent.id]) {
+      return routeMap[agent.id];
+    }
+  };
+
+  const handleAgentSelect = async (agent) => {
+    const route = getAgentRoute(agent);
+    if (route) {
+      try {
+        // Get project ID
+        const proj = JSON.parse(localStorage.getItem('project') || 'null');
+        const projectId = proj?.id;
+
+        if (!projectId) {
+          console.warn('[AgentHistory] No project ID found');
+          navigate(route);
+          return;
+        }
+
+        // Fetch specific agent data on click
+        const config = agentApiConfig[agent.id];
+        if (config) {
+          const data = await config.api(projectId);
+          const processedData = config.dataProcessor(data);
+
+          console.log('[AgentHistory] Fetched data for', agent.name, ':', processedData);
+
+          // Navigate with processed data in state
+          if (route === '/test-case-generator') {
+            navigate('/test-case-generator#history', { 
+              state: { agentData: { ...agent, ...processedData } } 
+            });
+          } else {
+            navigate(route, { 
+              state: { agentData: { ...agent, ...processedData } } 
+            });
+          }
+        } else {
+          // Fallback navigation without data
+          console.warn('[AgentHistory] No API config for agent:', agent.id);
+          navigate(route);
+        }
+      } catch (e) {
+        console.error('[AgentHistory] Failed to fetch agent data:', e);
+        // Still navigate even on error
+        if (route === '/test-case-generator') {
+          navigate('/test-case-generator#history');
+        } else {
+          navigate(route);
+        }
+      }
     } else {
       setSelectedTest(test);
     }
@@ -326,17 +390,15 @@ const AgentHistory = ({ currentProject }) => {
                       : `border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover}`
                   }`}
                 >
-                  <div className="flex items-start gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center`}>
                       <i className={`fas ${agent.icon} ${colors.text} text-xl`}></i>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 ">
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate">
                         {agent.name}
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {agent.totalTests} test run{agent.totalTests !== 1 ? 's' : ''}
-                      </p>
+                      
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">

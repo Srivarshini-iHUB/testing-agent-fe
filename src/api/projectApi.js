@@ -50,6 +50,11 @@ export const projectApi = {
   async deleteProject(projectId) {
     await apiClient.delete(`/api/projects/${encodeURIComponent(projectId)}`);
   },
+
+  async getProjectTestStatus(projectId) {
+    const res = await apiClient.get(`/api/projects/${encodeURIComponent(projectId)}/test-status`);
+    return res.data;
+  },
 };
 
 

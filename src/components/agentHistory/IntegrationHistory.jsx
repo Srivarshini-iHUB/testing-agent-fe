@@ -42,7 +42,6 @@ const DownloadJsonButton = ({ fileName, data }) => {
     </button>
   );
 };
-
 const IntegrationHistory = ({ projectId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

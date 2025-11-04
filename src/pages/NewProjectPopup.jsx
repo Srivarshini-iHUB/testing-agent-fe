@@ -568,12 +568,12 @@ const NewProject = () => {
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">API Configuration</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                  Upload Postman Collection <span className="text-gray-400">(Optional)</span>
+                  Upload Swagger File <span className="text-gray-400">(Optional)</span>
                 </p>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     <i className="fas fa-cube text-orange-600 dark:text-orange-400"></i>
-                    Postman Collection
+                    Swagger File
                   </label>
                   <input
                     type="file"
@@ -587,7 +587,7 @@ const NewProject = () => {
                     className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 cursor-pointer hover:border-gray-500 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-all flex flex-col items-center justify-center text-center"
                   >
                     <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1">Upload Postman Collection</p>
+                    <p className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1">Upload Swagger File</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">JSON format only</p>
                   </label>
                   {formData.postmanFile && (
