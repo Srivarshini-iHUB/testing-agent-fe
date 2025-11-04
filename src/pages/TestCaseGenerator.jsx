@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTestCaseGeneration } from '../hooks/useTestCaseGeneration';
 import { useDownload } from '../hooks/useDownload';
 import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
 import { testCaseApi } from '../api/testCaseApi';
+import { projectApi } from '../api/projectApi';
 import InsufficientAlert from '../components/testcase/InsufficientAlert';
 import MismatchAlert from '../components/testcase/MismatchAlert';
 import IncompleteStoriesAlert from '../components/testcase/IncompleteStoriesAlert';
@@ -16,6 +18,7 @@ import TestCaseHistory from '../components/agentHistory/TestCaseHistory';
 function TestCaseGenerator() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, project: contextProject } = useUser();
   const [frdFiles, setFrdFiles] = useState([]);
   const [userStoryFiles, setUserStoryFiles] = useState([]);
   const [selectedTestCase, setSelectedTestCase] = useState(null);
@@ -23,6 +26,16 @@ function TestCaseGenerator() {
   const { loading, progress, result, error, generate } = useTestCaseGeneration();
   const { downloading, downloadExcel, downloadJSON } = useDownload();
   const { isDark } = useTheme();
+  
+  // Project data and source selection
+  const [projectData, setProjectData] = useState(null);
+  const [projectLoading, setProjectLoading] = useState(true);
+  const [useProjectFrd, setUseProjectFrd] = useState(false);
+  const [useProjectUserStory, setUseProjectUserStory] = useState(false);
+  const [selectedFrdUrl, setSelectedFrdUrl] = useState(null);
+  const [selectedUserStoryUrl, setSelectedUserStoryUrl] = useState(null);
+  const [uploadingFrd, setUploadingFrd] = useState(false);
+  const [uploadingUserStory, setUploadingUserStory] = useState(false);
   
   // Tab and History states
   // Check if URL hash is #history to open history tab
@@ -36,6 +49,61 @@ function TestCaseGenerator() {
   
   // Use historyResult only in history tab, otherwise use current result
   const displayResult = activeTab === 'history' ? (historyResult || null) : result;
+
+  // Fetch project data to get FRD and User Story URLs
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      setProjectLoading(true);
+      try {
+        const proj = JSON.parse(localStorage.getItem('project') || 'null');
+        const projectId = proj?.id || proj?.projectId;
+        
+        if (!projectId) {
+          setProjectData(null);
+          setProjectLoading(false);
+          return;
+        }
+
+        // Try to fetch project from API
+        try {
+          const fetchedProject = await projectApi.getProject(projectId);
+          setProjectData(fetchedProject);
+          
+          // Auto-select project files if available
+          if (fetchedProject.frdDocument) {
+            const frdUrls = Array.isArray(fetchedProject.frdDocument) 
+              ? fetchedProject.frdDocument 
+              : [fetchedProject.frdDocument];
+            if (frdUrls.length > 0 && frdUrls[0]) {
+              setUseProjectFrd(true);
+              setSelectedFrdUrl(frdUrls[0]);
+            }
+          }
+          
+          if (fetchedProject.userStories) {
+            const userStoryUrls = Array.isArray(fetchedProject.userStories)
+              ? fetchedProject.userStories
+              : [fetchedProject.userStories];
+            if (userStoryUrls.length > 0 && userStoryUrls[0]) {
+              setUseProjectUserStory(true);
+              setSelectedUserStoryUrl(userStoryUrls[0]);
+            }
+          }
+        } catch (err) {
+          // Fallback to localStorage project data
+          console.warn('Failed to fetch project from API, using localStorage:', err);
+          setProjectData(proj);
+        }
+      } catch (err) {
+        console.error('Error fetching project data:', err);
+        setProjectData(null);
+      } finally {
+        setProjectLoading(false);
+      }
+    };
+
+    fetchProjectData();
+  }, []);
 
   // Handle URL hash changes to switch tabs
   useEffect(() => {
@@ -55,7 +123,21 @@ function TestCaseGenerator() {
     try {
       setHistoryResult(null); // Clear history result when generating new
       setActiveTab('generator'); // Switch back to generator tab
-      await generate(frdFiles, userStoryFiles);
+      
+      // Get project ID
+      const proj = projectData || JSON.parse(localStorage.getItem('project') || 'null');
+      const projectId = proj?.id || proj?.projectId;
+      const userId = user?.user_id || null;
+      
+      // Prepare FRD URLs and User Story URLs
+      const frdUrls = useProjectFrd && selectedFrdUrl ? [selectedFrdUrl] : [];
+      const userStoryUrls = useProjectUserStory && selectedUserStoryUrl ? [selectedUserStoryUrl] : [];
+      
+      // Only pass files if not using project URLs
+      const filesToSend = useProjectFrd ? [] : frdFiles;
+      const userStoryFilesToSend = useProjectUserStory ? [] : userStoryFiles;
+      
+      await generate(filesToSend, userStoryFilesToSend, frdUrls, userStoryUrls, projectId, userId);
     } catch (err) {
       // Error handled in hook
     }
@@ -208,26 +290,183 @@ function TestCaseGenerator() {
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           Functional Requirements Document <span className="text-rose-500 dark:text-rose-400">*</span>
                         </label>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.docx,.txt"
-                            onChange={(e) => setFrdFiles(Array.from(e.target.files))}
-                            id="frd-upload"
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="frd-upload"
-                            className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
-                          >
-                            <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload FRD</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
-                          </label>
-                        </div>
+                        
+                        {/* Source Selection Toggle */}
+                        {projectData && projectData.frdDocument && (
+                          <div className="mb-3 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUseProjectFrd(true);
+                                setFrdFiles([]);
+                                const frdUrls = Array.isArray(projectData.frdDocument) 
+                                  ? projectData.frdDocument 
+                                  : [projectData.frdDocument];
+                                if (frdUrls.length > 0) setSelectedFrdUrl(frdUrls[0]);
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                useProjectFrd
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              <i className="fas fa-database"></i>
+                              Use from Project
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUseProjectFrd(false);
+                                setSelectedFrdUrl(null);
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                !useProjectFrd
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              <i className="fas fa-upload"></i>
+                              Upload New Files
+                            </button>
+                          </div>
+                        )}
 
-                        {frdFiles.length > 0 && (
+                        {/* Project FRD Selection */}
+                        {useProjectFrd && projectData && projectData.frdDocument && (
+                          <div className="mb-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                            <label className="block text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+                              Select FRD from Project:
+                            </label>
+                            <div className="space-y-2">
+                              {(Array.isArray(projectData.frdDocument) ? projectData.frdDocument : [projectData.frdDocument]).map((url, idx) => (
+                                <label key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                                  <input
+                                    type="radio"
+                                    name="frd-url"
+                                    checked={selectedFrdUrl === url}
+                                    onChange={() => setSelectedFrdUrl(url)}
+                                    className="text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {url.split('/').pop() || `FRD Document ${idx + 1}`}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{url}</p>
+                                  </div>
+                                  <i className="fas fa-check-circle text-indigo-600 dark:text-indigo-400"></i>
+                                </label>
+                              ))}
+                            </div>
+                            {selectedFrdUrl && (
+                              <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                                    <i className="fas fa-check-circle mr-1"></i>
+                                    Selected: <span className="font-semibold">{selectedFrdUrl.split('/').pop()}</span>
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      const fileName = selectedFrdUrl.split('/').pop() || '';
+                                      const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                                      
+                                      // For PDF files, open directly in browser
+                                      if (fileExtension === 'pdf') {
+                                        window.open(selectedFrdUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For DOCX files, use Google Docs Viewer
+                                      else if (fileExtension === 'docx' || fileExtension === 'doc') {
+                                        const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(selectedFrdUrl)}&embedded=true`;
+                                        window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For TXT files, open directly
+                                      else if (fileExtension === 'txt') {
+                                        window.open(selectedFrdUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For other files, try to open directly
+                                      else {
+                                        window.open(selectedFrdUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                    }}
+                                    className="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium transition-all flex items-center gap-1"
+                                    title="Preview in new tab"
+                                  >
+                                    <i className="fas fa-external-link-alt"></i>
+                                    Preview
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* File Upload */}
+                        {!useProjectFrd && (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.docx,.txt"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files);
+                                if (files.length > 0) {
+                                  setFrdFiles(files);
+                                  
+                                  // Auto-save to project DB if project exists
+                                  if (projectData && projectData.id) {
+                                    setUploadingFrd(true);
+                                    try {
+                                      const formData = new FormData();
+                                      files.forEach(file => {
+                                        formData.append('frd', file);
+                                      });
+                                      
+                                      const updatedProject = await projectApi.updateProject(projectData.id, formData);
+                                      setProjectData(updatedProject);
+                                      
+                                      // Auto-select the uploaded files after save
+                                      if (updatedProject.frdDocument) {
+                                        const frdUrls = Array.isArray(updatedProject.frdDocument) 
+                                          ? updatedProject.frdDocument 
+                                          : [updatedProject.frdDocument];
+                                        if (frdUrls.length > 0) {
+                                          // Select the newly uploaded files
+                                          const newUrls = frdUrls.slice(-files.length); // Get the last N URLs (newly uploaded)
+                                          if (newUrls.length > 0) {
+                                            setSelectedFrdUrl(newUrls[0]);
+                                            setUseProjectFrd(true);
+                                            setFrdFiles([]); // Clear local files since they're now in DB
+                                          }
+                                        }
+                                      }
+                                    } catch (err) {
+                                      console.error('Failed to save FRD to project:', err);
+                                      // Keep files for manual upload if save fails
+                                    } finally {
+                                      setUploadingFrd(false);
+                                    }
+                                  }
+                                }
+                              }}
+                              id="frd-upload"
+                              className="hidden"
+                              disabled={useProjectFrd || uploadingFrd}
+                            />
+                            <label
+                              htmlFor="frd-upload"
+                              className={`block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70 ${
+                                (useProjectFrd || uploadingFrd) ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              <i className={`fas ${uploadingFrd ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'} text-3xl text-gray-400 dark:text-gray-400 mb-2 block`}></i>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                {uploadingFrd ? 'Uploading and saving to project...' : 'Click to upload FRD (auto-saves to project)'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
+                            </label>
+                          </div>
+                        )}
+
+                        {frdFiles.length > 0 && !useProjectFrd && (
                           <div className="mt-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -261,26 +500,183 @@ function TestCaseGenerator() {
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           User Stories Document <span className="text-rose-500 dark:text-rose-400">*</span>
                         </label>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.docx,.txt"
-                            onChange={(e) => setUserStoryFiles(Array.from(e.target.files))}
-                            id="userstory-upload"
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="userstory-upload"
-                            className="block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70"
-                          >
-                            <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 dark:text-gray-400 mb-2 block"></i>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Click to upload User Stories</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
-                          </label>
-                        </div>
+                        
+                        {/* Source Selection Toggle */}
+                        {projectData && projectData.userStories && (
+                          <div className="mb-3 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUseProjectUserStory(true);
+                                setUserStoryFiles([]);
+                                const userStoryUrls = Array.isArray(projectData.userStories) 
+                                  ? projectData.userStories 
+                                  : [projectData.userStories];
+                                if (userStoryUrls.length > 0) setSelectedUserStoryUrl(userStoryUrls[0]);
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                useProjectUserStory
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              <i className="fas fa-database"></i>
+                              Use from Project
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUseProjectUserStory(false);
+                                setSelectedUserStoryUrl(null);
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                !useProjectUserStory
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              <i className="fas fa-upload"></i>
+                              Upload New Files
+                            </button>
+                          </div>
+                        )}
 
-                        {userStoryFiles.length > 0 && (
+                        {/* Project User Story Selection */}
+                        {useProjectUserStory && projectData && projectData.userStories && (
+                          <div className="mb-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                            <label className="block text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+                              Select User Story from Project:
+                            </label>
+                            <div className="space-y-2">
+                              {(Array.isArray(projectData.userStories) ? projectData.userStories : [projectData.userStories]).map((url, idx) => (
+                                <label key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+                                  <input
+                                    type="radio"
+                                    name="user-story-url"
+                                    checked={selectedUserStoryUrl === url}
+                                    onChange={() => setSelectedUserStoryUrl(url)}
+                                    className="text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                      {url.split('/').pop() || `User Story ${idx + 1}`}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{url}</p>
+                                  </div>
+                                  <i className="fas fa-check-circle text-indigo-600 dark:text-indigo-400"></i>
+                                </label>
+                              ))}
+                            </div>
+                            {selectedUserStoryUrl && (
+                              <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                                    <i className="fas fa-check-circle mr-1"></i>
+                                    Selected: <span className="font-semibold">{selectedUserStoryUrl.split('/').pop()}</span>
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      const fileName = selectedUserStoryUrl.split('/').pop() || '';
+                                      const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                                      
+                                      // For PDF files, open directly in browser
+                                      if (fileExtension === 'pdf') {
+                                        window.open(selectedUserStoryUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For DOCX files, use Google Docs Viewer
+                                      else if (fileExtension === 'docx' || fileExtension === 'doc') {
+                                        const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(selectedUserStoryUrl)}&embedded=true`;
+                                        window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For TXT files, open directly
+                                      else if (fileExtension === 'txt') {
+                                        window.open(selectedUserStoryUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                      // For other files, try to open directly
+                                      else {
+                                        window.open(selectedUserStoryUrl, '_blank', 'noopener,noreferrer');
+                                      }
+                                    }}
+                                    className="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium transition-all flex items-center gap-1"
+                                    title="Preview in new tab"
+                                  >
+                                    <i className="fas fa-external-link-alt"></i>
+                                    Preview
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* File Upload */}
+                        {!useProjectUserStory && (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.docx,.txt"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files);
+                                if (files.length > 0) {
+                                  setUserStoryFiles(files);
+                                  
+                                  // Auto-save to project DB if project exists
+                                  if (projectData && projectData.id) {
+                                    setUploadingUserStory(true);
+                                    try {
+                                      const formData = new FormData();
+                                      files.forEach(file => {
+                                        formData.append('user_story', file);
+                                      });
+                                      
+                                      const updatedProject = await projectApi.updateProject(projectData.id, formData);
+                                      setProjectData(updatedProject);
+                                      
+                                      // Auto-select the uploaded files after save
+                                      if (updatedProject.userStories) {
+                                        const userStoryUrls = Array.isArray(updatedProject.userStories) 
+                                          ? updatedProject.userStories 
+                                          : [updatedProject.userStories];
+                                        if (userStoryUrls.length > 0) {
+                                          // Select the newly uploaded files
+                                          const newUrls = userStoryUrls.slice(-files.length); // Get the last N URLs (newly uploaded)
+                                          if (newUrls.length > 0) {
+                                            setSelectedUserStoryUrl(newUrls[0]);
+                                            setUseProjectUserStory(true);
+                                            setUserStoryFiles([]); // Clear local files since they're now in DB
+                                          }
+                                        }
+                                      }
+                                    } catch (err) {
+                                      console.error('Failed to save User Story to project:', err);
+                                      // Keep files for manual upload if save fails
+                                    } finally {
+                                      setUploadingUserStory(false);
+                                    }
+                                  }
+                                }
+                              }}
+                              id="userstory-upload"
+                              className="hidden"
+                              disabled={useProjectUserStory || uploadingUserStory}
+                            />
+                            <label
+                              htmlFor="userstory-upload"
+                              className={`block w-full bg-gray-50 dark:bg-gray-900/50 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-900/70 ${
+                                (useProjectUserStory || uploadingUserStory) ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              <i className={`fas ${uploadingUserStory ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'} text-3xl text-gray-400 dark:text-gray-400 mb-2 block`}></i>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                {uploadingUserStory ? 'Uploading and saving to project...' : 'Click to upload User Story (auto-saves to project)'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
+                            </label>
+                          </div>
+                        )}
+
+                        {userStoryFiles.length > 0 && !useProjectUserStory && (
                           <div className="mt-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -348,17 +744,21 @@ function TestCaseGenerator() {
                       <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Actions</h2>
                       <button
                         onClick={handleGenerate}
-                        disabled={loading || !frdFiles.length || !userStoryFiles.length}
+                        disabled={loading || (!frdFiles.length && !selectedFrdUrl) || (!userStoryFiles.length && !selectedUserStoryUrl)}
                         className="w-full bg-emerald-500 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 dark:disabled:from-gray-600 dark:disabled:to-gray-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-indigo-500/50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
                       >
                         <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-play'}`}></i>
                         {loading ? 'Generating...' : 'Start Test Generation'}
                       </button>
 
-                      {(!frdFiles.length || !userStoryFiles.length) && (
+                      {((!frdFiles.length && !selectedFrdUrl) || (!userStoryFiles.length && !selectedUserStoryUrl)) && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
                           <i className="fas fa-info-circle mr-1"></i>
-                          Upload both documents to continue
+                          {(!frdFiles.length && !selectedFrdUrl) && (!userStoryFiles.length && !selectedUserStoryUrl)
+                            ? 'Provide both FRD and User Story documents to continue'
+                            : (!frdFiles.length && !selectedFrdUrl)
+                            ? 'Provide FRD document to continue'
+                            : 'Provide User Story document to continue'}
                         </p>
                       )}
                     </div>
@@ -432,7 +832,7 @@ function TestCaseGenerator() {
                   <div className="space-y-6" data-results-section>
                     <ResultsDashboard result={displayResult} />
                     <TestCaseTable
-                      testCases={displayResult.test_cases?.test_cases || []}
+                      testCases={displayResult.test_cases?.test_cases || displayResult.test_cases || []}
                       onSelectTestCase={setSelectedTestCase}
                     />
 

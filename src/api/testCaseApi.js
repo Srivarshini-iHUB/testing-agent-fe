@@ -5,72 +5,83 @@ import apiClient from './client';
  */
 export const testCaseApi = {
   /**
-   * Generate test cases from documents
+   * Generate test cases from documents (URLs or files)
+   * @param {FormData} formData - FormData containing URLs or files
+   * @param {Function} onProgress - Callback for upload progress
    */
-  generateTestCases: async (frdFiles, userStoryFiles, projectId, onProgress) => {
-    const formData = new FormData();
-
-    // Append files
-    frdFiles.forEach(file => formData.append('frd_files', file));
-    userStoryFiles.forEach(file => formData.append('user_story_files', file));
-
-    // Append project ID
-    formData.append('project_id', projectId);
-
-    const response = await apiClient.post('/generate-test-cases', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percent);
+  generateTestCases: async (formData, onProgress) => {
+    try {
+      const response = await apiClient.post('/generate-test-cases', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percent);
+          }
         }
-      }
-    });
-
-    return response.data;
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error generating test cases:', error);
+      throw error.response?.data?.detail || error.message || 'Failed to generate test cases';
+    }
   },
 
   /**
    * Download test cases as Excel
+   * @param {FormData} formData - FormData containing URLs or files
    */
-  downloadExcel: async (frdFiles, userStoryFiles, projectId) => {
-    const formData = new FormData();
-
-    frdFiles.forEach(file => formData.append('frd_files', file));
-    userStoryFiles.forEach(file => formData.append('user_story_files', file));
-
-    // Append project ID
-    formData.append('project_id', projectId);
-
-    const response = await apiClient.post('/generate-test-cases/excel', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      responseType: 'blob'
-    });
-
-    return response.data;
+  downloadExcel: async (formData) => {
+    try {
+      const response = await apiClient.post('/generate-test-cases/excel', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error downloading Excel:', error);
+      throw error.response?.data?.detail || error.message || 'Failed to download Excel';
+    }
   },
 
   /**
    * Get test case generations by project ID
+   * @param {string} projectId - Project ID
    */
   getProjectTestCaseGenerations: async (projectId) => {
-    const response = await apiClient.get(`/api/testcase-generator/project/${encodeURIComponent(projectId)}`);
-    return response.data;
+    try {
+      const response = await apiClient.get(`/api/testcase-generator/project/${encodeURIComponent(projectId)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching test case generations:', error);
+      throw error.response?.data?.detail || error.message || 'Failed to fetch test case generations';
+    }
   },
 
   /**
    * Get test case generation by ID
+   * @param {string} testcaseId - Test case generation ID
    */
   getTestCaseGeneration: async (testcaseId) => {
-    const response = await apiClient.get(`/api/testcase-generator/${encodeURIComponent(testcaseId)}`);
-    return response.data;
+    try {
+      const response = await apiClient.get(`/api/testcase-generator/${encodeURIComponent(testcaseId)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching test case generation:', error);
+      throw error.response?.data?.detail || error.message || 'Failed to fetch test case generation';
+    }
   },
 
   /**
    * Health check
    */
   healthCheck: async () => {
-    const response = await apiClient.get('/health');
-    return response.data;
+    try {
+      const response = await apiClient.get('/health');
+      return response.data;
+    } catch (error) {
+      console.error('Error checking health:', error);
+      throw error.response?.data?.detail || error.message || 'Failed to check health';
+    }
   }
 };
