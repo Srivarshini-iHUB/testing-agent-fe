@@ -243,7 +243,15 @@ const Dashboard = () => {
   // Extract filename from URL
   const getFileNameFromUrl = (url) => {
     if (!url) return '';
-    
+
+    // Handle arrays (e.g., multiple files)
+    if (Array.isArray(url)) {
+      return url.length > 0 ? url.join(', ') : '';
+    }
+
+    // Ensure url is a string
+    if (typeof url !== 'string') return '';
+
     try {
       // Try to decode the URL, but if it fails (already decoded), use the original
       let decodedUrl = url;
@@ -253,10 +261,10 @@ const Dashboard = () => {
         // URL might already be decoded, use original
         decodedUrl = url;
       }
-      
+
       // Split by '/' and find the last segment that contains a file extension
       const segments = decodedUrl.split('/');
-      
+
       // Start from the end and find the first segment with a file extension
       for (let i = segments.length - 1; i >= 0; i--) {
         const segment = segments[i];
@@ -269,7 +277,7 @@ const Dashboard = () => {
           return finalFileName;
         }
       }
-      
+
       // Fallback: return last segment if no extension found
       const lastSegment = segments[segments.length - 1].split('?')[0].split('#')[0];
       return lastSegment || url.split('/').pop() || url;
@@ -287,18 +295,6 @@ const Dashboard = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading your projects...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // First-Time User Welcome Screen
-  if (projectsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <i className="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
-          <p className="text-lg text-gray-600 dark:text-gray-300">Loading your projects...</p>
         </div>
       </div>
     );
