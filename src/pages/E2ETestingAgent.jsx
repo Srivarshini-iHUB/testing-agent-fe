@@ -1,16 +1,26 @@
 // src/pages/E2ETestingAgent.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { authConfig } from '../config/auth';
 import E2EHeader from '../components/e2e/E2EHeader';
 import E2EConfigPanel from '../components/e2e/E2EConfigPanel';
 import E2EResults from '../components/e2e/E2EResults';
 import GitAutoRouting from '../components/e2e/GitAutoRouting';
+import E2EHistory from '../components/agentHistory/E2EHistory';
 
 const E2ETestingAgent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
+
+  // Tab state - Check if URL hash is #history to open history tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return location.hash === '#history' ? 'history' : 'agent';
+  });
+
+  // Project ID state for history
+  const [projectId, setProjectId] = useState(null);
 
   // --- Existing State (Manual/AI Flow) ---
   const [selectedFlow, setSelectedFlow] = useState('manual');
@@ -580,6 +590,24 @@ const E2ETestingAgent = () => {
   };
 
   // --- Effects ---
+  // Fetch project ID on mount
+  useEffect(() => {
+    const proj = JSON.parse(localStorage.getItem('project') || 'null');
+    const id = proj?.id || proj?.projectId;
+    if (id) {
+      setProjectId(id);
+    }
+  }, []);
+
+  // Handle tab navigation via URL hash
+  useEffect(() => {
+    if (location.hash === '#history') {
+      setActiveTab('history');
+    } else if (location.hash === '#agent' || !location.hash) {
+      setActiveTab('agent');
+    }
+  }, [location.hash]);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('session_token');
@@ -628,162 +656,211 @@ const E2ETestingAgent = () => {
         </button>
         {/* Header */}
         <E2EHeader />
-        {/* Flow Selection Buttons */}
-        <div className="mb-4 flex space-x-4">
+        
+        {/* Tab Navigation */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700 flex space-x-4">
           <button
-            onClick={() => setSelectedFlow('manual')}
-            className={`px-4 py-2 rounded-md ${selectedFlow === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+            onClick={() => {
+              setActiveTab('agent');
+              window.location.hash = '#agent';
+            }}
+            className={`px-6 py-3 font-semibold text-sm transition-all ${
+              activeTab === 'agent'
+                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
           >
-            Manual Setup
+            <i className="fas fa-play-circle mr-2"></i>
+            FUNCTIONAL TESTING AGENT
           </button>
           <button
-            onClick={() => setSelectedFlow('ai_agent')}
-            className={`px-4 py-2 rounded-md ${selectedFlow === 'ai_agent' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+            onClick={() => {
+              setActiveTab('history');
+              window.location.hash = '#history';
+            }}
+            className={`px-6 py-3 font-semibold text-sm transition-all ${
+              activeTab === 'history'
+                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
           >
-            AI Agent
+            <i className="fas fa-history mr-2"></i>
+            AGENT HISTORY
           </button>
         </div>
-        {/* AI Sub-Flow Selection */}
-        {selectedFlow === 'ai_agent' && (
-          <div className="mt-2 ml-4 flex space-x-4">
-            <button
-              onClick={() => setAiSubFlow('old_ai')}
-              className={`px-4 py-2 rounded-md ${aiSubFlow === 'old_ai' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-            >
-              Normal AI Flow
-            </button>
-            <button
-              onClick={() => setAiSubFlow('git_auto')}
-              className={`px-4 py-2 rounded-md ${aiSubFlow === 'git_auto' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-            >
-              Auto Routing with GitHub
-            </button>
+
+        {/* Content based on active tab */}
+        {activeTab === 'agent' && (
+          <>
+            {/* Flow Selection Buttons */}
+            <div className="mb-4 flex space-x-4">
+              <button
+                onClick={() => setSelectedFlow('manual')}
+                className={`px-4 py-2 rounded-md ${selectedFlow === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+              >
+                Manual Setup
+              </button>
+              <button
+                onClick={() => setSelectedFlow('ai_agent')}
+                className={`px-4 py-2 rounded-md ${selectedFlow === 'ai_agent' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+              >
+                AI Agent
+              </button>
+            </div>
+            {/* AI Sub-Flow Selection */}
+            {selectedFlow === 'ai_agent' && (
+              <div className="mt-2 ml-4 flex space-x-4">
+                <button
+                  onClick={() => setAiSubFlow('old_ai')}
+                  className={`px-4 py-2 rounded-md ${aiSubFlow === 'old_ai' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+                >
+                  Normal AI Flow
+                </button>
+                <button
+                  onClick={() => setAiSubFlow('git_auto')}
+                  className={`px-4 py-2 rounded-md ${aiSubFlow === 'git_auto' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+                >
+                  Auto Routing with GitHub
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        {/* Content based on active tab */}
+        {activeTab === 'history' && (
+          <div className="mt-6">
+            <E2EHistory projectId={projectId} />
           </div>
         )}
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-6 mt-6">
-          {/* Configuration Panel */}
-          <div className="lg:col-span-2">
-            {selectedFlow === 'manual' && (
-              <E2EConfigPanel
-                selectedFlow={selectedFlow}
-                setSelectedFlow={setSelectedFlow}
-                handleFileUpload={handleFileUpload}
-                uploadedFiles={uploadedFiles}
-                applicationUrl={applicationUrl}
-                setApplicationUrl={setApplicationUrl}
-                setupPlaywright={setupPlaywright}
-                playwrightSetup={playwrightSetup}
-                generateTestScript={generateTestScript}
-                agentRunning={agentRunning}
-                projectPath={projectPath}
-                setProjectPath={setProjectPath}
-                handleDrag={handleDrag}
-                handleDrop={handleDrop}
-                dragActive={dragActive}
-                loading={loading}
-                output={output}
-                runCommand={runCommand}
-                handleDownload={handleDownload}
-                copyToClipboard={copyToClipboard}
-                copySuccess={copySuccess}
-                handleRunWithDocker={handleRunWithDocker}
-                dockerRunning={dockerRunning}
-                testCases={testCases}
-                setTestCases={setTestCases}
-                reportId={reportId}
-                setReportId={setReportId}
-                bugSheetUrl={bugSheetUrl}
-                appsScriptCode={appsScriptCode}
-                setupInstructions={setupInstructions}
-              />
-            )}
-            {selectedFlow === 'ai_agent' && aiSubFlow === 'old_ai' && (
-              <E2EConfigPanel
-                selectedFlow="agent"
-                setSelectedFlow={setSelectedFlow}
-                handleFileUpload={handleFileUpload}
-                uploadedFiles={uploadedFiles}
-                applicationUrl={applicationUrl}
-                setApplicationUrl={setApplicationUrl}
-                setupPlaywright={setupPlaywright}
-                playwrightSetup={playwrightSetup}
-                generateTestScript={generateTestScript}
-                agentRunning={agentRunning}
-                projectPath={projectPath}
-                setProjectPath={setProjectPath}
-                handleDrag={handleDrag}
-                handleDrop={handleDrop}
-                dragActive={dragActive}
-                loading={loading}
-                output={output}
-                runCommand={runCommand}
-                handleDownload={handleDownload}
-                copyToClipboard={copyToClipboard}
-                copySuccess={copySuccess}
-                handleRunWithDocker={handleRunWithDocker}
-                dockerRunning={dockerRunning}
-                testCases={testCases}
-                setTestCases={setTestCases}
-                reportId={reportId}
-                setReportId={setReportId}
-                bugSheetUrl={bugSheetUrl}
-                appsScriptCode={appsScriptCode}
-                setupInstructions={setupInstructions}
-              />
-            )}
-            {selectedFlow === 'ai_agent' && aiSubFlow === 'git_auto' && (
-              <GitAutoRouting
-                loading={loading}
-                projectUrl={projectUrl}
-                setProjectUrl={setProjectUrl}
-                sessionToken={sessionToken}
-                repos={repos}
-                branches={branches}
-                selectedRepo={selectedRepo}
-                setSelectedRepo={setSelectedRepo}
-                selectedBranch={selectedBranch}
-                setSelectedBranch={setSelectedBranch}
-                routeFiles={routeFiles}
-                setRouteFiles={setRouteFiles}
-                selectedFiles={selectedFiles}
-                setSelectedFiles={setSelectedFiles}
-                routesPreview={routesPreview}
-                setRoutesPreview={setRoutesPreview}
-                testCasesPreview={testCasesPreview}
-                setTestCasesPreview={setTestCasesPreview}
-                loginSuccessMessage={loginSuccessMessage}
-                handleGitLogin={handleGitLogin}
-                fetchRepos={fetchRepos}
-                fetchBranches={fetchBranches}
-                fetchRouteFiles={fetchRouteFiles}
-                extractAndMapTestCases={extractAndMapTestCases}
-                handleUpdateTestCase={handleUpdateTestCase}
-                generateScriptFromMapping={generateScriptFromMapping}
-                handleLogout={handleLogout}
-                output={output}
-                handleDownload={handleDownload}
-                handleRunWithDocker={handleRunWithDocker}
-                dockerRunning={dockerRunning}
-              />
-            )}
-          </div>
-          {/* Results Panel */}
-          <div>
-            <E2EResults
-              selectedFlow={selectedFlow}
-              testResults={testResults}
-              agentRunning={agentRunning}
-              applicationUrl={applicationUrl || projectUrl}
-              selectedBrowser={selectedBrowser}
-              downloadScript={downloadScript}
-              downloadReport={downloadReport}
-              reportData={reportData}
-              reportLoading={reportLoading}
-              fetchReportData={fetchReportData}
-            />
-          </div>
-        </div>
+
+        {activeTab === 'agent' && (
+          <>
+            {/* Main Content Grid */}
+            <div className="grid lg:grid-cols-3 gap-6 mt-6">
+              {/* Configuration Panel */}
+              <div className="lg:col-span-2">
+                {selectedFlow === 'manual' && (
+                  <E2EConfigPanel
+                    selectedFlow={selectedFlow}
+                    setSelectedFlow={setSelectedFlow}
+                    handleFileUpload={handleFileUpload}
+                    uploadedFiles={uploadedFiles}
+                    applicationUrl={applicationUrl}
+                    setApplicationUrl={setApplicationUrl}
+                    setupPlaywright={setupPlaywright}
+                    playwrightSetup={playwrightSetup}
+                    generateTestScript={generateTestScript}
+                    agentRunning={agentRunning}
+                    projectPath={projectPath}
+                    setProjectPath={setProjectPath}
+                    handleDrag={handleDrag}
+                    handleDrop={handleDrop}
+                    dragActive={dragActive}
+                    loading={loading}
+                    output={output}
+                    runCommand={runCommand}
+                    handleDownload={handleDownload}
+                    copyToClipboard={copyToClipboard}
+                    copySuccess={copySuccess}
+                    handleRunWithDocker={handleRunWithDocker}
+                    dockerRunning={dockerRunning}
+                    testCases={testCases}
+                    setTestCases={setTestCases}
+                    reportId={reportId}
+                    setReportId={setReportId}
+                    bugSheetUrl={bugSheetUrl}
+                    appsScriptCode={appsScriptCode}
+                    setupInstructions={setupInstructions}
+                  />
+                )}
+                {selectedFlow === 'ai_agent' && aiSubFlow === 'old_ai' && (
+                  <E2EConfigPanel
+                    selectedFlow="agent"
+                    setSelectedFlow={setSelectedFlow}
+                    handleFileUpload={handleFileUpload}
+                    uploadedFiles={uploadedFiles}
+                    applicationUrl={applicationUrl}
+                    setApplicationUrl={setApplicationUrl}
+                    setupPlaywright={setupPlaywright}
+                    playwrightSetup={playwrightSetup}
+                    generateTestScript={generateTestScript}
+                    agentRunning={agentRunning}
+                    projectPath={projectPath}
+                    setProjectPath={setProjectPath}
+                    handleDrag={handleDrag}
+                    handleDrop={handleDrop}
+                    dragActive={dragActive}
+                    loading={loading}
+                    output={output}
+                    runCommand={runCommand}
+                    handleDownload={handleDownload}
+                    copyToClipboard={copyToClipboard}
+                    copySuccess={copySuccess}
+                    handleRunWithDocker={handleRunWithDocker}
+                    dockerRunning={dockerRunning}
+                    testCases={testCases}
+                    setTestCases={setTestCases}
+                    reportId={reportId}
+                    setReportId={setReportId}
+                    bugSheetUrl={bugSheetUrl}
+                    appsScriptCode={appsScriptCode}
+                    setupInstructions={setupInstructions}
+                  />
+                )}
+                {selectedFlow === 'ai_agent' && aiSubFlow === 'git_auto' && (
+                  <GitAutoRouting
+                    loading={loading}
+                    projectUrl={projectUrl}
+                    setProjectUrl={setProjectUrl}
+                    sessionToken={sessionToken}
+                    repos={repos}
+                    branches={branches}
+                    selectedRepo={selectedRepo}
+                    setSelectedRepo={setSelectedRepo}
+                    selectedBranch={selectedBranch}
+                    setSelectedBranch={setSelectedBranch}
+                    routeFiles={routeFiles}
+                    setRouteFiles={setRouteFiles}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    routesPreview={routesPreview}
+                    setRoutesPreview={setRoutesPreview}
+                    testCasesPreview={testCasesPreview}
+                    setTestCasesPreview={setTestCasesPreview}
+                    loginSuccessMessage={loginSuccessMessage}
+                    handleGitLogin={handleGitLogin}
+                    fetchRepos={fetchRepos}
+                    fetchBranches={fetchBranches}
+                    fetchRouteFiles={fetchRouteFiles}
+                    extractAndMapTestCases={extractAndMapTestCases}
+                    handleUpdateTestCase={handleUpdateTestCase}
+                    generateScriptFromMapping={generateScriptFromMapping}
+                    handleLogout={handleLogout}
+                    output={output}
+                    handleDownload={handleDownload}
+                    handleRunWithDocker={handleRunWithDocker}
+                    dockerRunning={dockerRunning}
+                  />
+                )}
+              </div>
+              {/* Results Panel */}
+              <div>
+                <E2EResults
+                  selectedFlow={selectedFlow}
+                  testResults={testResults}
+                  agentRunning={agentRunning}
+                  applicationUrl={applicationUrl || projectUrl}
+                  selectedBrowser={selectedBrowser}
+                  downloadScript={downloadScript}
+                  downloadReport={downloadReport}
+                  reportData={reportData}
+                  reportLoading={reportLoading}
+                  fetchReportData={fetchReportData}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

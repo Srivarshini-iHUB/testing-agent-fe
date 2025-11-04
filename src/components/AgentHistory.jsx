@@ -314,11 +314,18 @@ const AgentHistory = ({ currentProject }) => {
         // Still navigate even on error
         if (route === '/test-case-generator') {
           navigate('/test-case-generator#history');
-        } else {
-          navigate(route);
-        }
+        } 
+      console.log('[AgentHistory] Navigating to:', route, 'for agent:', agent?.name || agent?.id);
+      // For test-case-generator and integration-testing, navigate to history tab
+      if (route === '/test-case-generator') {
+        navigate('/test-case-generator#history', { replace: false });
+      } else if (route === '/integration-testing') {
+        navigate('/integration-testing#history', { replace: false });
+      } else {
+        navigate(route);
       }
-    } else {
+    }
+  } else {
       console.warn('[AgentHistory] No route found for agent:', agent);
     }
   };

@@ -31,13 +31,12 @@ const DownloadJsonButton = ({ fileName, data }) => {
   };
 
   return (
-    <button onClick={handleDownload} title="Download report JSON" style={styles.downloadBtn}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      <span style={{ marginLeft: 8 }}>Download</span>
+    <button
+      onClick={handleDownload}
+      title="Download report JSON"
+      className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all text-sm font-medium"
+    >
+      <i className="fas fa-download"></i>
     </button>
   );
 };
@@ -50,11 +49,11 @@ const E2EHistory = ({ projectId }) => {
   const [expandedTestCases, setExpandedTestCases] = useState({});
 
   const toggleReport = (reportId) => {
-    setExpandedReports((prev) => ({ ...prev, [reportId]: !(prev[reportId] ?? true) }));
+    setExpandedReports((prev) => ({ ...prev, [reportId]: !(prev[reportId] ?? false) }));
   };
 
   const toggleTestCase = (key) => {
-    setExpandedTestCases((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
+    setExpandedTestCases((prev) => ({ ...prev, [key]: !(prev[key] ?? false) }));
   };
 
   const totals = useMemo(() => {
@@ -87,68 +86,102 @@ const E2EHistory = ({ projectId }) => {
 
   if (!projectId) {
     return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Functional Testing - History</h2>
-        <div style={styles.note}>Provide a valid projectId to view E2E reports.</div>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Functional Testing - History</h2>
+        <div className="inline-block px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+          Provide a valid projectId to view E2E reports.
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Functional Testing - History</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Functional Testing - History</h2>
 
-      {loading && <div style={styles.note}>Loading…</div>}
-      {error && <div style={styles.error}>{error}</div>}
+      {loading && (
+        <div className="text-center py-12">
+          <i className="fas fa-spinner fa-spin text-4xl text-indigo-600 dark:text-indigo-400 mb-4"></i>
+          <p className="text-gray-600 dark:text-gray-400">Loading history...</p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 mb-4">
+          <i className="fas fa-exclamation-circle mr-2"></i>
+          {error}
+        </div>
+      )}
 
       {data && data.reports && Array.isArray(data.reports) && (
-        <div>
-          <div style={styles.summaryRow}>
-            <div style={styles.summaryItem}><strong>Total Runs:</strong> {totals.totalReports}</div>
-            <div style={styles.summaryItem}><strong>Total Tests:</strong> {totals.totalTests}</div>
+        <div className="space-y-6">
+          {/* Summary Stats */}
+          <div className="flex gap-4 mb-6">
+            <div className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-semibold text-sm">
+              <strong>Total Runs:</strong> {totals.totalReports}
+            </div>
+            <div className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-semibold text-sm">
+              <strong>Total Tests:</strong> {totals.totalTests}
+            </div>
           </div>
 
           {data.reports.length === 0 ? (
-            <div style={styles.note}>No E2E reports found for this project.</div>
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+              <i className="fas fa-file-alt text-4xl text-gray-400 dark:text-gray-600 mb-3"></i>
+              <p className="text-gray-600 dark:text-gray-400">No E2E reports found for this project.</p>
+            </div>
           ) : (
             data.reports.map((report, idx) => {
               const reportId = report.id || `report_${idx}`;
-              const isReportOpen = expandedReports[reportId] ?? true;
+              const isReportOpen = expandedReports[reportId] ?? false;
               
               return (
-                <div key={reportId} style={styles.card}>
-                  <div style={styles.cardHeader}>
-                    <div style={styles.headerLeft}>
-                      <div style={styles.docId}>
-                        <strong>Run #{idx + 1}</strong>
-                        {' - '}
-                        <span style={{ fontSize: '13px', fontWeight: 'normal' }}>
+                <div
+                  key={reportId}
+                  className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
+                >
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-2">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          Run #{idx + 1}
+                        </span>
+                        <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
                           ID: {reportId}
                         </span>
                       </div>
-                      <div style={styles.meta}>
-                        <strong>Created:</strong> {formatDate(report.created_at)}
-                      </div>
-                      <div style={styles.meta}>
-                        <strong>Updated:</strong> {formatDate(report.updated_at)}
-                      </div>
-                      <div style={styles.meta}>
-                        <strong>Project URL:</strong> {report.project_url || '-'}
+                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <div>
+                          <strong>Created:</strong> {formatDate(report.created_at)}
+                        </div>
+                        <div>
+                          <strong>Updated:</strong> {formatDate(report.updated_at)}
+                        </div>
+                        <div>
+                          <strong>Project URL:</strong>{' '}
+                          <span className="truncate">{report.project_url || '-'}</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={styles.headerRight}>
-                      <div style={styles.statsContainer}>
-                        <div style={styles.statBadge('green')}>Passed: {report.passed || 0}</div>
-                        <div style={styles.statBadge('red')}>Failed: {report.failed || 0}</div>
-                        <div style={styles.statBadge('blue')}>Total: {report.total_tests || 0}</div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex gap-2 flex-wrap">
+                        <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-xs font-semibold">
+                          Passed: {report.passed || 0}
+                        </span>
+                        <span className="px-3 py-1 bg-rose-500 text-white rounded-lg text-xs font-semibold">
+                          Failed: {report.failed || 0}
+                        </span>
+                        <span className="px-3 py-1 bg-indigo-500 text-white rounded-lg text-xs font-semibold">
+                          Total: {report.total_tests || 0}
+                        </span>
                       </div>
                       <button
                         onClick={() => toggleReport(reportId)}
                         title="Toggle report details"
                         aria-label={isReportOpen ? 'Collapse report' : 'Expand report'}
-                        style={styles.toggleBtn}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                       >
-                        {isReportOpen ? '▼' : '▶'}
+                        <i className={`fas fa-chevron-${isReportOpen ? 'down' : 'right'}`}></i>
                       </button>
                       <DownloadJsonButton 
                         fileName={`e2e_report_${reportId}`} 
@@ -158,28 +191,41 @@ const E2EHistory = ({ projectId }) => {
                   </div>
 
                   {isReportOpen && (
-                    <>
-                      <div style={styles.metadataSection}>
-                        <div style={styles.subSectionTitle}>Test Execution Summary</div>
-                        <div style={styles.metadataGrid}>
-                          <div style={styles.metadataItem}>
-                            <strong>Duration:</strong> {report.duration || '-'}
+                    <div className="space-y-6 mt-4">
+                      {/* Test Execution Summary */}
+                      <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="font-semibold text-gray-900 dark:text-white mb-3">Test Execution Summary</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="text-sm">
+                            <strong className="text-gray-700 dark:text-gray-300">Duration:</strong>{' '}
+                            <span className="text-gray-900 dark:text-white">{report.duration || '-'}</span>
                           </div>
-                          <div style={styles.metadataItem}>
-                            <strong>Exit Code:</strong> {report.exit_code || 0}
+                          <div className="text-sm">
+                            <strong className="text-gray-700 dark:text-gray-300">Exit Code:</strong>{' '}
+                            <span className="text-gray-900 dark:text-white">{report.exit_code || 0}</span>
                           </div>
                           {report.bug_sheet_url && (
-                            <div style={styles.metadataItem}>
-                              <strong>Bug Sheet:</strong>{' '}
-                              <a href={report.bug_sheet_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                            <div className="text-sm">
+                              <strong className="text-gray-700 dark:text-gray-300">Bug Sheet:</strong>{' '}
+                              <a
+                                href={report.bug_sheet_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                              >
                                 View Sheet
                               </a>
                             </div>
                           )}
                           {report.bug_csv_url && (
-                            <div style={styles.metadataItem}>
-                              <strong>Bug CSV:</strong>{' '}
-                              <a href={report.bug_csv_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                            <div className="text-sm">
+                              <strong className="text-gray-700 dark:text-gray-300">Bug CSV:</strong>{' '}
+                              <a
+                                href={report.bug_csv_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                              >
                                 Download CSV
                               </a>
                             </div>
@@ -187,97 +233,168 @@ const E2EHistory = ({ projectId }) => {
                         </div>
                       </div>
 
-                      <div style={styles.sectionTitle}>Test Script</div>
-                      <pre style={styles.codeBlock}>
-                        <code>{report.test_script || '// No test script available'}</code>
-                      </pre>
+                      {/* Test Script */}
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white mb-2">Test Script</div>
+                        <pre className="bg-gray-900 dark:bg-black text-gray-300 dark:text-gray-400 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap border border-gray-700 dark:border-gray-600">
+                          <code>{report.test_script || '// No test script available'}</code>
+                        </pre>
+                      </div>
 
-                      <div style={styles.sectionTitle}>Test Cases ({report.test_cases?.length || 0})</div>
-                      {report.test_cases && report.test_cases.length > 0 ? (
-                        report.test_cases.map((tc, idx) => {
-                          const tcKey = `${reportId}_${tc.test_case_id || tc.test_case_number || idx}`;
-                          const isTestCaseOpen = expandedTestCases[tcKey] ?? false;
-                          
-                          return (
-                            <div key={tcKey} style={styles.testCaseBlock}>
-                              <div style={styles.testCaseHeader}>
-                                <div style={styles.testCaseInfo}>
-                                  <div style={styles.testCaseName}>
-                                    {tc.test_case_id || tc.test_case_number || `TC-${idx + 1}`}: {tc.test_scenario || tc.feature_name || 'Test Case'}
+                      {/* Test Cases */}
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white mb-3">
+                          Test Cases ({report.test_cases?.length || 0})
+                        </div>
+                        {report.test_cases && report.test_cases.length > 0 ? (
+                          <div className="space-y-3">
+                            {report.test_cases.map((tc, tcIdx) => {
+                              const tcKey = `${reportId}_${tc.test_case_id || tc.test_case_number || tcIdx}`;
+                              const isTestCaseOpen = expandedTestCases[tcKey] ?? false;
+                              
+                              return (
+                                <div
+                                  key={tcKey}
+                                  className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30"
+                                >
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-semibold text-gray-900 dark:text-white mb-2">
+                                        {tc.test_case_id || tc.test_case_number || `TC-${tcIdx + 1}`}:{' '}
+                                        {tc.test_scenario || tc.feature_name || 'Test Case'}
+                                      </div>
+                                      <div className="flex gap-2 flex-wrap">
+                                        <span
+                                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                                            tc.test_type === 'Positive'
+                                              ? 'bg-emerald-500 text-white'
+                                              : tc.test_type === 'Negative'
+                                              ? 'bg-rose-500 text-white'
+                                              : 'bg-yellow-500 text-white'
+                                          }`}
+                                        >
+                                          {tc.test_type || 'Positive'}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                                            tc.priority === 'Critical' || tc.priority === 'High'
+                                              ? 'bg-rose-500 text-white'
+                                              : tc.priority === 'Medium'
+                                              ? 'bg-yellow-500 text-white'
+                                              : 'bg-cyan-500 text-white'
+                                          }`}
+                                        >
+                                          {tc.priority || 'Medium'}
+                                        </span>
+                                        <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-500 text-white">
+                                          {tc.automation_status || 'Manual'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => toggleTestCase(tcKey)}
+                                      title="Toggle test case details"
+                                      aria-label={isTestCaseOpen ? 'Collapse test case' : 'Expand test case'}
+                                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex-shrink-0"
+                                    >
+                                      <i className={`fas fa-chevron-${isTestCaseOpen ? 'down' : 'right'}`}></i>
+                                    </button>
                                   </div>
-                                  <div style={styles.testCaseMeta}>
-                                    <span style={styles.typeBadge(tc.test_type)}>{tc.test_type || 'Positive'}</span>
-                                    <span style={styles.priorityBadge(tc.priority)}>{tc.priority || 'Medium'}</span>
-                                    <span style={styles.statusBadge}>{tc.automation_status || 'Manual'}</span>
-                                  </div>
-                                </div>
-                                <div style={styles.testCaseActions}>
-                                  <button
-                                    onClick={() => toggleTestCase(tcKey)}
-                                    title="Toggle test case details"
-                                    aria-label={isTestCaseOpen ? 'Collapse test case' : 'Expand test case'}
-                                    style={styles.toggleBtn}
-                                  >
-                                    {isTestCaseOpen ? '▼' : '▶'}
-                                  </button>
-                                </div>
-                              </div>
 
-                              {isTestCaseOpen && (
-                                <div style={styles.testCaseDetails}>
-                                  <div style={styles.detailRow}>
-                                    <strong>Feature Name:</strong> {tc.feature_name || '-'}
-                                  </div>
-                                  <div style={styles.detailRow}>
-                                    <strong>Preconditions:</strong> {tc.preconditions || '-'}
-                                  </div>
-                                  <div style={styles.detailSection}>
-                                    <strong>Steps to Execute:</strong>
-                                    <pre style={styles.codeBlock}>{tc.steps_to_execute || '-'}</pre>
-                                  </div>
-                                  <div style={styles.detailRow}>
-                                    <strong>Test Data:</strong> {tc.test_data || '-'}
-                                  </div>
-                                  <div style={styles.detailSection}>
-                                    <strong>Expected Result:</strong>
-                                    <div style={styles.expectedResult}>{tc.expected_result || '-'}</div>
-                                  </div>
+                                  {isTestCaseOpen && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                                      <div className="text-sm">
+                                        <strong className="text-gray-700 dark:text-gray-300">Feature Name:</strong>{' '}
+                                        <span className="text-gray-900 dark:text-white">{tc.feature_name || '-'}</span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <strong className="text-gray-700 dark:text-gray-300">Preconditions:</strong>{' '}
+                                        <span className="text-gray-900 dark:text-white">{tc.preconditions || '-'}</span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <strong className="text-gray-700 dark:text-gray-300">Steps to Execute:</strong>
+                                        <pre className="mt-2 bg-gray-900 dark:bg-black text-gray-300 dark:text-gray-400 p-3 rounded-lg overflow-x-auto text-xs font-mono whitespace-pre-wrap border border-gray-700 dark:border-gray-600">
+                                          {tc.steps_to_execute || '-'}
+                                        </pre>
+                                      </div>
+                                      <div className="text-sm">
+                                        <strong className="text-gray-700 dark:text-gray-300">Test Data:</strong>{' '}
+                                        <span className="text-gray-900 dark:text-white">{tc.test_data || '-'}</span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <strong className="text-gray-700 dark:text-gray-300">Expected Result:</strong>
+                                        <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white text-xs">
+                                          {tc.expected_result || '-'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div style={styles.note}>No test cases in this report.</div>
-                      )}
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm">
+                            No test cases in this report.
+                          </div>
+                        )}
+                      </div>
 
+                      {/* Test Results */}
                       {report.test_results && report.test_results.length > 0 && (
-                        <>
-                          <div style={styles.sectionTitle}>Test Results ({report.test_results.length})</div>
-                          <div style={styles.resultsContainer}>
-                            {report.test_results.map((result, idx) => (
-                              <div key={idx} style={styles.resultItem(result.status)}>
-                                <div style={styles.resultHeader}>
-                                  <span style={styles.resultName}>{result.name || `Test ${idx + 1}`}</span>
-                                  <span style={styles.resultStatusBadge(result.status)}>{result.status || 'unknown'}</span>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-white mb-3">
+                            Test Results ({report.test_results.length})
+                          </div>
+                          <div className="space-y-3">
+                            {report.test_results.map((result, resultIdx) => (
+                              <div
+                                key={resultIdx}
+                                className={`p-4 rounded-lg border ${
+                                  result.status === 'passed'
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
+                                    : result.status === 'failed'
+                                    ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
+                                    : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                    {result.name || `Test ${resultIdx + 1}`}
+                                  </span>
+                                  <span
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                                      result.status === 'passed'
+                                        ? 'bg-emerald-500 text-white'
+                                        : result.status === 'failed'
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-gray-500 text-white'
+                                    }`}
+                                  >
+                                    {result.status || 'unknown'}
+                                  </span>
                                 </div>
-                                <div style={styles.resultDetails}>
-                                  <div><strong>Duration:</strong> {result.duration || '-'}</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                  <div>
+                                    <strong>Duration:</strong> {result.duration || '-'}
+                                  </div>
                                   {result.error_message && (
-                                    <div style={styles.errorMessage}>
+                                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs">
                                       <strong>Error:</strong> {result.error_message}
                                     </div>
                                   )}
                                   {result.actual_result && (
-                                    <div><strong>Actual Result:</strong> {result.actual_result}</div>
+                                    <div>
+                                      <strong>Actual Result:</strong> {result.actual_result}
+                                    </div>
                                   )}
                                 </div>
                               </div>
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               );
@@ -289,284 +406,4 @@ const E2EHistory = ({ projectId }) => {
   );
 };
 
-const styles = {
-  container: {
-    padding: 24,
-  },
-  title: {
-    margin: 0,
-    marginBottom: 16,
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-  },
-  note: {
-    padding: 12,
-    background: '#f6f8fa',
-    border: '1px solid #e1e4e8',
-    borderRadius: 8,
-    display: 'inline-block',
-    color: '#586069',
-  },
-  error: {
-    padding: 12,
-    background: '#fff5f5',
-    border: '1px solid #fed7d7',
-    color: '#c53030',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  summaryRow: {
-    display: 'flex',
-    gap: 16,
-    marginBottom: 16,
-  },
-  summaryItem: {
-    padding: '8px 12px',
-    background: '#0b3d91',
-    color: 'white',
-    border: '1px solid #072c6b',
-    borderRadius: 6,
-    fontSize: '14px',
-  },
-  card: {
-    border: '1px solid #e1e4e8',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-    background: '#ffffff',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  headerLeft: {
-    flex: 1,
-    minWidth: 200,
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  docId: {
-    marginBottom: 4,
-    fontSize: '16px',
-    fontWeight: 600,
-  },
-  meta: {
-    color: '#586069',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  statsContainer: {
-    display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  statBadge: (color) => ({
-    padding: '6px 12px',
-    background: color === 'green' ? '#28a745' : color === 'red' ? '#dc3545' : '#0366d6',
-    color: 'white',
-    borderRadius: 6,
-    fontSize: '13px',
-    fontWeight: 600,
-  }),
-  sectionTitle: {
-    fontWeight: 600,
-    marginTop: 16,
-    marginBottom: 12,
-    fontSize: '16px',
-  },
-  subSectionTitle: {
-    fontWeight: 600,
-    marginTop: 12,
-    marginBottom: 8,
-    fontSize: '14px',
-  },
-  metadataSection: {
-    marginBottom: 16,
-    padding: 12,
-    background: '#f6f8fa',
-    borderRadius: 8,
-    border: '1px solid #e1e4e8',
-  },
-  metadataGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: 12,
-    marginTop: 8,
-  },
-  metadataItem: {
-    fontSize: '13px',
-    color: '#24292e',
-  },
-  link: {
-    color: '#0366d6',
-    textDecoration: 'none',
-  },
-  testCaseBlock: {
-    border: '1px dashed #e1e4e8',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    background: '#fafbfc',
-  },
-  testCaseHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  testCaseInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  testCaseName: {
-    fontSize: 15,
-    fontWeight: 600,
-    marginBottom: 8,
-    color: '#24292e',
-  },
-  testCaseMeta: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-  },
-  testCaseActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  testCaseDetails: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTop: '1px solid #e1e4e8',
-  },
-  detailRow: {
-    marginBottom: 8,
-    fontSize: '14px',
-    color: '#24292e',
-  },
-  detailSection: {
-    marginBottom: 12,
-    fontSize: '14px',
-  },
-  expectedResult: {
-    marginTop: 4,
-    padding: 8,
-    background: '#f6f8fa',
-    borderRadius: 6,
-    color: '#24292e',
-    fontSize: '13px',
-  },
-  codeBlock: {
-    background: '#0b1021',
-    color: '#e6edf3',
-    padding: 12,
-    borderRadius: 6,
-    overflowX: 'auto',
-    fontSize: '13px',
-    marginTop: 4,
-    whiteSpace: 'pre-wrap',
-    fontFamily: 'monospace',
-  },
-  downloadBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 10px',
-    background: '#1f6feb',
-    color: 'white',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer',
-    fontSize: '13px',
-  },
-  toggleBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    background: '#f6f8fa',
-    border: '1px solid #e1e4e8',
-    color: '#586069',
-    cursor: 'pointer',
-  },
-  typeBadge: (type) => ({
-    padding: '4px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 600,
-    background: type === 'Positive' ? '#28a745' : type === 'Negative' ? '#dc3545' : '#ffc107',
-    color: 'white',
-  }),
-  priorityBadge: (priority) => ({
-    padding: '4px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 600,
-    background: priority === 'Critical' || priority === 'High' ? '#dc3545' : priority === 'Medium' ? '#ffc107' : '#17a2b8',
-    color: 'white',
-  }),
-  statusBadge: {
-    padding: '4px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 600,
-    background: '#6c757d',
-    color: 'white',
-  },
-  resultsContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  resultItem: (status) => ({
-    padding: 12,
-    borderRadius: 6,
-    border: `1px solid ${status === 'passed' ? '#28a745' : status === 'failed' ? '#dc3545' : '#e1e4e8'}`,
-    background: status === 'passed' ? '#f0fff4' : status === 'failed' ? '#fff5f5' : '#f6f8fa',
-  }),
-  resultHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  resultName: {
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#24292e',
-  },
-  resultStatusBadge: (status) => ({
-    padding: '4px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 600,
-    background: status === 'passed' ? '#28a745' : status === 'failed' ? '#dc3545' : '#6c757d',
-    color: 'white',
-  }),
-  resultDetails: {
-    fontSize: '13px',
-    color: '#586069',
-  },
-  errorMessage: {
-    marginTop: 4,
-    padding: 8,
-    background: '#fff5f5',
-    borderRadius: 4,
-    color: '#c53030',
-    fontSize: '12px',
-  },
-};
-
 export default E2EHistory;
-
