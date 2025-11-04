@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 
 const NewProject = () => {
   const { isDark } = useTheme();
-  const { updateProject, user } = useUser();
+  const { updateProject, user, setUser } = useUser();
   console.log(user,'user');
   
   const navigate = useNavigate();
+  
+  // Sync user from localStorage if context user is null
+  useEffect(() => {
+    if (!user) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser && (parsedUser.user_id || parsedUser.id)) {
+            setUser(parsedUser);
+          }
+        } catch (e) {
+          console.error('Failed to parse stored user:', e);
+        }
+      }
+    }
+  }, [user, setUser]);
   const [currentStep, setCurrentStep] = useState(1);
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubUser, setGithubUser] = useState(null);
@@ -17,9 +34,9 @@ const NewProject = () => {
 
   const [formData, setFormData] = useState({
     repoUrl: '',
-    projectName: '',
-    projectDesc: '',
-    projectURL: '',
+    projectName: null,
+    projectDesc: null,
+    projectURL: null,
     frdFiles: [],
     userStoryFiles: [],
     postmanFile: null,
@@ -79,7 +96,8 @@ const NewProject = () => {
   };
 
   const handleInputChange = (field) => (e) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    const value = e.target.value.trim() === '' ? null : e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateGithubStep = () => {
@@ -90,7 +108,7 @@ const NewProject = () => {
   };
 
   const validateProjectForm = () => {
-    if (!formData.projectName.trim()) {
+    if (!formData.projectName || (typeof formData.projectName === 'string' && formData.projectName.trim() === '')) {
       return { valid: false, message: 'Please enter your project name' };
     }
     return { valid: true };
@@ -146,12 +164,26 @@ const NewProject = () => {
   };
 
   const handleStartTesting = async () => {
+    // Get user_id from context or localStorage as fallback
+    const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
+    const userId = currentUser?.user_id || currentUser?.id;
+    
+    if (!userId) {
+      showNotification('Please log in to create a project', 'error');
+      setTimeout(() => navigate('/onboarding'), 2000);
+      return;
+    }
+    
     const formDataToSend = new FormData();
-    formDataToSend.append('project_name', formData.projectName);
-    formDataToSend.append('project_description', formData.projectDesc);
-    formDataToSend.append('project_url', formData.projectURL);
+    formDataToSend.append('project_name', formData.projectName || '');
+    if (formData.projectDesc !== null) {
+      formDataToSend.append('project_description', formData.projectDesc);
+    }
+    if (formData.projectURL !== null) {
+      formDataToSend.append('project_url', formData.projectURL);
+    }
     formDataToSend.append('github_repo_id', selectedRepo?.full_name);
-    formDataToSend.append('user_id', user.user_id);
+    formDataToSend.append('user_id', userId);
 
     formData.frdFiles.forEach((file) => {
       formDataToSend.append('frd', file);
@@ -389,7 +421,7 @@ const NewProject = () => {
                     </label>
                     <input
                       type="text"
-                      value={formData.projectName}
+                      value={formData.projectName || ''}
                       onChange={handleInputChange('projectName')}
                       placeholder="My Awesome Project"
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
@@ -401,7 +433,7 @@ const NewProject = () => {
                     </label>
                     <textarea
                       rows={3}
-                      value={formData.projectDesc}
+                      value={formData.projectDesc || ''}
                       onChange={handleInputChange('projectDesc')}
                       placeholder="Brief description..."
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm resize-none"
@@ -413,7 +445,7 @@ const NewProject = () => {
                     </label>
                     <input
                       type="url"
-                      value={formData.projectURL}
+                      value={formData.projectURL || ''}
                       onChange={handleInputChange('projectURL')}
                       placeholder="https://myproject.com"
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ResultsDashboard = ({ result }) => {
+const ResultsDashboard = ({ result, hideSuccessMessage = false }) => {
   const stats = {
     features: result.extraction?.total_features || 0,
     stories: result.extraction?.total_stories || 0,
@@ -23,17 +23,19 @@ const ResultsDashboard = ({ result }) => {
   return (
     <div className="space-y-6">
       {/* Success Message */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-check-circle text-3xl"></i>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold mb-1">Test Cases Generated Successfully!</h2>
-            <p className="text-white/90">Your comprehensive test suite is ready for review and export</p>
+      {!hideSuccessMessage && (
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-3xl"></i>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-1">Test Cases Generated Successfully!</h2>
+              <p className="text-white/90">Your comprehensive test suite is ready for review and export</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
