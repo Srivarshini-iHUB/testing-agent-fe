@@ -213,12 +213,7 @@ const Dashboard = () => {
     });
     setShowProjectDropdown(false);
     
-    // Success notification
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
-    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
+    
   };
 
   const handleNewProject = () => {
@@ -240,6 +235,17 @@ const Dashboard = () => {
   };
 
   // First-Time User Welcome Screen
+  if (projectsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+          <p className="text-lg text-gray-600 dark:text-gray-300">Loading your projects...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isFirstTimeUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900">
@@ -557,7 +563,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {activeTab === 'history' && <AgentHistory currentProject={currentProject} />}
+            {activeTab === 'history' && <AgentHistory key={currentProject?.id} currentProject={currentProject} />}
           </div>
         </div>
       </div>
