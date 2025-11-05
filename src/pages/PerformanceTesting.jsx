@@ -351,7 +351,7 @@ const PerformanceTesting = () => {
   const chartData = getChartData(displayRawData);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-800 dark:text-white p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Back Button & Header */}
         <div className="mb-6">
@@ -368,8 +368,8 @@ const PerformanceTesting = () => {
               <i className="fas fa-tachometer-alt text-4xl"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Performance Testing</h1>
-              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered load and stress testing for your APIs</p>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Performance Testing</h1>
+              <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">AI-powered load and stress testing for your APIs</p>
             </div>
           </div>
         </div>
@@ -389,7 +389,7 @@ const PerformanceTesting = () => {
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'agent'
                   ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-transparent text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               PERFORMANCE TESTING
@@ -399,7 +399,7 @@ const PerformanceTesting = () => {
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'history'
                   ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-transparent text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               AGENT HISTORY
@@ -414,7 +414,7 @@ const PerformanceTesting = () => {
           <div className="lg:col-span-4 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg h-fit">
             <div className="flex items-center gap-2 mb-6">
               <i className="fas fa-cog text-rose-600 dark:text-rose-400"></i>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Test Configuration</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Test Configuration</h2>
             </div>
 
             <div className="space-y-4">
@@ -427,7 +427,7 @@ const PerformanceTesting = () => {
                   placeholder="https://api.example.com/endpoint"
                   value={config.url}
                   onChange={(e) => setConfig({ ...config, url: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:focus:ring-rose-400"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:focus:ring-rose-400"
                   disabled={isRunning}
                 />
               </div>
@@ -623,13 +623,13 @@ const PerformanceTesting = () => {
             <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
               <div className="flex items-center gap-2 mb-4">
                 <i className="fas fa-lightbulb text-yellow-500 dark:text-yellow-400"></i>
-                <h3 className="font-bold text-gray-900 dark:text-white">Quick Tips</h3>
+                <h3 className="font-bold text-gray-800 dark:text-white">Quick Tips</h3>
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-2">
                   <i className="fas fa-chart-line text-rose-600 dark:text-rose-400 mt-1"></i>
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-gray-300">Load Test</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-300">Load Test</p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs">Tests consistent load over time</p>
                   </div>
                 </div>
@@ -681,7 +681,7 @@ const PerformanceTesting = () => {
                   <>
                     <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
                           <i className="fas fa-chart-line text-rose-600 dark:text-rose-400"></i>
                           Test Results Summary
                         </h2>
@@ -690,13 +690,13 @@ const PerformanceTesting = () => {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div className="bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 rounded-lg border border-rose-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Latency</p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          <p className="text-2xl font-bold text-gray-800 dark:text-white">
                             {displayResults.avgLatency || 'N/A'}<span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ms</span>
                           </p>
                         </div>
                         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-4 rounded-lg border border-blue-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Req/Sec</p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          <p className="text-2xl font-bold text-gray-800 dark:text-white">
                             {displayResults.requestsPerSec || 'N/A'}
                           </p>
                         </div>
@@ -708,7 +708,7 @@ const PerformanceTesting = () => {
                         </div>
                         <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-lg border border-orange-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Requests</p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          <p className="text-2xl font-bold text-gray-800 dark:text-white">
                             {displayResults.totalRequests || 'N/A'}
                           </p>
                         </div>
@@ -719,7 +719,7 @@ const PerformanceTesting = () => {
                         <>
                           {chartData.latencyData && chartData.latencyData.length > 0 && (
                             <div className="mb-6">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                                 <i className="fas fa-chart-bar text-rose-600 dark:text-rose-400"></i>
                                 Latency Distribution (Percentiles)
                               </h3>
@@ -748,7 +748,7 @@ const PerformanceTesting = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                               {chartData.requestData && chartData.requestData.length > 0 && (
                                 <div>
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Requests/Second Distribution</h3>
+                                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Requests/Second Distribution</h3>
                                   <ResponsiveContainer width="100%" height={250}>
                                     <BarChart data={chartData.requestData}>
                                       <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
@@ -858,7 +858,7 @@ const PerformanceTesting = () => {
                 <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Export Test Report</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
                     </div>
                     <div className="flex gap-3">
@@ -885,7 +885,7 @@ const PerformanceTesting = () => {
                 {/* Historical Report Display - Same format as current results */}
                 <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
                       <i className="fas fa-chart-line text-rose-600 dark:text-rose-400"></i>
                       Test Results Summary
                     </h2>
@@ -1037,7 +1037,7 @@ const PerformanceTesting = () => {
                   </div>
                 ) : (
                   <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Previous Test Runs</h3>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Previous Test Runs</h3>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {historyList.map((item) => {
                         const runsCount = item.runs?.length || 0;
@@ -1054,7 +1054,7 @@ const PerformanceTesting = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                    <h4 className="font-semibold text-gray-800 dark:text-white truncate">
                                       {item.method} {item.url}
                                     </h4>
                                     <span className="text-xs px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded whitespace-nowrap">
@@ -1068,7 +1068,7 @@ const PerformanceTesting = () => {
                               </div>
                               <div className="flex items-center gap-4 flex-shrink-0">
                                 <div className="text-right hidden sm:block">
-                                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{runsCount}</p>
+                                  <p className="text-sm font-semibold text-gray-800 dark:text-white">{runsCount}</p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Runs</p>
                                 </div>
                               </div>
@@ -1101,7 +1101,7 @@ const PerformanceTesting = () => {
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                           <i className={`fas ${hasReport ? 'fa-file-alt' : 'fa-file'} text-emerald-600 dark:text-emerald-400 flex-shrink-0`}></i>
-                                          <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                                          <span className="font-medium text-gray-800 dark:text-white text-sm truncate">
                                             Run #{runIdx + 1}
                                           </span>
                                           {hasReport && (
