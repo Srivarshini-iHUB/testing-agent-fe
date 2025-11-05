@@ -1,11 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code, Upload } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { integrationApi } from '../api/integrationApi';
 
 export default function IntegrationTestingPlatform() {
   const navigate = useNavigate();
+  const location = useLocation()
+  
+  // Tab state - check if URL hash is #history to open history tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return location.hash === '#history' ? 'history' : 'testing'
+  })
+  
+  // Main testing states
   const [step, setStep] = useState("upload");
   const [project, setProject] = useState(null);
   const [scenariosDocId, setScenariosDocId] = useState(null);
@@ -19,6 +27,13 @@ export default function IntegrationTestingPlatform() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedFrd, setSelectedFrd] = useState("");
   const fileInputRef = useRef(null);
+  
+  // History states
+  const [historyList, setHistoryList] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [selectedHistoryRun, setSelectedHistoryRun] = useState(null)
+  const [selectedHistoryScenario, setSelectedHistoryScenario] = useState(null)
+  const [historyReport, setHistoryReport] = useState(null)
 
   useEffect(() => {
     try {
@@ -78,6 +93,73 @@ export default function IntegrationTestingPlatform() {
     }
   };
 
+  // Handle URL hash changes to switch tabs
+  useEffect(() => {
+    if (location.hash === '#history') {
+      setActiveTab('history')
+      fetchHistoryList()
+    } else if (location.hash === '#testing' || !location.hash) {
+      setActiveTab('testing')
+      setHistoryReport(null)
+      setSelectedHistoryRun(null)
+      setSelectedHistoryScenario(null)
+    }
+  }, [location.hash])
+
+  // Fetch history list
+  const fetchHistoryList = async () => {
+    if (!project?.id) return
+    
+    setHistoryLoading(true)
+    try {
+      const data = await integrationApi.getProjectTestRuns(project.id)
+      setHistoryList(Array.isArray(data.test_runs) ? data.test_runs : [])
+    } catch (err) {
+      console.error('Failed to load history list:', err)
+      setHistoryList([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  // Load historical report
+  const handleLoadHistory = (testRun, scenario) => {
+    // Toggle: if clicking the same scenario, close it
+    if (selectedHistoryRun?.doc_id === testRun.doc_id && 
+        selectedHistoryScenario?.scenario_name === scenario.scenario_name &&
+        historyReport) {
+      setHistoryReport(null)
+      setSelectedHistoryRun(null)
+      setSelectedHistoryScenario(null)
+      return
+    }
+    
+    // Load the report from the scenario
+    if (scenario.report) {
+      setHistoryReport(scenario.report)
+      setSelectedHistoryRun(testRun)
+      setSelectedHistoryScenario(scenario)
+    } else {
+      setHistoryReport(null)
+      setSelectedHistoryRun(null)
+      setSelectedHistoryScenario(null)
+    }
+  }
+
+  // Switch to history tab
+  const handleHistoryTabClick = () => {
+    setActiveTab('history')
+    window.location.hash = '#history'
+    fetchHistoryList()
+  }
+
+  // Fetch history when project is loaded and history tab is active
+  useEffect(() => {
+    if (activeTab === 'history' && project?.id) {
+      fetchHistoryList()
+    }
+  }, [activeTab, project?.id])
+
   const generateScenarios = async () => {
     console.log(project, selectedFrd);
     if (!project?.id || !project.postmanCollection || !selectedFrd) {
@@ -85,7 +167,10 @@ export default function IntegrationTestingPlatform() {
       return;
     }
     setLoading(true);
-    setError(null);
+    setError(null);    
+    setHistoryReport(null) // Clear history result when generating new
+    setActiveTab('testing') // Switch back to testing tab
+
     try {
       const data = await integrationApi.generateScenarios(
         project.id,
@@ -160,18 +245,21 @@ export default function IntegrationTestingPlatform() {
     setTestRunId(null);
     setReport(null);
     setError(null);
-  };
+  }
 
-  const testTimelineData = report?.test_details?.map((test, idx) => ({
+  // Use historyReport or current report based on active tab
+  const displayReport = activeTab === 'history' ? (historyReport || null) : report
+
+  const testTimelineData = displayReport?.test_details?.map((test, idx) => ({
     name: `Test ${idx + 1}`,
     duration: Math.random() * 500 + 100,
     status: test.passed ? "passed" : "failed",
   })) || [];
 
-  const totalTests = report?.total_tests || 0;
-  const passedTests = report?.passed_tests || 0;
-  const failedTests = report?.failed_tests || 0;
-  const skippedTests = totalTests - passedTests - failedTests;
+  const totalTests = displayReport?.total_tests || 0
+  const passedTests = displayReport?.passed_tests || 0
+  const failedTests = displayReport?.failed_tests || 0
+  const skippedTests = totalTests - passedTests - failedTests
 
   const passFailData = [
     { name: "Passed", value: passedTests, fill: "#10b981" },
@@ -192,13 +280,15 @@ export default function IntegrationTestingPlatform() {
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-lg">🔗</div>
+            <div className="text-teal-700 dark:text-teal-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-link text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold">Integration Testing Agent</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered API scenario generation and validation</p>
             </div>
           </div>
-          {step !== 'upload' && (
+          {step !== 'upload' && activeTab === 'testing' && (
             <button
               onClick={resetAll}
               className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300 font-semibold transition-all"
@@ -207,6 +297,38 @@ export default function IntegrationTestingPlatform() {
               Start Over
             </button>
           )}
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="mb-6 bg-transparent rounded-t-xl overflow-hidden">
+          <div className="flex border-b-2 border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => {
+                setActiveTab('testing')
+                setHistoryReport(null)
+                setSelectedHistoryRun(null)
+                setSelectedHistoryScenario(null)
+                window.location.hash = '#testing'
+              }}
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
+                activeTab === 'testing'
+                  ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              INTEGRATION TESTING
+            </button>
+            <button
+              onClick={handleHistoryTabClick}
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
+                activeTab === 'history'
+                  ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              AGENT HISTORY
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -220,10 +342,14 @@ export default function IntegrationTestingPlatform() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-6 mt-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Project Configuration */}
-            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+        {/* Tab Content Wrapper */}
+        <div>
+          {/* INTEGRATION TESTING Tab Content */}
+          {activeTab === 'testing' && (
+            <div className="grid lg:grid-cols-3 gap-6 mt-6">
+              <div className="lg:col-span-2 space-y-6">
+              {/* Project Configuration */}
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
               <div className="flex items-center gap-2 mb-4">
                 <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
                 <h2 className="text-xl font-bold">Project Configuration</h2>
@@ -394,58 +520,115 @@ export default function IntegrationTestingPlatform() {
                 <p className="text-gray-600 dark:text-gray-300 mt-1">Executing scenario: <span className="font-semibold">{selectedScenario?.scenario_name}</span></p>
               </div>
             )}
-          </div>
+              </div>
 
-          {/* Right column */}
-          <div className="space-y-6">
-            {/* Report */}
-            {step === 'report' && report && (
-              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <i className="fas fa-chart-line text-indigo-600 dark:text-indigo-400"></i>
-                  <h3 className="text-lg font-bold">Current Report</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
-                    <div className="text-gray-500 dark:text-gray-400">Total</div>
-                    <div className="text-xl font-bold">{report.total_tests}</div>
+              {/* Right column */}
+              <div className="space-y-6">
+              {/* Report */}
+              {step === 'report' && report && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <i className="fas fa-chart-line text-indigo-600 dark:text-indigo-400"></i>
+                    <h3 className="text-lg font-bold">Current Report</h3>
                   </div>
-                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
-                    <div className="text-emerald-700 dark:text-emerald-300">Passed</div>
-                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{report.passed_tests}</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
-                    <div className="text-rose-700 dark:text-rose-300">Failed</div>
-                    <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{report.failed_tests}</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
-                    <div className="text-gray-500 dark:text-gray-400">Status</div>
-                    <div className="text-xl font-bold">
-                      {['Passed', 'PASSED', 'passed'].includes(report.overall_status) ? 'PASSED' : 'FAILED'}
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-6">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                      <div className="text-gray-500 dark:text-gray-400">Total</div>
+                      <div className="text-xl font-bold">{report.total_tests}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+                      <div className="text-emerald-700 dark:text-emerald-300">Passed</div>
+                      <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{report.passed_tests}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+                      <div className="text-rose-700 dark:text-rose-300">Failed</div>
+                      <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{report.failed_tests}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                      <div className="text-gray-500 dark:text-gray-400">Status</div>
+                      <div className="text-xl font-bold">
+                        {['Passed', 'PASSED', 'passed'].includes(report.overall_status) ? 'PASSED' : 'FAILED'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <button
-                    onClick={resetAll}
-                    className="flex-1 bg-gray-100 dark:bg-gray-900/40 hover:bg-gray-200 dark:hover:bg-gray-800/60 text-gray-800 dark:text-gray-200 py-2 px-3 rounded-lg text-sm transition-all"
-                  >
-                    Run Another Test
-                  </button>
-                  <button
-                    onClick={() => {
-                      const element = document.createElement('a');
-                      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(report, null, 2)));
-                      element.setAttribute('download', 'test-report.json');
-                      element.style.display = 'none';
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
-                  >
-                    Download Report
-                  </button>
+
+                  {/* Pass/Fail Pie Chart */}
+                  {passFailData.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Test Results Distribution</h4>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={passFailData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={70}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {passFailData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Test Timeline Bar Chart */}
+                  {testTimelineData.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Test Execution Timeline</h4>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={testTimelineData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                          <XAxis dataKey="name" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                            labelStyle={{ color: '#374151' }}
+                          />
+                          <Bar 
+                            dataKey="duration" 
+                            radius={[8, 8, 0, 0]}
+                          >
+                            {testTimelineData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.status === 'passed' ? '#10b981' : '#ef4444'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={resetAll}
+                      className="flex-1 bg-gray-100 dark:bg-gray-900/40 hover:bg-gray-200 dark:hover:bg-gray-800/60 text-gray-800 dark:text-gray-200 py-2 px-3 rounded-lg text-sm transition-all"
+                    >
+                      Run Another Test
+                    </button>
+                    <button
+                      onClick={() => {
+                        const element = document.createElement('a');
+                        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(report, null, 2)));
+                        element.setAttribute('download', 'test-report.json');
+                        element.style.display = 'none';
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
+                    >
+                      Download Report
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -472,8 +655,297 @@ export default function IntegrationTestingPlatform() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
+          )}
+
+        {/* AGENT HISTORY Tab Content */}
+        {activeTab === 'history' && (
+          <div className="mt-6">
+            {historyReport ? (
+              // Show report in full screen when selected
+              <div className="space-y-6">
+                {/* Viewing Historical Result Banner */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl p-4 text-white shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <i className="fas fa-history text-2xl"></i>
+                      <div>
+                        <h2 className="text-lg font-bold">Viewing Historical Result</h2>
+                        <p className="text-sm text-white/90">
+                          {selectedHistoryRun?.created_at 
+                            ? `Test Run from ${new Date(selectedHistoryRun.created_at).toLocaleString()}`
+                            : 'Historical Test Run'}
+                          {selectedHistoryScenario && ` - Scenario: ${selectedHistoryScenario.scenario_name}`}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setHistoryReport(null)
+                        setSelectedHistoryRun(null)
+                        setSelectedHistoryScenario(null)
+                      }}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all text-sm font-medium"
+                    >
+                      <i className="fas fa-times mr-2"></i>
+                      Close Report
+                    </button>
+                  </div>
+                </div>
+
+                {/* Historical Report Display - Full Screen */}
+                {(() => {
+                    // Prepare chart data for history report
+                    const historyTestTimelineData = historyReport.test_details?.map((test, idx) => ({
+                      name: `Test ${idx + 1}`,
+                      duration: test.duration || Math.random() * 500 + 100,
+                      status: test.passed ? "passed" : "failed",
+                    })) || []
+
+                    const historyTotalTests = historyReport.total_tests || 0
+                    const historyPassedTests = historyReport.passed_tests || 0
+                    const historyFailedTests = historyReport.failed_tests || 0
+                    const historySkippedTests = historyTotalTests - historyPassedTests - historyFailedTests
+
+                    const historyPassFailData = [
+                      { name: "Passed", value: historyPassedTests, fill: "#10b981" },
+                      { name: "Failed", value: historyFailedTests, fill: "#ef4444" },
+                      ...(historySkippedTests > 0 ? [{ name: "Skipped", value: historySkippedTests, fill: "#f59e0b" }] : [])
+                    ]
+
+                    return (
+                      <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                        <div className="flex items-center gap-2 mb-4">
+                          <i className="fas fa-chart-line text-indigo-600 dark:text-indigo-400"></i>
+                          <h3 className="text-lg font-bold">Test Report</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm mb-6">
+                          <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                            <div className="text-gray-500 dark:text-gray-400">Total</div>
+                            <div className="text-xl font-bold">{historyTotalTests}</div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+                            <div className="text-emerald-700 dark:text-emerald-300">Passed</div>
+                            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{historyPassedTests}</div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+                            <div className="text-rose-700 dark:text-rose-300">Failed</div>
+                            <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{historyFailedTests}</div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                            <div className="text-gray-500 dark:text-gray-400">Status</div>
+                            <div className="text-xl font-bold">
+                              {['Passed','PASSED','passed'].includes(historyReport.overall_status) ? 'PASSED' : 'FAILED'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pass/Fail Pie Chart */}
+                        {historyPassFailData.length > 0 && historyPassFailData.some(d => d.value > 0) && (
+                          <div className="mb-6">
+                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Test Results Distribution</h4>
+                            <ResponsiveContainer width="100%" height={200}>
+                              <PieChart>
+                                <Pie
+                                  data={historyPassFailData.filter(d => d.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                  outerRadius={70}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                >
+                                  {historyPassFailData.filter(d => d.value > 0).map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+
+                        {/* Test Timeline Bar Chart */}
+                        {historyTestTimelineData.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Test Execution Timeline</h4>
+                            <ResponsiveContainer width="100%" height={250}>
+                              <BarChart data={historyTestTimelineData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                <XAxis dataKey="name" stroke="#6b7280" />
+                                <YAxis stroke="#6b7280" />
+                                <Tooltip 
+                                  contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                  labelStyle={{ color: '#374151' }}
+                                />
+                                <Bar 
+                                  dataKey="duration" 
+                                  radius={[8, 8, 0, 0]}
+                                >
+                                  {historyTestTimelineData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.status === 'passed' ? '#10b981' : '#ef4444'} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      
+                        {/* Test Details */}
+                        {historyReport.test_details && historyReport.test_details.length > 0 && (
+                          <div className="mt-4 mb-4">
+                            <h4 className="font-semibold mb-2">Test Details</h4>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                              {historyReport.test_details.map((test, idx) => (
+                                <div key={idx} className={`p-3 rounded-lg border ${
+                                  test.passed 
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' 
+                                    : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
+                                }`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">{test.test_name || `Test ${idx + 1}`}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      test.passed 
+                                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
+                                        : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                                    }`}>
+                                      {test.passed ? 'PASSED' : 'FAILED'}
+                                    </span>
+                                  </div>
+                                  {test.error && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{test.error}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                          <button
+                            onClick={() => {
+                              const element = document.createElement('a')
+                              element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(historyReport, null, 2)))
+                              element.setAttribute('download', `integration-test-report-${selectedHistoryRun?.doc_id || 'history'}.json`)
+                              element.style.display = 'none'
+                              document.body.appendChild(element)
+                              element.click()
+                              document.body.removeChild(element)
+                            }}
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
+                          >
+                            <i className="fas fa-download mr-2"></i>
+                            Download Report
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })()}
+              </div>
+            ) : (
+              // Show history list when no report is selected
+              <div className="space-y-6">
+                {historyLoading ? (
+                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-10 border border-gray-200 dark:border-gray-700/50 shadow-lg flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin"></div>
+                    <h2 className="text-xl font-bold mt-6">Loading History...</h2>
+                  </div>
+                ) : historyList.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+                    <i className="fas fa-inbox text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-2">No history found</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Run integration tests to see them here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Previous Test Runs</h3>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {historyList.map((testRun, idx) => {
+                        const createdDate = testRun.created_at 
+                          ? new Date(testRun.created_at).toLocaleString()
+                          : 'N/A'
+                        const scenariosCount = testRun.scenarios?.length || 0
+                        
+                        return (
+                          <div key={testRun.doc_id || idx} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                                  <i className="fas fa-vial text-indigo-600 dark:text-indigo-400"></i>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                                    Test Run #{testRun.testrun_count !== undefined ? testRun.testrun_count : idx + 1}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{createdDate}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{scenariosCount}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Scenarios</p>
+                              </div>
+                            </div>
+                            
+                            {/* Scenarios in this test run */}
+                            {testRun.scenarios && testRun.scenarios.length > 0 && (
+                              <div className="space-y-2 mt-3">
+                                {testRun.scenarios.map((scenario, sIdx) => {
+                                  const isSelected = selectedHistoryRun?.doc_id === testRun.doc_id &&
+                                                    selectedHistoryScenario?.scenario_name === scenario.scenario_name &&
+                                                    historyReport
+                                  const hasReport = !!scenario.report
+                                  
+                                  return (
+                                    <button
+                                      key={sIdx}
+                                      onClick={() => handleLoadHistory(testRun, scenario)}
+                                      disabled={!hasReport}
+                                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                                        isSelected
+                                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-md'
+                                          : hasReport
+                                          ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-50 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <i className={`fas ${hasReport ? 'fa-file-alt' : 'fa-file'} text-indigo-600 dark:text-indigo-400`}></i>
+                                          <span className="font-medium text-gray-900 dark:text-white text-sm">
+                                            {scenario.scenario_name}
+                                          </span>
+                                          {hasReport && (
+                                            <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded">
+                                              Has Report
+                                            </span>
+                                          )}
+                                        </div>
+                                        {hasReport && (
+                                          <i className={`fas fa-chevron-right text-gray-400 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : ''}`}></i>
+                                        )}
+                                      </div>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         </div>
       </div>
       <input

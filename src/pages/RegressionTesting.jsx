@@ -123,7 +123,9 @@ const RegressionTesting = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            <i className="fas fa-undo text-4xl text-slate-600 dark:text-slate-400"></i>
+            <div className="text-slate-700 dark:text-slate-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-undo text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Regression Testing</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered regression testing for bug verification</p>

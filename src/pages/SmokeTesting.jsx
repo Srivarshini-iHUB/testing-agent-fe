@@ -133,7 +133,9 @@ function SmokeTesting() {
           </button>
 
           <div className="flex items-center gap-3">
-            <i className="fas fa-fire text-4xl text-orange-600 dark:text-orange-400"></i>
+            <div className="text-orange-700 dark:text-orange-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-fire text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Smoke Testing

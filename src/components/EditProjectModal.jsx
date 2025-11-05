@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useUser } from '../contexts/UserContext'
+import { projectApi } from '../api/projectApi'
 
 const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   const { project } = useUser()
@@ -108,33 +109,48 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
     if (!editFormData.projectName.trim() || !editFormData.repoUrl.trim()) {
       showNotification('Please fill in all required fields', 'error')
       return
     }
 
-    // Prepare updated data
-    const updatedData = {
-      name: editFormData.projectName,
-      repository: editFormData.repoUrl,
-      projectDesc: editFormData.projectDesc,
-      projectURL: editFormData.projectURL,
-      frdDocuments: [
-        ...editFormData.existingFrdFiles,
-        ...editFormData.frdFiles.map(f => f.name)
-      ],
-      userStories: [
-        ...editFormData.existingUserStoryFiles,
-        ...editFormData.userStoryFiles.map(f => f.name)
-      ],
-      postmanCollection: editFormData.postmanFile?.name || project.postmanCollection,
-      updatedAt: new Date().toISOString()
-    }
+    try {
+      // Prepare updated data for API
+      const apiData = {
+        project_name: editFormData.projectName,
+        project_description: editFormData.projectDesc,
+        github_repo_id: editFormData.repoUrl,
+        project_url: editFormData.projectURL,
+        frd: editFormData.existingFrdFiles.join(', '), // Convert array to comma-separated string
+        user_story: editFormData.existingUserStoryFiles.join(', '), // Convert array to comma-separated string
+        swagger_documentation: editFormData.postmanFile?.name || project.postmanCollection,
+      }
 
-    showNotification('Project updated successfully!', 'success')
-    onSave(updatedData)
+      // Call updateProject API
+      await projectApi.updateProject(project.id, apiData)
+
+      // Fetch updated project data
+      const updatedProject = await projectApi.getProject(project.id)
+
+      // Update localStorage with the fresh project data
+      localStorage.setItem('project', JSON.stringify({
+        id: updatedProject.id,
+        name: updatedProject.name,
+        repository: updatedProject.repository,
+        frdDocument: updatedProject.frdDocument,
+        userStories: updatedProject.userStories,
+        postmanCollection: updatedProject.postmanCollection,
+        projectURL: updatedProject.projectUrl,
+      }))
+
+      showNotification('Project updated successfully!', 'success')
+      onSave(updatedProject)
+    } catch (error) {
+      console.error('Failed to update project:', error)
+      showNotification('Failed to update project. Please try again.', 'error')
+    }
   }
 
   if (!isOpen) return null

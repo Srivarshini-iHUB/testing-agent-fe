@@ -234,7 +234,9 @@ function TestCaseGenerator() {
           </button>
 
           <div className="flex items-center gap-3">
-            <i className="fas fa-file-alt text-4xl text-indigo-600 dark:text-indigo-400"></i>
+            <div className="text-indigo-700 dark:text-indigo-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-file-alt text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Test Case Generator</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered test case generation from requirements and user stories</p>

@@ -87,8 +87,8 @@ const UnitTestingAgent = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-4xl shadow-lg">
-              🧪
+            <div className="text-blue-700 dark:text-blue-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-vial text-4xl"></i>
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

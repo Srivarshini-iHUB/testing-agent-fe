@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import PerformanceHistory from '../components/agentHistory/PerformanceHistory';
 
 const PerformanceTesting = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark } = useTheme();
 
   const proj = JSON.parse(localStorage.getItem('project') || 'null');
   const projectId = proj?.id;
+
+  // Tab state - Check if URL hash is #history to open history tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return location.hash === '#history' ? 'history' : 'agent';
+  });
   
   const [config, setConfig] = useState({
     url: '',
@@ -204,6 +211,15 @@ const PerformanceTesting = () => {
     setConfig(prev => ({ ...prev, headers: newHeaders }));
   };
 
+  // Handle tab navigation via URL hash
+  useEffect(() => {
+    if (location.hash === '#history') {
+      setActiveTab('history');
+    } else if (location.hash === '#agent' || !location.hash) {
+      setActiveTab('agent');
+    }
+  }, [location.hash]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
@@ -218,7 +234,9 @@ const PerformanceTesting = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            <i className="fas fa-tachometer-alt text-4xl text-rose-600 dark:text-rose-400"></i>
+            <div className="text-emerald-700 dark:text-emerald-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-tachometer-alt text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Performance Testing</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered load and stress testing for your APIs</p>
@@ -226,6 +244,47 @@ const PerformanceTesting = () => {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700 flex space-x-4">
+          <button
+            onClick={() => {
+              setActiveTab('agent');
+              window.location.hash = '#agent';
+            }}
+            className={`px-6 py-3 font-semibold text-sm transition-all ${
+              activeTab === 'agent'
+                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <i className="fas fa-play-circle mr-2"></i>
+            PERFORMANCE TESTING AGENT
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('history');
+              window.location.hash = '#history';
+            }}
+            className={`px-6 py-3 font-semibold text-sm transition-all ${
+              activeTab === 'history'
+                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <i className="fas fa-history mr-2"></i>
+            AGENT HISTORY
+          </button>
+        </div>
+
+        {/* Content based on active tab */}
+        {activeTab === 'history' && (
+          <div className="mt-6">
+            <PerformanceHistory projectId={projectId} />
+          </div>
+        )}
+
+        {activeTab === 'agent' && (
+          <>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Main Configuration Panel */}
           <div className="lg:col-span-4 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg h-fit">
@@ -639,6 +698,8 @@ const PerformanceTesting = () => {
               </div>
             )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

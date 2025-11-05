@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { performanceApi } from '../../api/performanceApi';
-import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -32,33 +32,102 @@ const DownloadJsonButton = ({ fileName, data }) => {
   };
 
   return (
-    <button onClick={handleDownload} title="Download JSON" style={styles.downloadBtn}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      <span style={{ marginLeft: 8 }}>Download</span>
+    <button
+      onClick={handleDownload}
+      title="Download JSON"
+      className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all text-sm font-medium"
+    >
+      <i className="fas fa-download"></i>
     </button>
   );
 };
 
-const PerformanceHistory = () => {
+// Extract chart data from response (similar to PerformanceTesting)
+const getChartData = (responseData) => {
+  if (!responseData) return null;
+  
+  // Try to extract raw data from report if it's a string, otherwise use responseData directly
+  let rawData = responseData;
+  
+  // If responseData has latency/requests/throughput directly, use it
+  if (responseData.latency || responseData.requests || responseData.throughput) {
+    rawData = responseData;
+  }
+  // Otherwise, try to extract from report string
+  else if (typeof responseData.report === 'string') {
+    const jsonMatch = responseData.report.match(/```json\n([\s\S]*?)\n```/);
+    if (jsonMatch) {
+      try {
+        rawData = JSON.parse(jsonMatch[1]);
+      } catch (e) {
+        rawData = responseData;
+      }
+    }
+  }
+
+  const latencyData = [];
+  const requestData = [];
+  const statusData = [];
+  const throughputData = [];
+
+  // Build latency data
+  if (rawData.latency) {
+    const percentiles = ['p50', 'p75', 'p90', 'p97_5', 'p99'];
+    const labels = ['P50', 'P75', 'P90', 'P95', 'P99'];
+    percentiles.forEach((p, i) => {
+      if (rawData.latency[p] !== undefined) {
+        latencyData.push({ name: labels[i], value: rawData.latency[p] });
+      }
+    });
+  }
+
+  // Build request data
+  if (rawData.requests) {
+    const percentiles = ['p1', 'p10', 'p50', 'p75', 'p90', 'p99'];
+    percentiles.forEach((p) => {
+      if (rawData.requests[p] !== undefined) {
+        requestData.push({ name: p.toUpperCase(), value: rawData.requests[p] });
+      }
+    });
+  }
+
+  // Build status data
+  const statusCodes = [
+    { key: '2xx', name: '2xx Success', color: '#10b981' },
+    { key: '4xx', name: '4xx Client Error', color: '#f59e0b' },
+    { key: '5xx', name: '5xx Server Error', color: '#ef4444' }
+  ];
+  statusCodes.forEach(status => {
+    if (rawData[status.key] !== undefined && rawData[status.key] > 0) {
+      statusData.push({ name: status.name, value: rawData[status.key], color: status.color });
+    }
+  });
+  if (statusData.length === 0 && rawData['2xx']) {
+    statusData.push({ name: '2xx Success', value: rawData['2xx'], color: '#10b981' });
+  }
+
+  // Build throughput data
+  if (rawData.throughput) {
+    const percentiles = ['p10', 'p25', 'p50', 'p75', 'p90', 'p99'];
+    percentiles.forEach((p) => {
+      if (rawData.throughput[p] !== undefined) {
+        throughputData.push({
+          name: p.toUpperCase(),
+          value: parseFloat((rawData.throughput[p] / 1024).toFixed(2))
+        });
+      }
+    });
+  }
+
+  return { latencyData, requestData, statusData, throughputData };
+};
+
+const PerformanceHistory = ({ projectId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
   const [expandedItems, setExpandedItems] = useState({});
   const [expandedRuns, setExpandedRuns] = useState({});
-
-  const proj = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('project') || 'null');
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const projectId = proj?.id;
 
   const totals = useMemo(() => {
     let totalRuns = 0;
@@ -71,11 +140,11 @@ const PerformanceHistory = () => {
   }, [items]);
 
   const toggleItem = (id) => {
-    setExpandedItems((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
+    setExpandedItems((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
   };
 
   const toggleRun = (id) => {
-    setExpandedRuns((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
+    setExpandedRuns((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
   };
 
   useEffect(() => {
@@ -101,250 +170,311 @@ const PerformanceHistory = () => {
 
   if (!projectId) {
     return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Performance Testing - Test Runs</h2>
-        <div style={styles.note}>No project selected. Please select a project.</div>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Performance Testing - History</h2>
+        <div className="inline-block px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+          No project selected. Please select a project.
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Performance Testing - Test Runs</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Performance Testing - History</h2>
 
-      {loading && <div style={styles.note}>Loading…</div>}
-      {error && <div style={styles.error}>{error}</div>}
+      {loading && (
+        <div className="text-center py-12">
+          <i className="fas fa-spinner fa-spin text-4xl text-indigo-600 dark:text-indigo-400 mb-4"></i>
+          <p className="text-gray-600 dark:text-gray-400">Loading history...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 mb-4">
+          <i className="fas fa-exclamation-circle mr-2"></i>
+          {error}
+        </div>
+      )}
 
       {!loading && !error && (
-        <>
-          <div style={styles.summaryRow}>
-            <div style={styles.summaryItem}><strong>Targets:</strong> {totals.totalRuns}</div>
-            <div style={styles.summaryItem}><strong>Total Executions:</strong> {totals.totalExecutions}</div>
+        <div className="space-y-6">
+          {/* Summary Stats */}
+          <div className="flex gap-4 mb-6">
+            <div className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-semibold text-sm">
+              <strong>Targets:</strong> {totals.totalRuns}
+            </div>
+            <div className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-semibold text-sm">
+              <strong>Total Executions:</strong> {totals.totalExecutions}
+            </div>
           </div>
 
-          {(items || []).map((it) => (
-            <div key={it.id} style={styles.card}>
-              <div style={styles.cardHeader}>
-                <div style={styles.headerLeft}>
-                  <div style={styles.docId}><strong>Target:</strong> {it.method} {it.url}</div>
-                  <div style={styles.meta}><strong>Mode:</strong> {it.testMode?.toUpperCase?.() || it.testMode}</div>
-                </div>
-                <div style={styles.headerRight}>
-                  <div style={styles.badge}>Executions: {(it.runs || []).length}</div>
-                  <button
-                    onClick={() => toggleItem(it.id)}
-                    title="Toggle item details"
-                    aria-label={(expandedItems[it.id] ?? true) ? 'Collapse' : 'Expand'}
-                    style={styles.toggleBtn}
-                  >
-                    {(expandedItems[it.id] ?? true) ? <FiChevronDown /> : <FiChevronRight />}
-                  </button>
-                </div>
-              </div>
+          {items.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+              <i className="fas fa-tachometer-alt text-4xl text-gray-400 dark:text-gray-600 mb-3"></i>
+              <p className="text-gray-600 dark:text-gray-400">No performance test runs found for this project.</p>
+            </div>
+          ) : (
+            items.map((it) => {
+              const isItemOpen = expandedItems[it.id] ?? false;
+              
+              return (
+                <div
+                  key={it.id}
+                  className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
+                >
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-2">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          Target: {it.method} {it.url}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <strong>Mode:</strong> {it.testMode?.toUpperCase?.() || it.testMode || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800">
+                        Executions: {(it.runs || []).length}
+                      </span>
+                      <button
+                        onClick={() => toggleItem(it.id)}
+                        title="Toggle item details"
+                        aria-label={isItemOpen ? 'Collapse' : 'Expand'}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                      >
+                        <i className={`fas fa-chevron-${isItemOpen ? 'down' : 'right'}`}></i>
+                      </button>
+                    </div>
+                  </div>
 
-              {(expandedItems[it.id] ?? true) && (
-                <div>
-                  {(it.runs || []).map((run, idx) => {
-                    const runId = `${it.id}_${idx}`;
-                    const resp = run?.response || {};
-                    const req = run?.request || {};
-                    const metrics = {
-                      avgLatency: resp.avgLatency,
-                      requestsPerSec: resp.requestsPerSec,
-                      successRate: resp.successRate,
-                      totalRequests: resp.totalRequests,
-                    };
-                    const downloadable = { id: it.id, url: it.url, method: it.method, testMode: it.testMode, timestamp: run?.timestamp, request: req, response: resp };
-                    return (
-                      <div key={runId} style={styles.runBlock}>
-                        <div style={styles.runHeader}>
-                          <div>
-                            <div style={styles.meta}><strong>Timestamp:</strong> {formatDate(run?.timestamp)}</div>
-                            <div style={styles.metaSmall}><strong>Duration:</strong> {req?.duration ?? req?.stressConfig?.durationPerStep ?? '-'}s | <strong>Connections:</strong> {req?.connections ?? req?.stressConfig?.startConnections ?? '-'}</div>
-                          </div>
-                          <div style={styles.scenarioActions}>
-                            <button
-                              onClick={() => toggleRun(runId)}
-                              title="Toggle run details"
-                              aria-label={(expandedRuns[runId] ?? true) ? 'Collapse run' : 'Expand run'}
-                              style={styles.toggleBtn}
-                            >
-                              {(expandedRuns[runId] ?? true) ? <FiChevronDown /> : <FiChevronRight />}
-                            </button>
-                            <DownloadJsonButton fileName={`performance_run_${it.id}_${idx}`} data={downloadable} />
-                          </div>
-                        </div>
+                  {isItemOpen && (
+                    <div className="space-y-4 mt-4">
+                      {(it.runs || []).map((run, idx) => {
+                        const runId = `${it.id}_${idx}`;
+                        const resp = run?.response || {};
+                        const req = run?.request || {};
+                        const metrics = {
+                          avgLatency: resp.avgLatency,
+                          requestsPerSec: resp.requestsPerSec,
+                          successRate: resp.successRate,
+                          totalRequests: resp.totalRequests,
+                        };
+                        const downloadable = {
+                          id: it.id,
+                          url: it.url,
+                          method: it.method,
+                          testMode: it.testMode,
+                          timestamp: run?.timestamp,
+                          request: req,
+                          response: resp,
+                        };
+                        const isRunOpen = expandedRuns[runId] ?? false;
+                        const chartData = getChartData(resp);
 
-                        {(expandedRuns[runId] ?? true) && (
-                          <>
-                            <div style={styles.metricsRow}>
-                              <div style={styles.metric}><strong>Avg Latency:</strong> {metrics.avgLatency ?? 'N/A'} ms</div>
-                              <div style={styles.metric}><strong>Req/Sec:</strong> {metrics.requestsPerSec ?? 'N/A'}</div>
-                              <div style={styles.metric}><strong>Success Rate:</strong> {metrics.successRate ?? 'N/A'}%</div>
-                              <div style={styles.metric}><strong>Total Requests:</strong> {metrics.totalRequests ?? 'N/A'}</div>
+                        return (
+                          <div
+                            key={runId}
+                            className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30"
+                          >
+                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                  <strong>Timestamp:</strong> {formatDate(run?.timestamp)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-500">
+                                  <strong>Duration:</strong> {req?.duration ?? req?.stressConfig?.durationPerStep ?? '-'}s |{' '}
+                                  <strong>Connections:</strong> {req?.connections ?? req?.stressConfig?.startConnections ?? '-'}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleRun(runId)}
+                                  title="Toggle run details"
+                                  aria-label={isRunOpen ? 'Collapse run' : 'Expand run'}
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex-shrink-0"
+                                >
+                                  <i className={`fas fa-chevron-${isRunOpen ? 'down' : 'right'}`}></i>
+                                </button>
+                                <DownloadJsonButton
+                                  fileName={`performance_run_${it.id}_${idx}`}
+                                  data={downloadable}
+                                />
+                              </div>
                             </div>
 
-                            <div style={styles.subSectionTitle}>Request</div>
-                            <pre style={styles.jsonBlock}><code>{JSON.stringify(req, null, 2)}</code></pre>
+                            {isRunOpen && (
+                              <div className="space-y-6 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                {/* Metrics Summary - Same UI as PerformanceTesting */}
+                                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <i className="fas fa-chart-line text-rose-600 dark:text-rose-400"></i>
+                                    Test Results Summary
+                                  </h2>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 rounded-lg border border-rose-500/30">
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Latency</p>
+                                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {metrics.avgLatency ?? 'N/A'}<span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ms</span>
+                                      </p>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-4 rounded-lg border border-blue-500/30">
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">Req/Sec</p>
+                                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {metrics.requestsPerSec ?? 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">Success Rate</p>
+                                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                        {metrics.successRate ?? 'N/A'}%
+                                      </p>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-lg border border-orange-500/30">
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">Total Requests</p>
+                                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {metrics.totalRequests ?? 'N/A'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
 
-                            <div style={styles.subSectionTitle}>Response</div>
-                            <pre style={styles.jsonBlock}><code>{JSON.stringify(resp, null, 2)}</code></pre>
+                                {/* Request */}
+                                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                  <div className="font-semibold text-gray-900 dark:text-white mb-2">Request Configuration</div>
+                                  <pre className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-300 p-4 rounded-lg overflow-x-auto text-xs font-mono whitespace-pre-wrap border border-gray-200 dark:border-gray-700">
+                                    <code>{JSON.stringify(req, null, 2)}</code>
+                                  </pre>
+                                </div>
 
-                            {resp?.report && (
-                              <>
-                                <div style={styles.subSectionTitle}>Report</div>
-                                <pre style={styles.codeBlock}><code>{resp.report}</code></pre>
-                              </>
+                                {/* Response */}
+                                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                  <div className="font-semibold text-gray-900 dark:text-white mb-2">Response Data</div>
+                                  <pre className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-300 p-4 rounded-lg overflow-x-auto text-xs font-mono whitespace-pre-wrap border border-gray-200 dark:border-gray-700">
+                                    <code>{JSON.stringify(resp, null, 2)}</code>
+                                  </pre>
+                                </div>
+
+                                {/* Charts - Same UI as PerformanceTesting */}
+                                {chartData && chartData.latencyData.length > 0 && (
+                                  <>
+                                    <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <i className="fas fa-chart-bar text-rose-600 dark:text-rose-400"></i>
+                                        Latency Distribution (Percentiles)
+                                      </h3>
+                                      <ResponsiveContainer width="100%" height={300}>
+                                        <AreaChart data={chartData.latencyData}>
+                                          <defs>
+                                            <linearGradient id={`latencyGradient_${runId}`} x1="0" y1="0" x2="0" y2="1">
+                                              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/>
+                                              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.1}/>
+                                            </linearGradient>
+                                          </defs>
+                                          <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                          <XAxis dataKey="name" stroke="#6b7280" />
+                                          <YAxis stroke="#6b7280" label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', fill: '#6b7280' }} />
+                                          <Tooltip 
+                                            contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                            labelStyle={{ color: '#374151' }}
+                                          />
+                                          <Area type="monotone" dataKey="value" stroke="#f43f5e" fillOpacity={1} fill={`url(#latencyGradient_${runId})`} />
+                                        </AreaChart>
+                                      </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                      {chartData.requestData.length > 0 && (
+                                        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Requests/Second Distribution</h3>
+                                          <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={chartData.requestData}>
+                                              <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                              <XAxis dataKey="name" stroke="#6b7280" />
+                                              <YAxis stroke="#6b7280" />
+                                              <Tooltip 
+                                                contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                                labelStyle={{ color: '#374151' }}
+                                              />
+                                              <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                                            </BarChart>
+                                          </ResponsiveContainer>
+                                        </div>
+                                      )}
+
+                                      {chartData.statusData.length > 0 && (
+                                        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status Code Distribution</h3>
+                                          <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                              <Pie
+                                                data={chartData.statusData}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                                outerRadius={80}
+                                                fill="#8884d8"
+                                                dataKey="value"
+                                              >
+                                                {chartData.statusData.map((entry, index) => (
+                                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                              </Pie>
+                                              <Tooltip 
+                                                contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                              />
+                                            </PieChart>
+                                          </ResponsiveContainer>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {chartData.throughputData.length > 0 && (
+                                      <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Throughput Distribution (KB/s)</h3>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                          <LineChart data={chartData.throughputData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                            <XAxis dataKey="name" stroke="#6b7280" />
+                                            <YAxis stroke="#6b7280" />
+                                            <Tooltip 
+                                              contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                              labelStyle={{ color: '#374151' }}
+                                            />
+                                            <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} />
+                                          </LineChart>
+                                        </ResponsiveContainer>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* Report */}
+                                {resp?.report && (
+                                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                                    <div className="font-semibold text-gray-900 dark:text-white mb-2">Report</div>
+                                    <pre className="bg-gray-900 dark:bg-black text-gray-300 dark:text-gray-400 p-4 rounded-lg overflow-x-auto text-xs font-mono whitespace-pre-wrap border border-gray-700 dark:border-gray-600">
+                                      <code>{resp.report}</code>
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
                             )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </>
+              );
+            })
+          )}
+        </div>
       )}
     </div>
   );
 };
 
-const styles = {
-  container: {
-    padding: 24,
-  },
-  title: {
-    margin: 0,
-    marginBottom: 16,
-  },
-  note: {
-    padding: 12,
-    background: '#f6f8fa',
-    border: '1px solid #e1e4e8',
-    borderRadius: 8,
-    display: 'inline-block',
-  },
-  error: {
-    padding: 12,
-    background: '#fff5f5',
-    border: '1px solid #fed7d7',
-    color: '#c53030',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  summaryRow: {
-    display: 'flex',
-    gap: 16,
-    marginBottom: 16,
-  },
-  summaryItem: {
-    padding: '8px 12px',
-    background: '#0b3d91',
-    color: 'white',
-    border: '1px solid #072c6b',
-    borderRadius: 6,
-  },
-  card: {
-    border: '1px solid #e1e4e8',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerLeft: {},
-  headerRight: {},
-  docId: { marginBottom: 4 },
-  meta: { color: '#586069', fontSize: 14 },
-  metaSmall: { color: '#586069', fontSize: 13 },
-  badge: {
-    padding: '6px 10px',
-    background: '#eaf5ff',
-    color: '#0b3d91',
-    borderRadius: 6,
-    border: '1px solid #cfe3ff',
-    marginRight: 8,
-  },
-  runBlock: {
-    border: '1px dashed #e1e4e8',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  runHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  metricsRow: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-    gap: 8,
-    margin: '8px 0 12px 0',
-  },
-  metric: {
-    padding: '6px 10px',
-    color:"#101111ff",
-    background: '#f6f8fa',
-    border: '1px solid #e1e4e8',
-    borderRadius: 6,
-  },
-  subSectionTitle: {
-    fontWeight: 600,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  codeBlock: {
-    background: '#0b1021',
-    color: '#e6edf3',
-    padding: 12,
-    borderRadius: 6,
-    overflowX: 'auto',
-  },
-  jsonBlock: {
-    background: '#f6f8fa',
-    color: '#24292e',
-    padding: 12,
-    borderRadius: 6,
-    border: '1px solid #e1e4e8',
-    overflowX: 'auto',
-  },
-  downloadBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 10px',
-    background: '#1f6feb',
-    color: 'white',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer',
-  },
-  toggleBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    background: '#0b3d91',
-    color: ' #e1e4e8',
-    cursor: 'pointer',
-  },
-  scenarioActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-};
-
 export default PerformanceHistory;
-
-

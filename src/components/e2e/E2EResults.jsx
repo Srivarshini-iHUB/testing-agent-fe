@@ -199,7 +199,7 @@ const E2EResults = ({
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
                   {Number(testResults.passed || 0)}
@@ -212,6 +212,14 @@ const E2EResults = ({
                 </div>
                 <div className="text-xs text-rose-700 dark:text-rose-300 font-semibold">Tests Failed</div>
               </div>
+              {testResults.total && (
+                <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 col-span-2">
+                  <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                    {Number(testResults.total || 0)}
+                  </div>
+                  <div className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">Total Tests</div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
@@ -253,30 +261,30 @@ const E2EResults = ({
           </h2>
           
           {/* Summary Stats */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {reportData.summary?.total || 0}
               </div>
-              <div className="text-sm text-blue-700 dark:text-blue-300">Total Tests</div>
+              <div className="text-sm text-indigo-700 dark:text-indigo-300 font-semibold">Total Tests</div>
             </div>
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900 rounded-lg">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {reportData.summary?.passed || 0}
               </div>
-              <div className="text-sm text-green-700 dark:text-green-300">Passed</div>
+              <div className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">Passed</div>
             </div>
-            <div className="text-center p-4 bg-red-50 dark:bg-red-900 rounded-lg">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+            <div className="text-center p-4 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-200 dark:border-rose-800">
+              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
                 {reportData.summary?.failed || 0}
               </div>
-              <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
+              <div className="text-sm text-rose-700 dark:text-rose-300 font-semibold">Failed</div>
             </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
               <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                 {Math.round(reportData.duration || 0)}s
               </div>
-              <div className="text-sm text-gray-700 dark:text-gray-300">Duration</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300 font-semibold">Duration</div>
             </div>
           </div>
 
@@ -286,15 +294,15 @@ const E2EResults = ({
               Test Results
             </h3>
             {reportData.tests && reportData.tests.map((test, index) => (
-              <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
+                  <h4 className="font-semibold text-gray-900 dark:text-white">
                     {test.nodeid?.split('::').pop() || `Test ${index + 1}`}
                   </h4>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
                     test.outcome === 'passed' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-rose-500 text-white'
                   }`}>
                     {test.outcome?.toUpperCase() || 'UNKNOWN'}
                   </span>
