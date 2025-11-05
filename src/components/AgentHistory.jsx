@@ -103,13 +103,14 @@ const AgentHistory = ({ currentProject }) => {
   useEffect(() => {
     let mounted = true;
     const fetchAgents = async () => {
+      // Immediately clear previous data and show loading when project changes
+      setAgentsForProject([]);
       setLoading(true);
       setError('');
 
       try {
-        // Get project ID from localStorage
-        const proj = JSON.parse(localStorage.getItem('project') || 'null');
-        const projectId = proj?.id;
+        // Use currentProject prop directly instead of reading from localStorage
+        const projectId = currentProject?.id;
 
         if (!projectId) {
           if (mounted) {
@@ -326,9 +327,8 @@ const AgentHistory = ({ currentProject }) => {
     }
 
     try {
-      // Get project ID
-      const proj = JSON.parse(localStorage.getItem('project') || 'null');
-      const projectId = proj?.id;
+      // Use currentProject prop directly instead of reading from localStorage
+      const projectId = currentProject?.id;
 
       // List of routes that support #history hash
       const historyRoutes = [
@@ -473,7 +473,7 @@ const AgentHistory = ({ currentProject }) => {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-400 flex items-center gap-1">
-                    Selected: Link FRD - Detailed (1) (1).docx                      <i className="fas fa-clock"></i>
+                      <i className="fas fa-clock"></i>
                       Last: {agent.lastRun}
                     </span>
                     <i className={`fas fa-arrow-right ${colors.text}`}></i>
