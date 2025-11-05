@@ -283,10 +283,20 @@ const E2ETestingAgent = () => {
   };
 
   const extractAndMapTestCases = async () => {
-    if (!selectedRepo || !selectedBranch || selectedFiles.length === 0 || !projectUrl) {
-      alert('Select repo, branch, at least one file, and enter project ID');
+    if (!selectedRepo || !selectedBranch || selectedFiles.length === 0) {
+      alert('Select repo, branch, and at least one file');
       return;
     }
+    
+    // Get project ID from localStorage
+    const proj = JSON.parse(localStorage.getItem('project') || 'null');
+    const projectIdFromStorage = proj?.id;
+    
+    if (!projectIdFromStorage) {
+      alert('Project ID not found in localStorage. Please select a project first.');
+      return;
+    }
+    
     setLoading(true);
     setRoutesPreview([]);
     setTestCasesPreview([]);
@@ -299,7 +309,7 @@ const E2ETestingAgent = () => {
           repo: selectedRepo,
           branch: selectedBranch,
           selected_files: selectedFiles,
-          project_id: projectUrl,
+          project_id: projectIdFromStorage,
           session_token: token
         })
       });
@@ -335,6 +345,16 @@ const E2ETestingAgent = () => {
       alert('No mapped test cases available. Extract routes first.');
       return;
     }
+    
+    // Get project ID from localStorage
+    const proj = JSON.parse(localStorage.getItem('project') || 'null');
+    const projectIdFromStorage = proj?.id;
+    
+    if (!projectIdFromStorage) {
+      alert('Project ID not found in localStorage. Please select a project first.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const token = sessionToken || localStorage.getItem('session_token');
@@ -356,7 +376,7 @@ const E2ETestingAgent = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mapped_test_cases: finalMapped,
-          project_id: projectUrl,
+          project_id: projectIdFromStorage,
           repo: selectedRepo,
           branch: selectedBranch,
           session_token: token
@@ -520,6 +540,56 @@ const E2ETestingAgent = () => {
     window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // Download functions for report
+  const downloadJSON = (reportData) => {
+    if (!reportData) return;
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(reportData, null, 2)));
+    element.setAttribute('download', `functional-test-report-${new Date().toISOString().split('T')[0]}.json`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const downloadMarkdown = (reportData) => {
+    if (!reportData) return;
+    
+    // Create markdown report from report data
+    let markdown = `# Functional Test Report\n\n`;
+    markdown += `**Test Run Date:** ${new Date().toLocaleString()}\n\n`;
+    
+    if (reportData.passed !== undefined || reportData.failed !== undefined) {
+      markdown += `## Test Summary\n\n`;
+      markdown += `- **Passed:** ${reportData.passed || 0}\n`;
+      markdown += `- **Failed:** ${reportData.failed || 0}\n`;
+      if (reportData.total) markdown += `- **Total:** ${reportData.total}\n`;
+      markdown += `\n`;
+    }
+    
+    if (reportData.executionTime) {
+      markdown += `**Execution Time:** ${reportData.executionTime}\n\n`;
+    }
+    
+    if (reportData.reportUrl) {
+      markdown += `**Report URL:** ${reportData.reportUrl}\n\n`;
+    }
+    
+    if (reportData.bugSheetUrl) {
+      markdown += `**Bug Sheet URL:** ${reportData.bugSheetUrl}\n\n`;
+    }
+    
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `functional-test-report-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const fetchReportData = async (reportUrl) => {
     setReportLoading(true);
     try {
@@ -600,12 +670,19 @@ const E2ETestingAgent = () => {
   }, []);
 
   // Handle tab navigation via URL hash
+  // Handle tab navigation via URL hash with proper cleanup
   useEffect(() => {
-    if (location.hash === '#history') {
-      setActiveTab('history');
-    } else if (location.hash === '#agent' || !location.hash) {
-      setActiveTab('agent');
-    }
+    const updateTabFromHash = () => {
+      if (location.hash === '#history') {
+        setActiveTab('history');
+      } else if (location.hash === '#agent' || !location.hash) {
+        setActiveTab('agent');
+      }
+    };
+    updateTabFromHash();
+    // Listen for hash changes
+    window.addEventListener('hashchange', updateTabFromHash);
+    return () => window.removeEventListener('hashchange', updateTabFromHash);
   }, [location.hash]);
 
   useEffect(() => {
@@ -658,7 +735,8 @@ const E2ETestingAgent = () => {
         <E2EHeader />
         
         {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700 flex space-x-4">
+        <div className="mb-6 bg-transparent rounded-t-xl overflow-hidden">
+          <div className="flex border-b-2 border-gray-200 dark:border-gray-700">
           <button
             onClick={() => {
               setActiveTab('agent');
@@ -687,54 +765,116 @@ const E2ETestingAgent = () => {
             <i className="fas fa-history mr-2"></i>
             AGENT HISTORY
           </button>
+          </div>
         </div>
 
         {/* Content based on active tab */}
         {activeTab === 'agent' && (
           <>
-            {/* Flow Selection Buttons */}
-            <div className="mb-4 flex space-x-4">
-              <button
-                onClick={() => setSelectedFlow('manual')}
-                className={`px-4 py-2 rounded-md ${selectedFlow === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-              >
-                Manual Setup
-              </button>
-              <button
-                onClick={() => setSelectedFlow('ai_agent')}
-                className={`px-4 py-2 rounded-md ${selectedFlow === 'ai_agent' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-              >
-                AI Agent
-              </button>
-            </div>
-            {/* AI Sub-Flow Selection */}
-            {selectedFlow === 'ai_agent' && (
-              <div className="mt-2 ml-4 flex space-x-4">
-                <button
-                  onClick={() => setAiSubFlow('old_ai')}
-                  className={`px-4 py-2 rounded-md ${aiSubFlow === 'old_ai' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-                >
-                  Normal AI Flow
-                </button>
-                <button
-                  onClick={() => setAiSubFlow('git_auto')}
-                  className={`px-4 py-2 rounded-md ${aiSubFlow === 'git_auto' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-                >
-                  Auto Routing with GitHub
-                </button>
+            {/* Flow Selection - Modern Segmented Control */}
+            <div className="mb-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-stream text-indigo-600 dark:text-indigo-400"></i>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Testing Flow:</span>
+                <div className="inline-flex bg-gray-100 dark:bg-gray-700/50 rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+                  <button
+                    onClick={() => setSelectedFlow('manual')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                      selectedFlow === 'manual'
+                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <i className={`fas fa-cog ${selectedFlow === 'manual' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}></i>
+                    <span>Manual</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedFlow('ai_agent')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                      selectedFlow === 'ai_agent'
+                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <i className={`fas fa-robot ${selectedFlow === 'ai_agent' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}></i>
+                    <span>AI Agent</span>
+                  </button>
+                </div>
               </div>
-            )}
-          </>
-        )}
-        {/* Content based on active tab */}
-        {activeTab === 'history' && (
-          <div className="mt-6">
-            <E2EHistory projectId={projectId} />
-          </div>
-        )}
+              {/* AI Sub-Flow Selection - Modern Segmented Control */}
+              {selectedFlow === 'ai_agent' && (
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-code-branch text-emerald-600 dark:text-emerald-400"></i>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">AI Flow Type:</span>
+                  <div className="inline-flex bg-gray-100 dark:bg-gray-700/50 rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+                    <button
+                      onClick={() => setAiSubFlow('old_ai')}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                        aiSubFlow === 'old_ai'
+                          ? 'bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <i className={`fas fa-brain ${aiSubFlow === 'old_ai' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}></i>
+                      <span>Normal AI</span>
+                    </button>
+                    <button
+                      onClick={() => setAiSubFlow('git_auto')}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                        aiSubFlow === 'git_auto'
+                          ? 'bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <i className={`fab fa-github ${aiSubFlow === 'git_auto' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}></i>
+                      <span>GitHub Auto</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
-        {activeTab === 'agent' && (
-          <>
+            {/* Test Configuration Info Panel */}
+            <div className="mb-6 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Test Configuration</h3>
+              </div>
+              <div className="space-y-3">
+                {selectedFlow === 'manual' ? (
+                  <div className="flex items-start gap-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                      <i className="fas fa-hand-pointer text-indigo-600 dark:text-indigo-400 text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Manual Setup</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Playwright configuration and CSV upload. Upload your test cases in CSV format and configure Playwright settings for manual test execution.</p>
+                    </div>
+                  </div>
+                ) : selectedFlow === 'ai_agent' && aiSubFlow === 'old_ai' ? (
+                  <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                      <i className="fas fa-brain text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Normal AI Flow</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Automated test generation and execution. Let AI generate test scripts automatically based on your application URL and requirements.</p>
+                    </div>
+                  </div>
+                ) : selectedFlow === 'ai_agent' && aiSubFlow === 'git_auto' ? (
+                  <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                      <i className="fab fa-github text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Auto Routing with GitHub</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">GitHub integration for automatic route extraction. Connect your GitHub repository to automatically extract routes and map test cases from your frontend codebase.</p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
             {/* Main Content Grid */}
             <div className="grid lg:grid-cols-3 gap-6 mt-6">
               {/* Configuration Panel */}
@@ -856,10 +996,19 @@ const E2ETestingAgent = () => {
                   reportData={reportData}
                   reportLoading={reportLoading}
                   fetchReportData={fetchReportData}
+                  downloadJSON={downloadJSON}
+                  downloadMarkdown={downloadMarkdown}
                 />
               </div>
             </div>
           </>
+        )}
+
+        {/* History Tab Content */}
+        {activeTab === 'history' && (
+          <div>
+            <E2EHistory projectId={projectId} />
+          </div>
         )}
       </div>
     </div>

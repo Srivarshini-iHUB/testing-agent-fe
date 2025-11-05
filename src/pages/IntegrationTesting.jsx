@@ -227,13 +227,72 @@ export default function IntegrationTestingPlatform() {
   };
 
   const downloadScript = () => {
-    const element = document.createElement("a");
-    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(testScript));
-    element.setAttribute("download", `test_script_${selectedScenario?.scenario_name.replace(/\s+/g, '_').toLowerCase()}.py`);
-    element.style.display = "none";
+    const element = document.createElement("a")
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(testScript))
+    element.setAttribute("download", `test_script_${selectedScenario?.scenario_name.replace(/\s+/g, '_').toLowerCase()}.py`)
+    element.style.display = "none"
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
+  // Download functions for report
+  const downloadJSON = (reportData) => {
+    if (!reportData) return;
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(reportData, null, 2)));
+    element.setAttribute('download', `integration-test-report-${new Date().toISOString().split('T')[0]}.json`);
+    element.style.display = 'none';
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const downloadMarkdown = (reportData) => {
+    if (!reportData) return;
+    
+    // Create markdown report from report data
+    let markdown = `# Integration Test Report\n\n`;
+    markdown += `**Test Run Date:** ${new Date().toLocaleString()}\n\n`;
+    
+    if (reportData.scenario_name) {
+      markdown += `**Scenario:** ${reportData.scenario_name}\n\n`;
+    }
+    
+    if (reportData.total_tests !== undefined) {
+      markdown += `## Test Summary\n\n`;
+      markdown += `- **Total Tests:** ${reportData.total_tests}\n`;
+      markdown += `- **Passed:** ${reportData.passed || 0}\n`;
+      markdown += `- **Failed:** ${reportData.failed || 0}\n`;
+      markdown += `- **Skipped:** ${reportData.skipped || 0}\n\n`;
+    }
+    
+    if (reportData.test_results && Array.isArray(reportData.test_results)) {
+      markdown += `## Test Results\n\n`;
+      reportData.test_results.forEach((test, index) => {
+        markdown += `### Test ${index + 1}\n`;
+        markdown += `- **Status:** ${test.status || 'N/A'}\n`;
+        if (test.test_name) markdown += `- **Test Name:** ${test.test_name}\n`;
+        if (test.duration) markdown += `- **Duration:** ${test.duration}\n`;
+        if (test.error) markdown += `- **Error:** ${test.error}\n`;
+        markdown += `\n`;
+      });
+    }
+    
+    if (reportData.execution_logs) {
+      markdown += `## Execution Logs\n\n`;
+      markdown += `\`\`\`\n${reportData.execution_logs}\n\`\`\`\n`;
+    }
+    
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `integration-test-report-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const resetAll = () => {
@@ -607,27 +666,30 @@ export default function IntegrationTestingPlatform() {
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={resetAll}
-                      className="flex-1 bg-gray-100 dark:bg-gray-900/40 hover:bg-gray-200 dark:hover:bg-gray-800/60 text-gray-800 dark:text-gray-200 py-2 px-3 rounded-lg text-sm transition-all"
-                    >
-                      Run Another Test
-                    </button>
-                    <button
-                      onClick={() => {
-                        const element = document.createElement('a');
-                        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(report, null, 2)));
-                        element.setAttribute('download', 'test-report.json');
-                        element.style.display = 'none';
-                        document.body.appendChild(element);
-                        element.click();
-                        document.body.removeChild(element);
-                      }}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
-                    >
-                      Download Report
-                    </button>
+                  {/* Download Section */}
+                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => downloadJSON(report)}
+                          className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                        >
+                          <i className="fas fa-code"></i>
+                          JSON
+                        </button>
+                        <button
+                          onClick={() => downloadMarkdown(report)}
+                          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                        >
+                          <i className="fas fa-file-alt"></i>
+                          Markdown
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -692,6 +754,32 @@ export default function IntegrationTestingPlatform() {
                       <i className="fas fa-times mr-2"></i>
                       Close Report
                     </button>
+                  </div>
+                </div>
+
+                {/* Download Section */}
+                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => downloadJSON(historyReport)}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                      >
+                        <i className="fas fa-code"></i>
+                        JSON
+                      </button>
+                      <button
+                        onClick={() => downloadMarkdown(historyReport)}
+                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                      >
+                        <i className="fas fa-file-alt"></i>
+                        Markdown
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -826,23 +914,6 @@ export default function IntegrationTestingPlatform() {
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                          <button
-                            onClick={() => {
-                              const element = document.createElement('a')
-                              element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(historyReport, null, 2)))
-                              element.setAttribute('download', `integration-test-report-${selectedHistoryRun?.doc_id || 'history'}.json`)
-                              element.style.display = 'none'
-                              document.body.appendChild(element)
-                              element.click()
-                              document.body.removeChild(element)
-                            }}
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
-                          >
-                            <i className="fas fa-download mr-2"></i>
-                            Download Report
-                          </button>
-                        </div>
                       </div>
                     )
                   })()}
