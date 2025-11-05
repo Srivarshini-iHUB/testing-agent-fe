@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
-import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code } from "lucide-react"
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { integrationApi } from '../api/integrationApi'
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code, Upload } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { integrationApi } from '../api/integrationApi';
 
 export default function IntegrationTestingPlatform() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const location = useLocation()
   
   // Tab state - check if URL hash is #history to open history tab
@@ -14,17 +14,19 @@ export default function IntegrationTestingPlatform() {
   })
   
   // Main testing states
-  const [step, setStep] = useState("upload") // upload, scenarios, script, running, report
-  const [project, setProject] = useState(null)
-  const [scenariosDocId, setScenariosDocId] = useState(null)
-  const [scenarios, setScenarios] = useState([])
-  const [selectedScenario, setSelectedScenario] = useState(null)
-  const [testScript, setTestScript] = useState("")
-  const [testRunId, setTestRunId] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [report, setReport] = useState(null)
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [step, setStep] = useState("upload");
+  const [project, setProject] = useState(null);
+  const [scenariosDocId, setScenariosDocId] = useState(null);
+  const [scenarios, setScenarios] = useState([]);
+  const [selectedScenario, setSelectedScenario] = useState(null);
+  const [testScript, setTestScript] = useState("");
+  const [testRunId, setTestRunId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [report, setReport] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedFrd, setSelectedFrd] = useState("");
+  const fileInputRef = useRef(null);
   
   // History states
   const [historyList, setHistoryList] = useState([])
@@ -35,17 +37,61 @@ export default function IntegrationTestingPlatform() {
 
   useEffect(() => {
     try {
-      const storedProject = localStorage.getItem('project')
+      console.log("Loading project from localStorage");
+      const storedProject = localStorage.getItem('project');
       if (storedProject) {
-        const parsed = JSON.parse(storedProject)
-        setProject(parsed)
+        console.log("Found project in localStorage:", storedProject);
+        const parsed = JSON.parse(storedProject);
+        console.log("Parsed project:", parsed);
+        setProject(parsed);
+        if (parsed.frdDocument && parsed.frdDocument.length > 0) {
+          console.log("Setting selected FRD from localStorage:", parsed.frdDocument[0]);
+          setSelectedFrd(parsed.frdDocument[0]);
+        }
       } else {
-        setError("No project found. Please create a project first.")
+        setError("No project found. Please create a project first.");
       }
     } catch (err) {
-      setError("Failed to load project from localStorage.")
+      setError("Failed to load project from localStorage.");
     }
-  }, [])
+  }, []);
+
+  const handleFrdUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Simulate uploading the file to your backend
+      // Replace this with your actual API call to upload the file
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Example: Upload the file and get the new URL
+      // const response = await integrationApi.uploadFrd(project.id, formData);
+      // const newFrdUrl = response.frdUrl;
+
+      // For demo purposes, we'll simulate a successful upload
+      const newFrdUrl = URL.createObjectURL(file);
+
+      // Update the project with the new FRD URL
+      const updatedProject = {
+        ...project,
+        frd: [...project.frdDocument
+, newFrdUrl]
+      };
+
+      setProject(updatedProject);
+      setSelectedFrd(newFrdUrl);
+      localStorage.setItem('project', JSON.stringify(updatedProject));
+    } catch (err) {
+      setError(err.message || "Failed to upload FRD");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle URL hash changes to switch tabs
   useEffect(() => {
@@ -115,90 +161,90 @@ export default function IntegrationTestingPlatform() {
   }, [activeTab, project?.id])
 
   const generateScenarios = async () => {
-    if (!project?.id) {
-      setError("No project ID available")
-      return
+    console.log(project, selectedFrd);
+    if (!project?.id || !project.postmanCollection || !selectedFrd) {
+      setError("Project ID, Swagger URL, or FRD URL is missing");
+      return;
     }
-
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);    
     setHistoryReport(null) // Clear history result when generating new
     setActiveTab('testing') // Switch back to testing tab
 
     try {
-      const data = await integrationApi.generateScenarios(project.id)
-      setScenariosDocId(data.scenarios_doc_id)
-      setScenarios(data.scenarios || [])
-      setStep("scenarios")
+      const data = await integrationApi.generateScenarios(
+        project.id,
+        project.postmanCollection,
+        selectedFrd
+      );
+      setScenariosDocId(data.scenarios_doc_id);
+      setScenarios(data.scenarios || []);
+      setStep("scenarios");
     } catch (err) {
-      setError(err.message || "Failed to generate scenarios")
+      setError(err.message || "Failed to generate scenarios");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const generateTestScript = async () => {
     if (!selectedScenario || !scenariosDocId) {
-      setError("No scenario selected")
-      return
+      setError("No scenario selected");
+      return;
     }
-
-    setLoading(true)
-    setError(null)
-
+    setLoading(true);
+    setError(null);
     try {
-      const data = await integrationApi.generateTestScript(scenariosDocId, selectedScenario.scenario_name)
-      setTestScript(data.test_script_preview || "")
-      setTestRunId(data.test_run_id)
-      setStep("script")
+      const data = await integrationApi.generateTestScript(scenariosDocId, selectedScenario.scenario_name);
+      setTestScript(data.test_script_preview || "");
+      setTestRunId(data.test_run_id);
+      setStep("script");
     } catch (err) {
-      setError(err.message || "Failed to generate test script")
+      setError(err.message || "Failed to generate test script");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const executeTests = async () => {
     if (!selectedScenario || !scenariosDocId) {
-      setError("Please select a scenario")
-      return
+      setError("Please select a scenario");
+      return;
     }
-
-    setLoading(true)
-    setError(null)
-    setStep("running")
-
+    setLoading(true);
+    setError(null);
+    setStep("running");
     try {
-      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name)
-      setReport(response.report)
-      setStep("report")
+      const response = await integrationApi.runScenario(scenariosDocId, selectedScenario.scenario_name);
+      setReport(response.report);
+      setStep("report");
     } catch (err) {
-      setError(err.message || "Failed to execute tests")
-      setStep("script")
+      setError(err.message || "Failed to execute tests");
+      setStep("script");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const downloadScript = () => {
-    const element = document.createElement("a")
-    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(testScript))
-    element.setAttribute("download", `test_script_${selectedScenario?.scenario_name.replace(/\s+/g, '_').toLowerCase()}.py`)
-    element.style.display = "none"
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
-  }
+    const element = document.createElement("a");
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(testScript));
+    element.setAttribute("download", `test_script_${selectedScenario?.scenario_name.replace(/\s+/g, '_').toLowerCase()}.py`);
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
 
   const resetAll = () => {
-    setStep("upload")
-    setScenariosDocId(null)
-    setScenarios([])
-    setSelectedScenario(null)
-    setTestScript("")
-    setTestRunId(null)
-    setReport(null)
-    setError(null)
+    setStep("upload");
+    setScenariosDocId(null);
+    setScenarios([]);
+    setSelectedScenario(null);
+    setTestScript("");
+    setTestRunId(null);
+    setReport(null);
+    setError(null);
   }
 
   // Use historyReport or current report based on active tab
@@ -208,7 +254,7 @@ export default function IntegrationTestingPlatform() {
     name: `Test ${idx + 1}`,
     duration: Math.random() * 500 + 100,
     status: test.passed ? "passed" : "failed",
-  })) || []
+  })) || [];
 
   const totalTests = displayReport?.total_tests || 0
   const passedTests = displayReport?.passed_tests || 0
@@ -219,7 +265,7 @@ export default function IntegrationTestingPlatform() {
     { name: "Passed", value: passedTests, fill: "#10b981" },
     { name: "Failed", value: failedTests, fill: "#ef4444" },
     ...(skippedTests > 0 ? [{ name: "Skipped", value: skippedTests, fill: "#f59e0b" }] : [])
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
@@ -324,8 +370,32 @@ export default function IntegrationTestingPlatform() {
                           API Spec: {project.postmanCollection ? project.postmanCollection.split('/').pop() : 'Not provided'}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-emerald-500">{project.frdDocument?.[0] ? '✓' : '•'}</span>
-                          FRD: {project.frdDocument?.[0] ? project.frdDocument[0].split('/').pop() : 'Not provided'}
+                          <span className="text-emerald-500">{project.frdDocument && project.frdDocument.length > 0 ? '✓' : '•'}</span>
+                          FRD:
+                          {selectedFrd ? (
+                            <select
+                              value={selectedFrd}
+                              onChange={(e) => {
+                                if (e.target.value === "upload-new") {
+                                  fileInputRef.current.click();
+                                } else {
+                                  setSelectedFrd(e.target.value);
+                                }
+                              }}
+                              className="ml-2 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs"
+                            >
+                              {project.frdDocument.map((frdUrl, index) => (
+                                <option key={index} value={frdUrl}>
+                                  {decodeURIComponent(frdUrl.split('/').pop())}
+                                </option>
+                              ))}
+                              <option value="upload-new" className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                + Upload New FRD
+                              </option>
+                            </select>
+                          ) : (
+                            'Not provided'
+                          )}
                         </div>
                       </div>
                     </div>
@@ -478,7 +548,7 @@ export default function IntegrationTestingPlatform() {
                     <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
                       <div className="text-gray-500 dark:text-gray-400">Status</div>
                       <div className="text-xl font-bold">
-                        {['Passed','PASSED','passed'].includes(report.overall_status) ? 'PASSED' : 'FAILED'}
+                        {['Passed', 'PASSED', 'passed'].includes(report.overall_status) ? 'PASSED' : 'FAILED'}
                       </div>
                     </div>
                   </div>
@@ -546,13 +616,13 @@ export default function IntegrationTestingPlatform() {
                     </button>
                     <button
                       onClick={() => {
-                        const element = document.createElement('a')
-                        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(report, null, 2)))
-                        element.setAttribute('download', 'test-report.json')
-                        element.style.display = 'none'
-                        document.body.appendChild(element)
-                        element.click()
-                        document.body.removeChild(element)
+                        const element = document.createElement('a');
+                        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(report, null, 2)));
+                        element.setAttribute('download', 'test-report.json');
+                        element.style.display = 'none';
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
                       }}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 px-3 rounded-lg text-sm transition-all"
                     >
@@ -878,6 +948,13 @@ export default function IntegrationTestingPlatform() {
         )}
         </div>
       </div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFrdUpload}
+        style={{ display: 'none' }}
+        accept=".pdf,.doc,.docx"
+      />
     </div>
-  )
+  );
 }
