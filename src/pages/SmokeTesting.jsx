@@ -53,7 +53,7 @@ function SmokeTesting() {
       const formData = new FormData();
       formData.append("file", testCasesFile);
       formData.append("project_url", projectUrl);
-      formData.append("project_id", "PROJ_3");
+      formData.append("project_id", projectId);
       
       const res = await axios.post(`${API_BASE}/generate_smoke_tests`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
