@@ -396,37 +396,54 @@ const AgentHistory = ({ currentProject }) => {
     return agentColors[agentId] || agentColors['test-case-generator'];
   };
 
+  // Placeholder function for downloading overall report
+  const handleDownloadOverallReport = () => {
+    // TODO: Implement the download overall report functionality
+    console.log('Download Overall Report clicked');
+    alert('Download Overall Report functionality will be implemented soon');
+  };
+
   return (
     <div>
-      {/* Header with Clear All */}
+      {/* Header with Download Overall Report Button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
             Agent Test History
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
+          <p className="text-gray-700 dark:text-gray-300 text-sm">
             View test results for <span className="font-semibold text-indigo-600 dark:text-indigo-400">{currentProject?.name}</span>
           </p>
         </div>
         
+        {/* Download Overall Report Button */}
+        {agentsForProject.length > 0 && !loading && (
+          <button
+            onClick={handleDownloadOverallReport}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+          >
+            <i className="fas fa-download"></i>
+            <span>Download All Reports</span>
+          </button>
+        )}
       </div>
 
       {loading ? (
-        <div className="text-center py-16 bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-          <i className="fas fa-spinner fa-spin text-4xl text-gray-400 dark:text-gray-600 mb-4"></i>
-          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">Loading agent history...</p>
+        <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 shadow-sm">
+          <i className="fas fa-spinner fa-spin text-4xl text-indigo-400 dark:text-gray-600 mb-4"></i>
+          <p className="text-gray-700 dark:text-gray-400 text-lg font-medium mb-2">Loading agent history...</p>
         </div>
       ) : error ? (
-        <div className="text-center py-16 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-300 dark:border-red-700">
-          <i className="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">Error loading agent history</p>
-          <p className="text-red-500 dark:text-red-500 text-sm">{error}</p>
+        <div className="text-center py-16 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-200 dark:border-red-700 shadow-sm">
+          <i className="fas fa-exclamation-triangle text-4xl text-red-500 dark:text-red-400 mb-4"></i>
+          <p className="text-red-700 dark:text-red-400 text-lg font-medium mb-2">Error loading agent history</p>
+          <p className="text-red-600 dark:text-red-500 text-sm">{error}</p>
         </div>
       ) : agentsForProject.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-          <i className="fas fa-robot text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
-          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">No agents used yet</p>
-          <p className="text-gray-500 dark:text-gray-500 text-sm">
+        <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 shadow-sm">
+          <i className="fas fa-robot text-6xl text-indigo-300 dark:text-gray-600 mb-4"></i>
+          <p className="text-gray-700 dark:text-gray-400 text-lg font-medium mb-2">No agents used yet</p>
+          <p className="text-gray-600 dark:text-gray-500 text-sm">
             Run tests on this project to see agent history
           </p>
         </div>
@@ -441,21 +458,21 @@ const AgentHistory = ({ currentProject }) => {
                 <button
                   key={agent.id}
                   onClick={() => handleAgentSelect(agent)}
-                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover} group`}
+                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-xl cursor-pointer border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 dark:hover:border-gray-600 ${colors.hover} group shadow-sm hover:shadow-md`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`${colors.iconBg} ${colors.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}>
+                    <div className={`${colors.iconBg} ${colors.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-md`}>
                       <i className={`fas ${agent.icon} text-xl`}></i>
                     </div>
                     <div className="flex-1 min-w-0 ">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate">
+                      <h3 className="font-semibold text-gray-800 dark:text-white mb-1 truncate">
                         {agent.name}
                       </h3>
                       
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                    <span className="text-gray-700 dark:text-gray-400 flex items-center gap-1">
                       <i className="fas fa-clock"></i>
                       Last: {agent.lastRun}
                     </span>

@@ -258,7 +258,7 @@ const RegressionTesting = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-800 dark:text-white p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Back Button & Header */}
         <div className="mb-6">
@@ -275,7 +275,7 @@ const RegressionTesting = () => {
               <i className="fas fa-undo text-4xl"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Regression Testing</h1>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Regression Testing</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered regression testing for bug verification</p>
             </div>
           </div>
@@ -294,7 +294,7 @@ const RegressionTesting = () => {
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'testing'
                   ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-transparent text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               REGRESSION TESTING
@@ -304,7 +304,7 @@ const RegressionTesting = () => {
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'history'
                   ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-transparent text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               AGENT HISTORY
@@ -319,7 +319,7 @@ const RegressionTesting = () => {
             <div className="lg:col-span-2 bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
             <div className="flex items-center gap-2 mb-6">
               <i className="fas fa-info-circle text-slate-600 dark:text-slate-400"></i>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Regression Testing Workflow</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Regression Testing Workflow</h2>
             </div>
 
             <div className="space-y-4 mb-6">
@@ -328,7 +328,7 @@ const RegressionTesting = () => {
                   <span className="text-blue-600 dark:text-blue-400 font-bold">1</span>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Functional Testing</h3>
+                  <h3 className="font-semibold text-gray-800 dark:text-white">Functional Testing</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Complete functional tests are executed. A bug sheet is automatically created in Google Sheets.
                   </p>
@@ -447,7 +447,7 @@ const RegressionTesting = () => {
                 <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg mt-6">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Export Test Report</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
                     </div>
                     <div className="flex gap-3">
@@ -482,7 +482,7 @@ const RegressionTesting = () => {
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                 <div className="flex items-center gap-2 mb-4">
                   <i className="fas fa-lightbulb text-yellow-500 dark:text-yellow-400"></i>
-                  <h3 className="font-bold text-gray-900 dark:text-white">Quick Tips</h3>
+                  <h3 className="font-bold text-gray-800 dark:text-white">Quick Tips</h3>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-2">
@@ -547,7 +547,7 @@ const RegressionTesting = () => {
                 <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Export Test Report</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
                     </div>
                     <div className="flex gap-3">
@@ -632,7 +632,7 @@ const RegressionTesting = () => {
                   </div>
                 ) : (
                   <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Previous Test Runs</h3>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Previous Test Runs</h3>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {historyList.map((regressionRun, idx) => {
                         // Use run_index if available, otherwise use idx + 1
@@ -671,7 +671,7 @@ const RegressionTesting = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                    <h4 className="font-semibold text-gray-800 dark:text-white truncate">
                                       Regression Test #{runIndex}
                                     </h4>
                                     {hasReport && (
@@ -688,7 +688,7 @@ const RegressionTesting = () => {
                               <div className="flex items-center gap-4 flex-shrink-0">
                                 {hasReport && (
                                   <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                    <p className="text-sm font-semibold text-gray-800 dark:text-white">
                                       {regressionRun.total_bugs_tested || regressionRun.total || regressionRun.total_bugs || 0}
                                     </p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Bugs</p>

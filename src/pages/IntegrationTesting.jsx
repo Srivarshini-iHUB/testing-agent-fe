@@ -708,6 +708,7 @@ export default function IntegrationTestingPlatform() {
                     <p className="font-semibold">Scenario-based</p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs">Generate tests from API specs and FRD</p>
                   </div>
+
                 </div>
                 <div className="flex items-start gap-2">
                   <i className="fas fa-robot text-emerald-600 dark:text-emerald-400 mt-1"></i>
@@ -1029,3 +1030,4 @@ export default function IntegrationTestingPlatform() {
     </div>
   );
 }
+

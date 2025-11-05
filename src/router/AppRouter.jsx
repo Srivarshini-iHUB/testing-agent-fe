@@ -44,7 +44,7 @@ const Header = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-md dark:shadow-sm">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-12 py-3">
         <div className="flex justify-between items-center">
 
@@ -54,11 +54,11 @@ const Header = () => {
               <i className="fas fa-robot text-white text-lg"></i>
             </div>
             <div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white block leading-tight">
+              <span className="text-xl font-bold text-gray-800 dark:text-white block leading-tight">
                 Testing Agents
               </span>
               {project?.name && (
-                <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="text-xs text-gray-700 dark:text-gray-400">
                   {project.name}
                 </span>
               )}
@@ -70,7 +70,7 @@ const Header = () => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+              className="w-10 h-10 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
@@ -93,10 +93,10 @@ const Header = () => {
                 
                 {/* User Info - Hidden on mobile */}
                 <div className="text-left hidden md:block">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white leading-tight">
                     {user?.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {user?.email}
                   </p>
                 </div>
@@ -115,10 +115,10 @@ const Header = () => {
                         {user?.initials || user?.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 dark:text-white truncate">
+                        <p className="font-semibold text-gray-800 dark:text-white truncate">
                           {user?.name}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-700 dark:text-gray-400 truncate">
                           {user?.email}
                         </p>
                       </div>
@@ -138,8 +138,8 @@ const Header = () => {
                         <i className="fas fa-th-large text-indigo-600 dark:text-indigo-400"></i>
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">Dashboard</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">View your projects</p>
+                        <p className="font-medium text-sm text-gray-800 dark:text-white">Dashboard</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">View your projects</p>
                       </div>
                     </button>
 
@@ -154,8 +154,8 @@ const Header = () => {
                         <i className="fas fa-user-circle text-blue-600 dark:text-blue-400"></i>
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">My Profile</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">View and edit profile</p>
+                        <p className="font-medium text-sm text-gray-800 dark:text-white">My Profile</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">View and edit profile</p>
                       </div>
                     </button>
 
@@ -170,8 +170,8 @@ const Header = () => {
                         <i className="fas fa-cog text-gray-600 dark:text-gray-400"></i>
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">Settings</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Account preferences</p>
+                        <p className="font-medium text-sm text-gray-800 dark:text-white">Settings</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Account preferences</p>
                       </div>
                     </button>
 
@@ -186,8 +186,8 @@ const Header = () => {
                         <i className="fas fa-question-circle text-purple-600 dark:text-purple-400"></i>
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">Help & Support</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Documentation & FAQs</p>
+                        <p className="font-medium text-sm text-gray-800 dark:text-white">Help & Support</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Documentation & FAQs</p>
                       </div>
                     </button>
                   </div>
@@ -225,7 +225,7 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {!isOnboarding && !isNewProject && <Header />}
-      <main>
+      <main className="bg-gray-50 dark:bg-gray-900">
         {children}
       </main>
     </div>

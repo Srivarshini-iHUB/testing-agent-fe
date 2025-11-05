@@ -305,17 +305,17 @@ const Dashboard = () => {
           
           {/* Welcome Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-4">
               Welcome to Testing Agents, {user?.name?.split(' ')[0]}!
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
               Let's set up your first project and start automated testing with AI-powered agents
             </p>
           </div>
 
           {/* Getting Started Card */}
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
               
               {/* Hero Section */}
               <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">
@@ -343,8 +343,8 @@ const Dashboard = () => {
                       <div className={`w-14 h-14 bg-${step.color}-100 dark:bg-${step.color}-900/30 rounded-xl flex items-center justify-center mx-auto mb-3`}>
                         <i className={`${step.icon} text-${step.color}-600 dark:text-${step.color}-400 text-xl`}></i>
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">{step.title}</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{step.description}</p>
+                      <h3 className="font-semibold text-gray-800 dark:text-white mb-1 text-sm">{step.title}</h3>
+                      <p className="text-xs text-gray-700 dark:text-gray-400">{step.description}</p>
                     </div>
                   ))}
                 </div>
@@ -368,7 +368,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <footer className="bg-gray-900 text-white text-center py-8 mt-16">
+        <footer className="bg-gray-800 dark:bg-gray-900 text-gray-100 dark:text-gray-300 text-center py-8 mt-16">
           <p>Testing Agents Platform © 2025 | Empowering testers with AI</p>
         </footer>
       </div>
@@ -377,32 +377,32 @@ const Dashboard = () => {
 
   // Regular Dashboard (for users with projects)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:to-indigo-950">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-16 py-8">
         
         {/* Dashboard Header with Enhanced Project Display */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
           <div className="flex-1">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-3">
               Welcome back, {user?.name?.split(" ")[0]}!
             </h2>
             
             {/* Enhanced Project Info Card */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 inline-block">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 inline-block shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center shadow-md">
                   <i className="fas fa-folder-open text-white text-lg"></i>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white">
                       {currentProject?.name || project?.name}
                     </h3>
                     <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full">
                       Active
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-gray-700 dark:text-gray-400 mt-1 flex items-center gap-1">
                     <i className="fas fa-calendar-alt"></i>
                     Last updated: {currentProject?.updatedAt ? new Date(currentProject.updatedAt).toLocaleDateString() : '—'}
                   </p>
@@ -416,13 +416,13 @@ const Dashboard = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-5 py-3 rounded-xl font-semibold hover:border-indigo-500 transition-all shadow-md hover:shadow-lg flex items-center gap-3 min-w-[220px] group"
+                className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-white px-5 py-3 rounded-xl font-semibold hover:border-indigo-400 dark:hover:border-indigo-500 transition-all shadow-md hover:shadow-lg flex items-center gap-3 min-w-[220px] group"
               >
                 <div className="flex items-center gap-2 flex-1">
                   <i className="fas fa-layer-group text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
                   <span className="text-sm font-medium">Switch Project</span>
                 </div>
-                <i className={`fas fa-chevron-down text-sm transition-all duration-300 ${showProjectDropdown ? 'rotate-180 text-indigo-600' : 'text-gray-400'}`}></i>
+                <i className={`fas fa-chevron-down text-sm transition-all duration-300 ${showProjectDropdown ? 'rotate-180 text-indigo-600' : 'text-gray-500 dark:text-gray-400'}`}></i>
               </button>
 
               {showProjectDropdown && (
@@ -430,10 +430,10 @@ const Dashboard = () => {
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">Your Projects</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{projects.length} total</p>
+                        <p className="text-sm font-bold text-gray-800 dark:text-white">Your Projects</p>
+                        <p className="text-xs text-gray-700 dark:text-gray-400">{projects.length} total</p>
                       </div>
-                      <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                         <i className="fas fa-folder text-white"></i>
                       </div>
                     </div>
@@ -459,7 +459,7 @@ const Dashboard = () => {
                                 }`}></i>
                               </div>
                               <p className={`font-semibold truncate ${
-                                currentProject?.id === proj.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'
+                                currentProject?.id === proj.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-white'
                               }`}>
                                 {proj?.name}
                               </p>
@@ -512,9 +512,9 @@ const Dashboard = () => {
         </div>
 
         {/* Project Configuration */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
               Current Project Configuration
             </h3>
@@ -579,7 +579,7 @@ const Dashboard = () => {
                     <i className={`${item.icon} text-indigo-600 dark:text-indigo-400 text-xl`}></i>
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h4>
+                    <h4 className="font-semibold text-gray-800 dark:text-white mb-1">{item.label}</h4>
                     {linkUrl ? (
                       <a
                         href={linkUrl}
@@ -591,7 +591,7 @@ const Dashboard = () => {
                         {displayValue || (item.isRepo ? 'View Repository' : 'View Document')}
                       </a>
                     ) : (
-                      <p className="text-sm text-gray-600 dark:text-gray-300 break-words">{displayValue || 'Not set'}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{displayValue || 'Not set'}</p>
                     )}
                   </div>
                 </div>
@@ -601,14 +601,14 @@ const Dashboard = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-t-xl shadow-sm dark:shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('history')}
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'history'
                   ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               AGENT HISTORY
@@ -618,7 +618,7 @@ const Dashboard = () => {
               className={`px-6 py-3 font-semibold text-sm transition-all ${
                 activeTab === 'agents'
                   ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                  : 'bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               TESTING AGENTS
@@ -628,21 +628,21 @@ const Dashboard = () => {
           <div className="p-6">
             {activeTab === 'agents' && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Testing Agents</h2>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Testing Agents</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {agents.map(agent => (
                     <div
                       key={agent.id}
-                      className={`${agent.bgColor} ${agent.borderColor} border rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
+                      className={`${agent.bgColor} ${agent.borderColor} border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}
                     >
                       <div className="h-full flex flex-col">
                         <div className={`${agent.titleBg} p-6 rounded-t-2xl`}>
                           <div className="flex items-start gap-4">
-                            <div className={`${agent.iconBg} ${agent.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}>
+                            <div className={`${agent.iconBg} ${agent.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-md`}>
                               <i className={`fas ${agent.icon} text-xl`}></i>
                             </div>
                             <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{agent.name}</h3>
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">{agent.name}</h3>
                               <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
                                 <i className="fas fa-circle text-xs"></i>
                                 {agent.status}
@@ -652,7 +652,7 @@ const Dashboard = () => {
                         </div>
                         
                         <div className="p-6 flex-1 flex flex-col">
-                          <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed flex-1">{agent.description}</p>
+                          <p className="text-gray-700 dark:text-gray-300 mb-6 text-sm leading-relaxed flex-1">{agent.description}</p>
                           <button
                             onClick={() => exploreAgent(agent.id)}
                             className={`w-full ${agent.iconBg} ${agent.iconColor} py-2.5 px-4 rounded-lg font-medium transition-all duration-200 hover:shadow-md group-hover:scale-105 border ${agent.borderColor}`}
@@ -673,7 +673,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <footer className="bg-gray-900 text-white text-center py-8 mt-12">
+      <footer className="bg-gray-800 dark:bg-gray-900 text-gray-100 dark:text-gray-300 text-center py-8 mt-12">
         <p>Testing Agents Platform © 2025 | Empowering testers with AI</p>
       </footer>
 
