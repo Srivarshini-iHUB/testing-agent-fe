@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Play, AlertCircle, CheckCircle, XCircle, RotateCcw, Loader, FileJson, FileText, Download, Code, Upload } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { integrationApi } from '../api/integrationApi';
+import { projectApi } from '../api/projectApi';
 
 export default function IntegrationTestingPlatform() {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ export default function IntegrationTestingPlatform() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedFrd, setSelectedFrd] = useState("");
   const fileInputRef = useRef(null);
+  const [uploadingApiFile, setUploadingApiFile] = useState(false);
+  const apiFileInputRef = useRef(null);
   
   // History states
   const [historyList, setHistoryList] = useState([])
@@ -34,6 +37,7 @@ export default function IntegrationTestingPlatform() {
   const [selectedHistoryRun, setSelectedHistoryRun] = useState(null)
   const [selectedHistoryScenario, setSelectedHistoryScenario] = useState(null)
   const [historyReport, setHistoryReport] = useState(null)
+  const [expandedTestRuns, setExpandedTestRuns] = useState(new Set())
 
   useEffect(() => {
     try {
@@ -64,32 +68,50 @@ export default function IntegrationTestingPlatform() {
     setError(null);
 
     try {
-      // Simulate uploading the file to your backend
-      // Replace this with your actual API call to upload the file
+      // Upload the file to the backend and save to project DB
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('frd', file);
 
-      // Example: Upload the file and get the new URL
-      // const response = await integrationApi.uploadFrd(project.id, formData);
-      // const newFrdUrl = response.frdUrl;
-
-      // For demo purposes, we'll simulate a successful upload
-      const newFrdUrl = URL.createObjectURL(file);
-
-      // Update the project with the new FRD URL
-      const updatedProject = {
-        ...project,
-        frd: [...project.frdDocument
-, newFrdUrl]
-      };
-
+      const updatedProject = await projectApi.updateProject(project.id, formData);
       setProject(updatedProject);
-      setSelectedFrd(newFrdUrl);
+      
+      // Auto-select the newly uploaded file
+      if (updatedProject.frdDocument && updatedProject.frdDocument.length > 0) {
+        const frdUrls = Array.isArray(updatedProject.frdDocument) 
+          ? updatedProject.frdDocument 
+          : [updatedProject.frdDocument];
+        if (frdUrls.length > 0) {
+          setSelectedFrd(frdUrls[frdUrls.length - 1]); // Select the last uploaded file
+        }
+      }
+      
       localStorage.setItem('project', JSON.stringify(updatedProject));
     } catch (err) {
       setError(err.message || "Failed to upload FRD");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApiFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingApiFile(true);
+    setError(null);
+
+    try {
+      // Upload the API file to the backend and save to project DB
+      const formData = new FormData();
+      formData.append('swagger_documentation', file);
+
+      const updatedProject = await projectApi.updateProject(project.id, formData);
+      setProject(updatedProject);
+      localStorage.setItem('project', JSON.stringify(updatedProject));
+    } catch (err) {
+      setError(err.message || "Failed to upload API Specification");
+    } finally {
+      setUploadingApiFile(false);
     }
   };
 
@@ -120,6 +142,19 @@ export default function IntegrationTestingPlatform() {
     } finally {
       setHistoryLoading(false)
     }
+  }
+
+  // Toggle test run expansion
+  const toggleTestRun = (testRunId) => {
+    setExpandedTestRuns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(testRunId)) {
+        newSet.delete(testRunId)
+      } else {
+        newSet.add(testRunId)
+      }
+      return newSet
+    })
   }
 
   // Load historical report
@@ -409,31 +444,115 @@ export default function IntegrationTestingPlatform() {
               <div className="lg:col-span-2 space-y-6">
               {/* Project Configuration */}
               <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
-                <h2 className="text-xl font-bold">Project Configuration</h2>
-              </div>
-              {project ? (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/40">
-                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1 font-semibold">Project</div>
-                      <div className="text-gray-900 dark:text-white">{project.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {project.id}</div>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/40">
-                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-1 font-semibold">Files</div>
-                      <div className="text-xs space-y-1 text-gray-700 dark:text-gray-300">
-                        <div className="flex items-center gap-2">
-                          <span className="text-emerald-500">{project.postmanCollection ? '✓' : '•'}</span>
-                          API Spec: {project.postmanCollection ? project.postmanCollection.split('/').pop() : 'Not provided'}
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                    <i className="fas fa-cog text-indigo-600 dark:text-indigo-400 text-lg"></i>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Project Configuration</h2>
+                </div>
+                {project ? (
+                  <div className="space-y-6">
+                    {/* API Specification Card */}
+                    <div className="p-5 rounded-xl border-2 border-gray-200 dark:border-gray-700/50 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/40 dark:to-gray-800/40 shadow-sm">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                            <i className="fas fa-link text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white mb-2">API Specification</div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Upload or view API specification file</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-emerald-500">{project.frdDocument && project.frdDocument.length > 0 ? '✓' : '•'}</span>
-                          FRD:
-                          {selectedFrd ? (
+
+                        {project.postmanCollection ? (
+                          <div className="space-y-3">
+                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                                  <i className="fas fa-check-circle mr-1"></i>
+                                  Selected: <span className="font-semibold">{decodeURIComponent(project.postmanCollection.split('/').pop())}</span>
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    const fileName = project.postmanCollection.split('/').pop() || '';
+                                    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                                    
+                                    // For JSON files (Postman collections), open directly
+                                    if (fileExtension === 'json') {
+                                      window.open(project.postmanCollection, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For YAML/YML files, open directly
+                                    else if (fileExtension === 'yaml' || fileExtension === 'yml') {
+                                      window.open(project.postmanCollection, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For PDF files, open directly
+                                    else if (fileExtension === 'pdf') {
+                                      window.open(project.postmanCollection, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For other files, try to open directly
+                                    else {
+                                      window.open(project.postmanCollection, '_blank', 'noopener,noreferrer');
+                                    }
+                                  }}
+                                  className="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium transition-all flex items-center gap-1"
+                                  title="Preview in new tab"
+                                >
+                                  <i className="fas fa-external-link-alt"></i>
+                                  Preview
+                                </button>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => apiFileInputRef.current?.click()}
+                              className="w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all flex items-center justify-center gap-2"
+                            >
+                              <i className="fas fa-upload"></i>
+                              Replace API File
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              ref={apiFileInputRef}
+                              onChange={handleApiFileUpload}
+                              style={{ display: 'none' }}
+                              accept=".json,.yaml,.yml,.pdf,.txt"
+                            />
+                            <button
+                              onClick={() => apiFileInputRef.current?.click()}
+                              disabled={uploadingApiFile}
+                              className="w-full p-4 border-2 border-dashed border-emerald-300 dark:border-emerald-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                <i className={`fas ${uploadingApiFile ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'} text-2xl text-emerald-600 dark:text-emerald-400`}></i>
+                                <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                  {uploadingApiFile ? 'Uploading...' : 'Upload API Specification'}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">JSON, YAML, PDF, TXT</span>
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Row: FRD Document (Full Width) */}
+                    <div className="p-5 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 shadow-sm">
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                          <i className="fas fa-file-alt text-indigo-600 dark:text-indigo-400 text-lg"></i>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white mb-1">FRD Document</div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Select or upload FRD</p>
+                        </div>
+                      </div>
+
+                      {project.frdDocument && project.frdDocument.length > 0 ? (
+                        <div className="space-y-4">
+                          <div className="relative">
                             <select
-                              value={selectedFrd}
+                              value={selectedFrd || ''}
                               onChange={(e) => {
                                 if (e.target.value === "upload-new") {
                                   fileInputRef.current.click();
@@ -441,48 +560,115 @@ export default function IntegrationTestingPlatform() {
                                   setSelectedFrd(e.target.value);
                                 }
                               }}
-                              className="ml-2 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs"
+                              className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-indigo-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
                             >
+                              <option value="" disabled>Select FRD Document</option>
                               {project.frdDocument.map((frdUrl, index) => (
                                 <option key={index} value={frdUrl}>
                                   {decodeURIComponent(frdUrl.split('/').pop())}
                                 </option>
                               ))}
-                              <option value="upload-new" className="font-semibold text-indigo-600 dark:text-indigo-400">
+                              <option value="upload-new" className="font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50">
                                 + Upload New FRD
                               </option>
                             </select>
-                          ) : (
-                            'Not provided'
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                              <i className="fas fa-chevron-down text-indigo-600 dark:text-indigo-400"></i>
+                            </div>
+                          </div>
+                          
+                          {/* Selected FRD Preview */}
+                          {selectedFrd && (
+                            <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                                  <i className="fas fa-check-circle mr-1"></i>
+                                  Selected: <span className="font-semibold">{decodeURIComponent(selectedFrd.split('/').pop())}</span>
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    const fileName = selectedFrd.split('/').pop() || '';
+                                    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                                    
+                                    // For PDF files, open directly in browser
+                                    if (fileExtension === 'pdf') {
+                                      window.open(selectedFrd, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For DOCX files, use Google Docs Viewer
+                                    else if (fileExtension === 'docx' || fileExtension === 'doc') {
+                                      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(selectedFrd)}&embedded=true`;
+                                      window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For TXT files, open directly
+                                    else if (fileExtension === 'txt') {
+                                      window.open(selectedFrd, '_blank', 'noopener,noreferrer');
+                                    }
+                                    // For other files, try to open directly
+                                    else {
+                                      window.open(selectedFrd, '_blank', 'noopener,noreferrer');
+                                    }
+                                  }}
+                                  className="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium transition-all flex items-center gap-1"
+                                  title="Preview in new tab"
+                                >
+                                  <i className="fas fa-external-link-alt"></i>
+                                  Preview
+                                </button>
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                  {step === 'upload' && (
-                    <button
-                      onClick={generateScenarios}
-                      disabled={!project || loading}
-                      className={`w-full ${loading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'} text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2`}
-                    >
-                      {loading ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin"></i>
-                          <span>Generating Scenarios...</span>
-                        </>
                       ) : (
-                        <>
-                          <i className="fas fa-play"></i>
-                          <span>Generate Test Scenarios</span>
-                        </>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFrdUpload}
+                            style={{ display: 'none' }}
+                            accept=".pdf,.doc,.docx"
+                          />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full p-6 border-2 border-dashed border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer"
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <i className="fas fa-cloud-upload-alt text-3xl text-indigo-600 dark:text-indigo-400"></i>
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">Upload FRD Document</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">PDF, DOC, DOCX (Max 10MB)</span>
+                            </div>
+                          </button>
+                        </div>
                       )}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-600 dark:text-gray-300">Loading project...</div>
-              )}
-            </div>
+                    </div>
+
+                    {/* Generate Button */}
+                    {step === 'upload' && (
+                      <button
+                        onClick={generateScenarios}
+                        disabled={!project || !project.postmanCollection || !selectedFrd || loading}
+                        className={`w-full ${loading || !project.postmanCollection || !selectedFrd ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'} text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3`}
+                      >
+                        {loading ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin text-lg"></i>
+                            <span className="text-base">Generating Scenarios...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-play text-lg"></i>
+                            <span className="text-base">Generate Test Scenarios</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-300 font-medium">Loading project...</p>
+                  </div>
+                )}
+              </div>
 
             {/* Scenarios Selection */}
             {step === 'scenarios' && (
@@ -944,30 +1130,38 @@ export default function IntegrationTestingPlatform() {
                           ? new Date(testRun.created_at).toLocaleString()
                           : 'N/A'
                         const scenariosCount = testRun.scenarios?.length || 0
+                        const testRunId = testRun.doc_id || idx
+                        const isExpanded = expandedTestRuns.has(testRunId)
                         
                         return (
-                          <div key={testRun.doc_id || idx} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                            <div className="flex items-center justify-between mb-3">
+                          <div key={testRunId} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                            <button
+                              onClick={() => toggleTestRun(testRunId)}
+                              className="w-full flex items-center justify-between mb-3 hover:bg-gray-50 dark:hover:bg-gray-900/50 rounded-lg p-2 -m-2 transition-all"
+                            >
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
                                   <i className="fas fa-vial text-indigo-600 dark:text-indigo-400"></i>
                                 </div>
-                                <div>
+                                <div className="text-left">
                                   <h4 className="font-semibold text-gray-900 dark:text-white">
                                     Test Run #{testRun.testrun_count !== undefined ? testRun.testrun_count : idx + 1}
                                   </h4>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">{createdDate}</p>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{scenariosCount}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Scenarios</p>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{scenariosCount}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Scenarios</p>
+                                </div>
+                                <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} text-gray-400 dark:text-gray-500 transition-transform duration-200`}></i>
                               </div>
-                            </div>
+                            </button>
                             
-                            {/* Scenarios in this test run */}
-                            {testRun.scenarios && testRun.scenarios.length > 0 && (
-                              <div className="space-y-2 mt-3">
+                            {/* Scenarios in this test run - Show only when expanded */}
+                            {isExpanded && testRun.scenarios && testRun.scenarios.length > 0 && (
+                              <div className="space-y-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                                 {testRun.scenarios.map((scenario, sIdx) => {
                                   const isSelected = selectedHistoryRun?.doc_id === testRun.doc_id &&
                                                     selectedHistoryScenario?.scenario_name === scenario.scenario_name &&
@@ -977,7 +1171,10 @@ export default function IntegrationTestingPlatform() {
                                   return (
                                     <button
                                       key={sIdx}
-                                      onClick={() => handleLoadHistory(testRun, scenario)}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleLoadHistory(testRun, scenario)
+                                      }}
                                       disabled={!hasReport}
                                       className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                                         isSelected
@@ -1026,6 +1223,13 @@ export default function IntegrationTestingPlatform() {
         onChange={handleFrdUpload}
         style={{ display: 'none' }}
         accept=".pdf,.doc,.docx"
+      />
+      <input
+        type="file"
+        ref={apiFileInputRef}
+        onChange={handleApiFileUpload}
+        style={{ display: 'none' }}
+        accept=".json,.yaml,.yml,.pdf,.txt"
       />
     </div>
   );

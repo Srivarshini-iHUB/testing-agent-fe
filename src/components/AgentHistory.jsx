@@ -473,7 +473,7 @@ const AgentHistory = ({ currentProject }) => {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-400 flex items-center gap-1">
-                      <i className="fas fa-clock"></i>
+                    Selected: Link FRD - Detailed (1) (1).docx                      <i className="fas fa-clock"></i>
                       Last: {agent.lastRun}
                     </span>
                     <i className={`fas fa-arrow-right ${colors.text}`}></i>
