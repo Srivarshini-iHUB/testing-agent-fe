@@ -47,42 +47,6 @@ const E2EConfigPanel = ({
 
   return (
     <div className="space-y-6">
-      {/* Flow Selection */}
-      <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-        <div className="flex items-center gap-2 mb-4">
-          <i className="fas fa-cog text-indigo-600 dark:text-indigo-400"></i>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Test Configuration</h2>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Select Testing Flow
-          </label>
-          <div className="grid grid-cols-2 gap-4">
-            {flows.map((flow) => (
-              <button
-                key={flow.id}
-                onClick={() => setSelectedFlow(flow.id)}
-                className={`p-5 rounded-xl border-2 transition-all text-left ${
-                  selectedFlow === flow.id
-                    ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 bg-white dark:bg-gray-800/30'
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <i className={`fas ${flow.icon} text-2xl ${
-                    selectedFlow === flow.id 
-                      ? 'text-indigo-600 dark:text-indigo-400' 
-                      : 'text-gray-400'
-                  }`}></i>
-                  <div className="font-bold text-gray-900 dark:text-white">{flow.name}</div>
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{flow.description}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Manual Flow */}
       {selectedFlow === 'manual' && (

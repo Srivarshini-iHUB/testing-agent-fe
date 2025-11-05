@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import PerformanceHistory from '../components/agentHistory/PerformanceHistory';
+import { performanceApi } from '../api/performanceApi';
 
 const PerformanceTesting = () => {
   const navigate = useNavigate();
@@ -41,6 +41,14 @@ const PerformanceTesting = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
   const [progress, setProgress] = useState(0);
+  
+  // History states
+  const [historyList, setHistoryList] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+  const [selectedRunIndex, setSelectedRunIndex] = useState(null);
+  const [historyReport, setHistoryReport] = useState(null);
+  const [historyRawData, setHistoryRawData] = useState(null);
 
   const runTest = async () => {
     if (!config.url) {
@@ -52,6 +60,12 @@ const PerformanceTesting = () => {
     setError(null);
     setResults(null);
     setRawData(null);
+    setHistoryReport(null);
+    setHistoryRawData(null);
+    setSelectedHistoryId(null);
+    setSelectedRunIndex(null);
+    setActiveTab('agent');
+    window.location.hash = '#agent';
     setCurrentStep('Initializing test...');
     setProgress(10);
 
@@ -78,11 +92,19 @@ const PerformanceTesting = () => {
       const data = await response.json();
       setResults(data);
       
-      // Extract raw data from JSON in report
-      if (data.report) {
+      // Extract raw data from JSON in report or use data directly if it has latency/requests/throughput
+      if (data.latency || data.requests || data.throughput) {
+        // Data already has the raw metrics
+        setRawData(data);
+      } else if (data.report) {
+        // Try to extract from report string
         const jsonMatch = data.report.match(/```json\n([\s\S]*?)\n```/);
         if (jsonMatch) {
-          setRawData(JSON.parse(jsonMatch[1]));
+          try {
+            setRawData(JSON.parse(jsonMatch[1]));
+          } catch (e) {
+            console.error('Failed to parse JSON from report:', e);
+          }
         }
       }
       
@@ -102,10 +124,31 @@ const PerformanceTesting = () => {
     setProgress(0);
   };
 
-  const downloadMarkdown = () => {
-    if (!results || !results.report) return;
+  const downloadJSON = (reportData, rawDataToUse = null) => {
+    const dataToUse = reportData || displayResults || results;
+    if (!dataToUse) return;
     
-    const blob = new Blob([results.report], { type: 'text/markdown' });
+    const downloadable = {
+      ...dataToUse,
+      rawData: rawDataToUse || displayRawData || rawData
+    };
+    
+    const blob = new Blob([JSON.stringify(downloadable, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `performance-test-report-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadMarkdown = (reportData = null) => {
+    const dataToUse = reportData || displayResults || results;
+    if (!dataToUse || !dataToUse.report) return;
+    
+    const blob = new Blob([dataToUse.report], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -116,8 +159,9 @@ const PerformanceTesting = () => {
     URL.revokeObjectURL(url);
   };
 
-  const getChartData = () => {
-    if (!rawData) return null;
+  const getChartData = (data = null) => {
+    const dataToUse = data || rawData;
+    if (!dataToUse) return null;
 
     const latencyData = [];
     const requestData = [];
@@ -125,29 +169,29 @@ const PerformanceTesting = () => {
     const throughputData = [];
 
     // Build latency data from response
-    if (rawData.latency) {
+    if (dataToUse.latency) {
       const percentiles = ['p50', 'p75', 'p90', 'p97_5', 'p99'];
       const labels = ['P50', 'P75', 'P90', 'P95', 'P99'];
       
       percentiles.forEach((p, i) => {
-        if (rawData.latency[p] !== undefined) {
+        if (dataToUse.latency[p] !== undefined) {
           latencyData.push({
             name: labels[i],
-            value: rawData.latency[p]
+            value: dataToUse.latency[p]
           });
         }
       });
     }
 
     // Build request data from response
-    if (rawData.requests) {
+    if (dataToUse.requests) {
       const percentiles = ['p1', 'p10', 'p50', 'p75', 'p90', 'p99'];
       
       percentiles.forEach((p) => {
-        if (rawData.requests[p] !== undefined) {
+        if (dataToUse.requests[p] !== undefined) {
           requestData.push({
             name: p.toUpperCase(),
-            value: rawData.requests[p]
+            value: dataToUse.requests[p]
           });
         }
       });
@@ -161,33 +205,33 @@ const PerformanceTesting = () => {
     ];
 
     statusCodes.forEach(status => {
-      if (rawData[status.key] !== undefined && rawData[status.key] > 0) {
+      if (dataToUse[status.key] !== undefined && dataToUse[status.key] > 0) {
         statusData.push({
           name: status.name,
-          value: rawData[status.key],
+          value: dataToUse[status.key],
           color: status.color
         });
       }
     });
 
     // If no errors, add success data
-    if (statusData.length === 0 && rawData['2xx']) {
+    if (statusData.length === 0 && dataToUse['2xx']) {
       statusData.push({
         name: '2xx Success',
-        value: rawData['2xx'],
+        value: dataToUse['2xx'],
         color: '#10b981'
       });
     }
 
     // Build throughput data from response
-    if (rawData.throughput) {
+    if (dataToUse.throughput) {
       const percentiles = ['p10', 'p25', 'p50', 'p75', 'p90', 'p99'];
       
       percentiles.forEach((p) => {
-        if (rawData.throughput[p] !== undefined) {
+        if (dataToUse.throughput[p] !== undefined) {
           throughputData.push({
             name: p.toUpperCase(),
-            value: parseFloat((rawData.throughput[p] / 1024).toFixed(2))
+            value: parseFloat((dataToUse.throughput[p] / 1024).toFixed(2))
           });
         }
       });
@@ -195,8 +239,6 @@ const PerformanceTesting = () => {
 
     return { latencyData, requestData, statusData, throughputData };
   };
-
-  const chartData = getChartData();
 
   const updateHeader = (key, value) => {
     setConfig(prev => ({
@@ -215,10 +257,98 @@ const PerformanceTesting = () => {
   useEffect(() => {
     if (location.hash === '#history') {
       setActiveTab('history');
+      if (projectId) {
+        fetchHistoryList();
+      }
     } else if (location.hash === '#agent' || !location.hash) {
       setActiveTab('agent');
+      setHistoryReport(null);
+      setHistoryRawData(null);
+      setSelectedHistoryId(null);
+      setSelectedRunIndex(null);
     }
-  }, [location.hash]);
+  }, [location.hash, projectId]);
+  
+  // Fetch history list
+  const fetchHistoryList = async () => {
+    if (!projectId) return;
+    
+    setHistoryLoading(true);
+    try {
+      const data = await performanceApi.getProjectTestRuns(projectId);
+      console.log('Performance test data:', data);
+      
+      // The API returns: { projectId, items: [...] }
+      const historyArray = Array.isArray(data?.items) ? data.items : [];
+      setHistoryList(historyArray);
+    } catch (err) {
+      console.error('Failed to load history list:', err);
+      setHistoryList([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+  
+  // Load historical report
+  const handleLoadHistory = (item, runIndex) => {
+    // Toggle: if clicking the same run, close it
+    const runId = `${item.id}_${runIndex}`;
+    if (selectedHistoryId === item.id && selectedRunIndex === runIndex && historyReport) {
+      setHistoryReport(null);
+      setHistoryRawData(null);
+      setSelectedHistoryId(null);
+      setSelectedRunIndex(null);
+      return;
+    }
+    
+    const run = item.runs?.[runIndex];
+    if (!run) return;
+    
+    const response = run.response || {};
+    const request = run.request || {};
+    
+    // Extract raw data from response
+    let rawData = response;
+    if (response.report && typeof response.report === 'string') {
+      const jsonMatch = response.report.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        try {
+          rawData = JSON.parse(jsonMatch[1]);
+        } catch (e) {
+          rawData = response;
+        }
+      }
+    }
+    
+    setHistoryReport({
+      ...response,
+      request,
+      timestamp: run.timestamp
+    });
+    setHistoryRawData(rawData);
+    setSelectedHistoryId(item.id);
+    setSelectedRunIndex(runIndex);
+  };
+  
+  // Handle history tab click
+  const handleHistoryTabClick = () => {
+    setActiveTab('history');
+    setHistoryReport(null);
+    setHistoryRawData(null);
+    setSelectedHistoryId(null);
+    setSelectedRunIndex(null);
+    window.location.hash = '#history';
+    if (projectId) {
+      fetchHistoryList();
+    }
+  };
+  
+  // Use displayResults to conditionally show historyReport or results
+  const displayResults = activeTab === 'history' && historyReport ? historyReport : results;
+  const displayRawData = activeTab === 'history' && historyRawData ? historyRawData : rawData;
+
+  // Get chart data - must be after displayRawData is defined
+  const chartData = getChartData(displayRawData);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-900 text-gray-900 dark:text-white p-6 transition-colors duration-300">
@@ -245,43 +375,37 @@ const PerformanceTesting = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700 flex space-x-4">
-          <button
-            onClick={() => {
-              setActiveTab('agent');
-              window.location.hash = '#agent';
-            }}
-            className={`px-6 py-3 font-semibold text-sm transition-all ${
-              activeTab === 'agent'
-                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            <i className="fas fa-play-circle mr-2"></i>
-            PERFORMANCE TESTING AGENT
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('history');
-              window.location.hash = '#history';
-            }}
-            className={`px-6 py-3 font-semibold text-sm transition-all ${
-              activeTab === 'history'
-                ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
-                : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            <i className="fas fa-history mr-2"></i>
-            AGENT HISTORY
-          </button>
-        </div>
-
-        {/* Content based on active tab */}
-        {activeTab === 'history' && (
-          <div className="mt-6">
-            <PerformanceHistory projectId={projectId} />
+        <div className="mb-6 bg-transparent rounded-t-xl overflow-hidden">
+          <div className="flex border-b-2 border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => {
+                setActiveTab('agent');
+                setHistoryReport(null);
+                setHistoryRawData(null);
+                setSelectedHistoryId(null);
+                setSelectedRunIndex(null);
+                window.location.hash = '#agent';
+              }}
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
+                activeTab === 'agent'
+                  ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              PERFORMANCE TESTING
+            </button>
+            <button
+              onClick={handleHistoryTabClick}
+              className={`px-6 py-3 font-semibold text-sm transition-all ${
+                activeTab === 'history'
+                  ? 'bg-transparent text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
+                  : 'bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              AGENT HISTORY
+            </button>
           </div>
-        )}
+        </div>
 
         {activeTab === 'agent' && (
           <>
@@ -537,7 +661,7 @@ const PerformanceTesting = () => {
 
         {/* Results Panel - Full Width Below */}
         <div className="mt-6">
-            {(results || error) && (
+            {(displayResults || error) && (
               <div className="space-y-6">
                 {error && (
                   <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -553,7 +677,7 @@ const PerformanceTesting = () => {
                   </div>
                 )}
 
-                {results && (
+                {displayResults && (
                   <>
                     <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
                       <div className="flex items-center justify-between mb-4">
@@ -561,48 +685,244 @@ const PerformanceTesting = () => {
                           <i className="fas fa-chart-line text-rose-600 dark:text-rose-400"></i>
                           Test Results Summary
                         </h2>
-                        {results.report && (
-                          <button
-                            onClick={downloadMarkdown}
-                            className="px-4 py-2 bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/30 flex items-center gap-2 transition-all"
-                          >
-                            <i className="fas fa-download"></i>
-                            Download Report
-                          </button>
-                        )}
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div className="bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 rounded-lg border border-rose-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Latency</p>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {results.avgLatency || 'N/A'}<span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ms</span>
+                            {displayResults.avgLatency || 'N/A'}<span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ms</span>
                           </p>
                         </div>
                         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-4 rounded-lg border border-blue-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Req/Sec</p>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {results.requestsPerSec || 'N/A'}
+                            {displayResults.requestsPerSec || 'N/A'}
                           </p>
                         </div>
                         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Success Rate</p>
                           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {results.successRate || 'N/A'}%
+                            {displayResults.successRate || 'N/A'}%
                           </p>
                         </div>
                         <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-lg border border-orange-500/30">
                           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Requests</p>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {results.totalRequests || 'N/A'}
+                            {displayResults.totalRequests || 'N/A'}
                           </p>
                         </div>
                       </div>
-                    </div>
 
-                    {chartData && chartData.latencyData.length > 0 && (
-                      <>
-                        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                      {/* Charts inside Test Results Summary */}
+                      {chartData && (
+                        <>
+                          {chartData.latencyData && chartData.latencyData.length > 0 && (
+                            <div className="mb-6">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i className="fas fa-chart-bar text-rose-600 dark:text-rose-400"></i>
+                                Latency Distribution (Percentiles)
+                              </h3>
+                              <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={chartData.latencyData}>
+                                  <defs>
+                                    <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/>
+                                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.1}/>
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                  <XAxis dataKey="name" stroke="#6b7280" />
+                                  <YAxis stroke="#6b7280" label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', fill: '#6b7280' }} />
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#374151' }}
+                                  />
+                                  <Area type="monotone" dataKey="value" stroke="#f43f5e" fillOpacity={1} fill="url(#latencyGradient)" />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+
+                          {(chartData.requestData?.length > 0 || chartData.statusData?.length > 0) && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                              {chartData.requestData && chartData.requestData.length > 0 && (
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Requests/Second Distribution</h3>
+                                  <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={chartData.requestData}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                      <XAxis dataKey="name" stroke="#6b7280" />
+                                      <YAxis stroke="#6b7280" />
+                                      <Tooltip 
+                                        contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#374151' }}
+                                      />
+                                      <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+
+                              {chartData.statusData && chartData.statusData.length > 0 && (
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status Code Distribution</h3>
+                                  <ResponsiveContainer width="100%" height={250}>
+                                    <PieChart>
+                                      <Pie
+                                        data={chartData.statusData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                      >
+                                        {chartData.statusData.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                      </Pie>
+                                      <Tooltip 
+                                        contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                      />
+                                    </PieChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {chartData.throughputData && chartData.throughputData.length > 0 && (
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Throughput Distribution (KB/s)</h3>
+                              <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={chartData.throughputData}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                  <XAxis dataKey="name" stroke="#6b7280" />
+                                  <YAxis stroke="#6b7280" />
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#374151' }}
+                                  />
+                                  <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+        </div>
+          </>
+        )}
+
+        {/* AGENT HISTORY Tab Content */}
+        {activeTab === 'history' && (
+          <div className="space-y-6">
+            {historyReport ? (
+              // Show report in full screen when selected
+              <div className="space-y-6">
+                {/* Viewing Historical Result Banner */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl p-4 text-white shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <i className="fas fa-history text-2xl"></i>
+                      <div>
+                        <h2 className="text-lg font-bold">Viewing Historical Result</h2>
+                        <p className="text-sm text-white/90">
+                          {historyReport.timestamp ? `Test Run from ${new Date(historyReport.timestamp).toLocaleString()}` : 'Historical Test Run'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setHistoryReport(null);
+                        setHistoryRawData(null);
+                        setSelectedHistoryId(null);
+                        setSelectedRunIndex(null);
+                      }}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all text-sm font-medium"
+                    >
+                      <i className="fas fa-times mr-2"></i>
+                      Close Report
+                    </button>
+                  </div>
+                </div>
+
+                {/* Download Section */}
+                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => downloadJSON(historyReport, historyRawData)}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                      >
+                        <i className="fas fa-code"></i>
+                        JSON
+                      </button>
+                      {historyReport?.report && (
+                        <button
+                          onClick={() => downloadMarkdown(historyReport)}
+                          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                        >
+                          <i className="fas fa-file-alt"></i>
+                          Markdown
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Historical Report Display - Same format as current results */}
+                <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <i className="fas fa-chart-line text-rose-600 dark:text-rose-400"></i>
+                      Test Results Summary
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 rounded-lg border border-rose-500/30">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Latency</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {historyReport.avgLatency || 'N/A'}<span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ms</span>
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-4 rounded-lg border border-blue-500/30">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">Req/Sec</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {historyReport.requestsPerSec || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">Success Rate</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {historyReport.successRate || 'N/A'}%
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-lg border border-orange-500/30">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">Total Requests</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {historyReport.totalRequests || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Charts inside Test Results Summary */}
+                  {chartData && (
+                    <>
+                      {chartData.latencyData && chartData.latencyData.length > 0 && (
+                        <div className="mb-6">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <i className="fas fa-chart-bar text-rose-600 dark:text-rose-400"></i>
                             Latency Distribution (Percentiles)
@@ -610,7 +930,7 @@ const PerformanceTesting = () => {
                           <ResponsiveContainer width="100%" height={300}>
                             <AreaChart data={chartData.latencyData}>
                               <defs>
-                                <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="latencyGradientHistory" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/>
                                   <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.1}/>
                                 </linearGradient>
@@ -622,14 +942,16 @@ const PerformanceTesting = () => {
                                 contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
                                 labelStyle={{ color: '#374151' }}
                               />
-                              <Area type="monotone" dataKey="value" stroke="#f43f5e" fillOpacity={1} fill="url(#latencyGradient)" />
+                              <Area type="monotone" dataKey="value" stroke="#f43f5e" fillOpacity={1} fill="url(#latencyGradientHistory)" />
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>
+                      )}
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {chartData.requestData.length > 0 && (
-                            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                      {(chartData.requestData?.length > 0 || chartData.statusData?.length > 0) && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                          {chartData.requestData && chartData.requestData.length > 0 && (
+                            <div>
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Requests/Second Distribution</h3>
                               <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={chartData.requestData}>
@@ -646,8 +968,8 @@ const PerformanceTesting = () => {
                             </div>
                           )}
 
-                          {chartData.statusData.length > 0 && (
-                            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                          {chartData.statusData && chartData.statusData.length > 0 && (
+                            <div>
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status Code Distribution</h3>
                               <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
@@ -673,32 +995,144 @@ const PerformanceTesting = () => {
                             </div>
                           )}
                         </div>
+                      )}
 
-                        {chartData.throughputData.length > 0 && (
-                          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Throughput Distribution (KB/s)</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                              <LineChart data={chartData.throughputData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
-                                <XAxis dataKey="name" stroke="#6b7280" />
-                                <YAxis stroke="#6b7280" />
-                                <Tooltip 
-                                  contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                                  labelStyle={{ color: '#374151' }}
-                                />
-                                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} />
-                              </LineChart>
-                            </ResponsiveContainer>
+                      {chartData.throughputData && chartData.throughputData.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Throughput Distribution (KB/s)</h3>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={chartData.throughputData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                              <XAxis dataKey="name" stroke="#6b7280" />
+                              <YAxis stroke="#6b7280" />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                                labelStyle={{ color: '#374151' }}
+                              />
+                              <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                </div>
+              </div>
+            ) : (
+              // Show history list when no report is selected
+              <div className="space-y-6">
+                {historyLoading ? (
+                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-10 border border-gray-200 dark:border-gray-700/50 shadow-lg flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin"></div>
+                    <h2 className="text-xl font-bold mt-6">Loading History...</h2>
+                  </div>
+                ) : historyList.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+                    <i className="fas fa-inbox text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-2">No history found</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Run performance tests to see them here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Previous Test Runs</h3>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {historyList.map((item) => {
+                        const runsCount = item.runs?.length || 0;
+                        const createdDate = item.runs?.[0]?.timestamp 
+                          ? new Date(item.runs[0].timestamp).toLocaleString()
+                          : 'N/A';
+                        
+                        return (
+                          <div key={item.id} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <i className="fas fa-tachometer-alt text-emerald-600 dark:text-emerald-400"></i>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                                      {item.method} {item.url}
+                                    </h4>
+                                    <span className="text-xs px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded whitespace-nowrap">
+                                      {item.testMode?.toUpperCase() || 'LOAD'}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {createdDate}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 flex-shrink-0">
+                                <div className="text-right hidden sm:block">
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{runsCount}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Runs</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Runs in this item */}
+                            {item.runs && item.runs.length > 0 && (
+                              <div className="space-y-2 mt-3 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                                {item.runs.map((run, runIdx) => {
+                                  const runId = `${item.id}_${runIdx}`;
+                                  const isSelected = selectedHistoryId === item.id && selectedRunIndex === runIdx && historyReport;
+                                  const hasReport = !!(run.response);
+                                  const runDate = run.timestamp 
+                                    ? new Date(run.timestamp).toLocaleString()
+                                    : 'N/A';
+                                  
+                                  return (
+                                    <button
+                                      key={runIdx}
+                                      onClick={() => handleLoadHistory(item, runIdx)}
+                                      disabled={!hasReport}
+                                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                                        isSelected
+                                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-md'
+                                          : hasReport
+                                          ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm'
+                                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-50 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <i className={`fas ${hasReport ? 'fa-file-alt' : 'fa-file'} text-emerald-600 dark:text-emerald-400 flex-shrink-0`}></i>
+                                          <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                                            Run #{runIdx + 1}
+                                          </span>
+                                          {hasReport && (
+                                            <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded whitespace-nowrap flex-shrink-0">
+                                              Has Report
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+                                            {runDate}
+                                          </span>
+                                          {hasReport && (
+                                            <i className={`fas fa-chevron-right text-gray-400 transition-colors flex-shrink-0 ml-2 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : ''}`}></i>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </>
-                    )}
-                  </>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
-        </div>
-          </>
+          </div>
         )}
       </div>
     </div>

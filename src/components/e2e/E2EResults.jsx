@@ -10,7 +10,9 @@ const E2EResults = ({
   downloadReport,
   reportData,
   reportLoading,
-  fetchReportData
+  fetchReportData,
+  downloadJSON,
+  downloadMarkdown
 }) => {
   const handleViewReport = () => {
     if (testResults && testResults.reportUrl) {
@@ -249,6 +251,34 @@ const E2EResults = ({
                 )}
               </button>
             </div>
+
+            {/* Download Section */}
+            {downloadJSON && downloadMarkdown && (
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg mt-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => downloadJSON(testResults)}
+                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                    >
+                      <i className="fas fa-code"></i>
+                      JSON
+                    </button>
+                    <button
+                      onClick={() => downloadMarkdown(testResults)}
+                      className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                    >
+                      <i className="fas fa-file-alt"></i>
+                      Markdown
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -287,6 +317,34 @@ const E2EResults = ({
               <div className="text-sm text-gray-700 dark:text-gray-300 font-semibold">Duration</div>
             </div>
           </div>
+
+          {/* Download Section */}
+          {downloadJSON && downloadMarkdown && (
+            <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg mb-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Export Test Report</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Download in your preferred format</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => downloadJSON(reportData)}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                  >
+                    <i className="fas fa-code"></i>
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => downloadMarkdown(reportData)}
+                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all shadow-md"
+                  >
+                    <i className="fas fa-file-alt"></i>
+                    Markdown
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Test Results */}
           <div className="space-y-4">
