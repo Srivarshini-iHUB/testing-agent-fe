@@ -220,11 +220,7 @@ const Dashboard = () => {
     setShowProjectDropdown(false);
     
     // Success notification
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
-    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
+  
   };
 
   const handleNewProject = () => {
