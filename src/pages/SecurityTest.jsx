@@ -218,7 +218,17 @@ const SecurityTesting = () => {
         </div>
 
         {/* Header */}
-        <h1 className="text-3xl font-bold mb-6">Security Testing Dashboard</h1>
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="text-red-700 dark:text-red-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-shield-alt text-4xl"></i>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Security Testing Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered security vulnerability scanning and analysis</p>
+            </div>
+          </div>
+        </div>
 
         {/* Message */}
         {message.text && (

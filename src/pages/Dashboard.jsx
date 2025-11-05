@@ -219,7 +219,12 @@ const Dashboard = () => {
     });
     setShowProjectDropdown(false);
     
-    
+    // Success notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fadeIn';
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Switched to ${proj.name}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
   };
 
   const handleNewProject = () => {
@@ -243,15 +248,7 @@ const Dashboard = () => {
   // Extract filename from URL
   const getFileNameFromUrl = (url) => {
     if (!url) return '';
-
-    // Handle arrays (e.g., multiple files)
-    if (Array.isArray(url)) {
-      return url.length > 0 ? url.join(', ') : '';
-    }
-
-    // Ensure url is a string
-    if (typeof url !== 'string') return '';
-
+    
     try {
       // Try to decode the URL, but if it fails (already decoded), use the original
       let decodedUrl = url;
@@ -261,10 +258,10 @@ const Dashboard = () => {
         // URL might already be decoded, use original
         decodedUrl = url;
       }
-
+      
       // Split by '/' and find the last segment that contains a file extension
       const segments = decodedUrl.split('/');
-
+      
       // Start from the end and find the first segment with a file extension
       for (let i = segments.length - 1; i >= 0; i--) {
         const segment = segments[i];
@@ -277,7 +274,7 @@ const Dashboard = () => {
           return finalFileName;
         }
       }
-
+      
       // Fallback: return last segment if no extension found
       const lastSegment = segments[segments.length - 1].split('?')[0].split('#')[0];
       return lastSegment || url.split('/').pop() || url;
@@ -300,6 +297,7 @@ const Dashboard = () => {
     );
   }
 
+  // First-Time User Welcome Screen
   if (isFirstTimeUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900">
@@ -531,10 +529,10 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository, isUrl: true, isRepo: true },
-              { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument, isUrl: true, isRepo: false },
-              { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories, isUrl: true, isRepo: false },
-              { icon: 'fas fa-cube', label: 'Postman/Swagger', value: currentProject?.postmanCollection || project?.postmanCollection, isUrl: true, isRepo: false }
+              { icon: 'fab fa-github', label: 'Repository', value: currentProject?.repository || project?.repository, isRepo: true },
+              { icon: 'fas fa-file-alt', label: 'FRD Document', value: currentProject?.frdDocument || project?.frdDocument, isUrl: true },
+              { icon: 'fas fa-book', label: 'User Stories', value: currentProject?.userStories || project?.userStories, isUrl: true },
+              { icon: 'fas fa-cube', label: 'Postman/Swagger', value: currentProject?.postmanCollection || project?.postmanCollection, isUrl: true }
             ].map((item, idx) => {
               // For repository, format the display value and URL
               const getRepositoryInfo = (repoValue) => {
@@ -670,7 +668,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {activeTab === 'history' && <AgentHistory key={currentProject?.id} currentProject={currentProject} />}
+            {activeTab === 'history' && <AgentHistory currentProject={currentProject} />}
           </div>
         </div>
       </div>

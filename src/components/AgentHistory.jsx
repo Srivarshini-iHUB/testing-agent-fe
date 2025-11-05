@@ -14,63 +14,88 @@ const AgentHistory = ({ currentProject }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Agent color configurations matching your agents
+  // Agent color configurations matching Dashboard.jsx style
   const agentColors = {
     'test-case-generator': {
       bg: 'bg-indigo-100 dark:bg-indigo-900/30',
       text: 'text-indigo-600 dark:text-indigo-400',
       border: 'border-indigo-500',
       bgLight: 'bg-indigo-50 dark:bg-indigo-900/20',
-      hover: 'hover:border-indigo-300 dark:hover:border-indigo-700'
+      hover: 'hover:border-indigo-300 dark:hover:border-indigo-700',
+      iconBg: 'bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700',
+      iconColor: 'text-indigo-700 dark:text-indigo-300'
     },
     'unit-testing': {
       bg: 'bg-blue-100 dark:bg-blue-900/30',
       text: 'text-blue-600 dark:text-blue-400',
       border: 'border-blue-500',
       bgLight: 'bg-blue-50 dark:bg-blue-900/20',
-      hover: 'hover:border-blue-300 dark:hover:border-blue-700'
+      hover: 'hover:border-blue-300 dark:hover:border-blue-700',
+      iconBg: 'bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-700 dark:to-cyan-700',
+      iconColor: 'text-blue-700 dark:text-blue-300'
     },
     'e2e-testing': {
       bg: 'bg-purple-100 dark:bg-purple-900/30',
       text: 'text-purple-600 dark:text-purple-400',
       border: 'border-purple-500',
       bgLight: 'bg-purple-50 dark:bg-purple-900/20',
-      hover: 'hover:border-purple-300 dark:hover:border-purple-700'
+      hover: 'hover:border-purple-300 dark:hover:border-purple-700',
+      iconBg: 'bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-700 dark:to-pink-700',
+      iconColor: 'text-purple-700 dark:text-purple-300'
     },
     'integration-testing': {
       bg: 'bg-teal-100 dark:bg-teal-900/30',
       text: 'text-teal-600 dark:text-teal-400',
       border: 'border-teal-500',
       bgLight: 'bg-teal-50 dark:bg-teal-900/20',
-      hover: 'hover:border-teal-300 dark:hover:border-teal-700'
+      hover: 'hover:border-teal-300 dark:hover:border-teal-700',
+      iconBg: 'bg-gradient-to-br from-teal-200 to-emerald-200 dark:from-teal-700 dark:to-emerald-700',
+      iconColor: 'text-teal-700 dark:text-teal-300'
     },
     'security-testing': {
       bg: 'bg-red-100 dark:bg-red-900/30',
       text: 'text-red-600 dark:text-red-400',
       border: 'border-red-500',
       bgLight: 'bg-red-50 dark:bg-red-900/20',
-      hover: 'hover:border-red-300 dark:hover:border-red-700'
+      hover: 'hover:border-red-300 dark:hover:border-red-700',
+      iconBg: 'bg-gradient-to-br from-red-200 to-rose-200 dark:from-red-700 dark:to-rose-700',
+      iconColor: 'text-red-700 dark:text-red-300'
     },
     'performance-testing': {
       bg: 'bg-emerald-100 dark:bg-emerald-900/30',
       text: 'text-emerald-600 dark:text-emerald-400',
       border: 'border-emerald-500',
       bgLight: 'bg-emerald-50 dark:bg-emerald-900/20',
-      hover: 'hover:border-emerald-300 dark:hover:border-emerald-700'
+      hover: 'hover:border-emerald-300 dark:hover:border-emerald-700',
+      iconBg: 'bg-gradient-to-br from-emerald-200 to-green-200 dark:from-emerald-700 dark:to-green-700',
+      iconColor: 'text-emerald-700 dark:text-emerald-300'
     },
     'regression-testing': {
       bg: 'bg-cyan-100 dark:bg-cyan-900/30',
       text: 'text-cyan-600 dark:text-cyan-400',
       border: 'border-cyan-500',
       bgLight: 'bg-cyan-50 dark:bg-cyan-900/20',
-      hover: 'hover:border-cyan-300 dark:hover:border-cyan-700'
+      hover: 'hover:border-cyan-300 dark:hover:border-cyan-700',
+      iconBg: 'bg-gradient-to-br from-slate-200 to-gray-200 dark:from-slate-700 dark:to-gray-700',
+      iconColor: 'text-slate-700 dark:text-slate-300'
     },
     'smoke-testing': {
       bg: 'bg-orange-100 dark:bg-orange-900/30',
       text: 'text-orange-600 dark:text-orange-400',
       border: 'border-orange-500',
       bgLight: 'bg-orange-50 dark:bg-orange-900/20',
-      hover: 'hover:border-orange-300 dark:hover:border-orange-700'
+      hover: 'hover:border-orange-300 dark:hover:border-orange-700',
+      iconBg: 'bg-gradient-to-br from-orange-200 to-amber-200 dark:from-orange-700 dark:to-amber-700',
+      iconColor: 'text-orange-700 dark:text-orange-300'
+    },
+    'visual-testing': {
+      bg: 'bg-violet-100 dark:bg-violet-900/30',
+      text: 'text-violet-600 dark:text-violet-400',
+      border: 'border-violet-500',
+      bgLight: 'bg-violet-50 dark:bg-violet-900/20',
+      hover: 'hover:border-violet-300 dark:hover:border-violet-700',
+      iconBg: 'bg-gradient-to-br from-violet-200 to-fuchsia-200 dark:from-violet-700 dark:to-fuchsia-700',
+      iconColor: 'text-violet-700 dark:text-violet-300'
     }
   };
 
@@ -103,12 +128,12 @@ const AgentHistory = ({ currentProject }) => {
 
         const agents = [];
 
-        // Map test_type to agent configurations
+        // Map test_type to agent configurations (icons match Dashboard.jsx)
         const agentConfigMap = {
           'integration': {
             id: 'integration-testing',
             name: 'Integration Testing',
-            icon: 'fa-route'
+            icon: 'fa-link'
           },
           'testcase_generator': {
             id: 'test-case-generator',
@@ -118,7 +143,7 @@ const AgentHistory = ({ currentProject }) => {
           'e2e': {
             id: 'e2e-testing',
             name: 'Functional Testing',
-            icon: 'fa-check-circle'
+            icon: 'fa-route'
           },
           'regression': {
             id: 'regression-testing',
@@ -134,6 +159,21 @@ const AgentHistory = ({ currentProject }) => {
             id: 'performance-testing',
             name: 'Performance Testing',
             icon: 'fa-tachometer-alt'
+          },
+          'unit': {
+            id: 'unit-testing',
+            name: 'Unit Testing',
+            icon: 'fa-vial'
+          },
+          'security': {
+            id: 'security-testing',
+            name: 'Security Testing',
+            icon: 'fa-shield-alt'
+          },
+          'visual': {
+            id: 'visual-testing',
+            name: 'UI Testing',
+            icon: 'fa-mouse-pointer'
           }
         };
 
@@ -253,6 +293,9 @@ const AgentHistory = ({ currentProject }) => {
       'regression-testing': '/regression-testing',
       'smoke-testing': '/smoke-testing',
       'performance-testing': '/performance-testing',
+      'unit-testing': '/unit-testing',
+      'security-testing': '/security-testing',
+      'visual-testing': '/visual-testing',
     };
 
     // Check by ID first
@@ -268,65 +311,84 @@ const AgentHistory = ({ currentProject }) => {
     if (nameLower.includes('regression')) return '/regression-testing';
     if (nameLower.includes('smoke')) return '/smoke-testing';
     if (nameLower.includes('performance')) return '/performance-testing';
+    if (nameLower.includes('unit')) return '/unit-testing';
+    if (nameLower.includes('security')) return '/security-testing';
+    if (nameLower.includes('visual') || nameLower.includes('ui')) return '/visual-testing';
 
     return null;
   };
 
   const handleAgentSelect = async (agent) => {
     const route = getAgentRoute(agent);
-    if (route) {
-      try {
-        // Get project ID
-        const proj = JSON.parse(localStorage.getItem('project') || 'null');
-        const projectId = proj?.id;
+    if (!route) {
+      console.warn('[AgentHistory] No route found for agent:', agent);
+      return;
+    }
 
-        if (!projectId) {
-          console.warn('[AgentHistory] No project ID found');
-          navigate(route);
-          return;
-        }
+    try {
+      // Get project ID
+      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+      const projectId = proj?.id;
 
-        // Fetch specific agent data on click
-        const config = agentApiConfig[agent.id];
-        if (config) {
+      // List of routes that support #history hash
+      const historyRoutes = [
+        '/test-case-generator',
+        '/integration-testing',
+        '/e2e-testing',
+        '/performance-testing',
+        '/regression-testing',
+        '/smoke-testing',
+        '/unit-testing',
+        '/security-testing',
+        '/visual-testing'
+      ];
+
+      // Check if route supports history tab
+      const supportsHistory = historyRoutes.includes(route);
+      const targetRoute = supportsHistory ? `${route}#history` : route;
+
+      if (!projectId) {
+        console.warn('[AgentHistory] No project ID found');
+        navigate(targetRoute);
+        return;
+      }
+
+      // Fetch specific agent data on click
+      const config = agentApiConfig[agent.id];
+      if (config) {
+        try {
           const data = await config.api(projectId);
           const processedData = config.dataProcessor(data);
-
           console.log('[AgentHistory] Fetched data for', agent.name, ':', processedData);
-
-          // Navigate with processed data in state
-          if (route === '/test-case-generator') {
-            navigate('/test-case-generator#history', { 
-              state: { agentData: { ...agent, ...processedData } } 
-            });
-          } else {
-            navigate(route, { 
-              state: { agentData: { ...agent, ...processedData } } 
-            });
-          }
-        } else {
-          // Fallback navigation without data
-          console.warn('[AgentHistory] No API config for agent:', agent.id);
-          navigate(route);
+          navigate(targetRoute, { 
+            state: { agentData: { ...agent, ...processedData } } 
+          });
+        } catch (apiError) {
+          console.error('[AgentHistory] Failed to fetch agent data:', apiError);
+          // Still navigate even on API error
+          navigate(targetRoute);
         }
-      } catch (e) {
-        console.error('[AgentHistory] Failed to fetch agent data:', e);
-        // Still navigate even on error
-        if (route === '/test-case-generator') {
-          navigate('/test-case-generator#history');
-        } 
-      console.log('[AgentHistory] Navigating to:', route, 'for agent:', agent?.name || agent?.id);
-      // For test-case-generator and integration-testing, navigate to history tab
-      if (route === '/test-case-generator') {
-        navigate('/test-case-generator#history', { replace: false });
-      } else if (route === '/integration-testing') {
-        navigate('/integration-testing#history', { replace: false });
       } else {
-        navigate(route);
+        // Fallback navigation without data
+        console.warn('[AgentHistory] No API config for agent:', agent.id);
+        navigate(targetRoute);
       }
-    }
-  } else {
-      console.warn('[AgentHistory] No route found for agent:', agent);
+    } catch (e) {
+      console.error('[AgentHistory] Error in handleAgentSelect:', e);
+      // Navigate to route with history hash if supported
+      const historyRoutes = [
+        '/test-case-generator',
+        '/integration-testing',
+        '/e2e-testing',
+        '/performance-testing',
+        '/regression-testing',
+        '/smoke-testing',
+        '/unit-testing',
+        '/security-testing',
+        '/visual-testing'
+      ];
+      const supportsHistory = historyRoutes.includes(route);
+      navigate(supportsHistory ? `${route}#history` : route);
     }
   };
 
@@ -379,11 +441,11 @@ const AgentHistory = ({ currentProject }) => {
                 <button
                   key={agent.id}
                   onClick={() => handleAgentSelect(agent)}
-                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover}`}
+                  className={`text-left p-5 rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${colors.hover} group`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center`}>
-                      <i className={`fas ${agent.icon} ${colors.text} text-xl`}></i>
+                    <div className={`${colors.iconBg} ${colors.iconColor} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm`}>
+                      <i className={`fas ${agent.icon} text-xl`}></i>
                     </div>
                     <div className="flex-1 min-w-0 ">
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate">

@@ -234,7 +234,9 @@ const PerformanceTesting = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            <i className="fas fa-tachometer-alt text-4xl text-rose-600 dark:text-rose-400"></i>
+            <div className="text-emerald-700 dark:text-emerald-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-tachometer-alt text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Performance Testing</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered load and stress testing for your APIs</p>

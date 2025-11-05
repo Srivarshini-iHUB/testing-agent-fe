@@ -234,7 +234,9 @@ export default function IntegrationTestingPlatform() {
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-lg">🔗</div>
+            <div className="text-teal-700 dark:text-teal-300 w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+              <i className="fas fa-link text-4xl"></i>
+            </div>
             <div>
               <h1 className="text-3xl font-bold">Integration Testing Agent</h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">AI-powered API scenario generation and validation</p>
