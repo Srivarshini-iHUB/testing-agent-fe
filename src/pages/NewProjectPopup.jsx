@@ -1,103 +1,119 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import axios from 'axios'; // Import for GitHub API calls (separate from apiClient)
+
+const API_BASE_URL = 'http://localhost:8080'; // Adjust to your backend port (from settings.PORT, e.g., 8000)
 
 const NewProject = () => {
   const { isDark } = useTheme();
-  const { updateProject, user, setUser } = useUser();
-  console.log(user,'user');
-  
+  const { updateProject, user } = useUser();
   const navigate = useNavigate();
-  
-  // Sync user from localStorage if context user is null
-  useEffect(() => {
-    if (!user) {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser && (parsedUser.user_id || parsedUser.id)) {
-            setUser(parsedUser);
-          }
-        } catch (e) {
-          console.error('Failed to parse stored user:', e);
-        }
-      }
-    }
-  }, [user, setUser]);
+  const [searchParams] = useSearchParams(); // To parse query params
+
   const [currentStep, setCurrentStep] = useState(1);
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubUser, setGithubUser] = useState(null);
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [repositories, setRepositories] = useState([]);
-
+  const [ghToken, setGhToken] = useState(null); // New: Store GitHub token
+  
   const [formData, setFormData] = useState({
     repoUrl: '',
-    projectName: null,
-    projectDesc: null,
-    projectURL: null,
-    frdFiles: [],
-    userStoryFiles: [],
-    postmanFile: null,
+    projectName: '',
+    projectDesc: '',
+    projectURL: '',
+    frdFiles: [],  
+    userStoryFiles: [],  
+    postmanFile: null
   });
 
-  // Mock GitHub repos
-  const mockGithubRepos = [
-    { id: 1, name: 'ecommerce-app', full_name: 'ajay/ecommerce-app', description: 'E-commerce platform with React', private: false },
-    { id: 2, name: 'social-media', full_name: 'ajay/social-media', description: 'Social networking application', private: false },
-    { id: 3, name: 'banking-dashboard', full_name: 'ajay/banking-dashboard', description: 'Financial dashboard', private: true },
-    { id: 4, name: 'healthcare-portal', full_name: 'ajay/healthcare-portal', description: 'Healthcare management system', private: false },
-  ];
-
-  const handleGithubConnect = () => {
-    alert('Redirecting to GitHub for authentication...');
-    setTimeout(() => {
+  // On mount: Check for redirect params from GitHub callback
+  useEffect(() => {
+    const userParam = searchParams.get('user');
+    const tokenParam = searchParams.get('token');
+    if (userParam && tokenParam) {
       setGithubConnected(true);
-      setGithubUser({
-        name: 'Ajay Kumar',
-        username: 'ajay-kumar',
-        avatar: 'https://github.com/identicons/ajay.png',
+      setGithubUser({ username: userParam });
+      setGhToken(tokenParam);
+      // Optional: localStorage.setItem('gh_token', tokenParam); // For persistence
+      // Clear query params from URL (optional)
+      navigate('/NewProjectPopup', { replace: true }); // Assuming route is /NewProjectPopup
+    }
+  }, [searchParams, navigate]);
+
+  // Real GitHub connect: Fetch auth URL and redirect
+  const handleGithubConnect = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/github/login`);
+      const { auth_url } = response.data;
+      window.location.href = auth_url;
+    } catch (error) {
+      showNotification('Failed to initiate GitHub login. Please try again.', 'error');
+      console.error('GitHub login error:', error);
+    }
+  };
+
+  // New: Manual fetch repositories
+  const handleFetchRepos = async () => {
+    if (!ghToken) {
+      showNotification('No GitHub token available. Please reconnect.', 'error');
+      return;
+    }
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/github/repos`, {
+        headers: { Authorization: `token ${ghToken}` }
       });
-      setRepositories(mockGithubRepos);
-    }, 1500);
+      if (response.data.ok) {
+        setRepositories(response.data.repos);
+        showNotification('Repositories loaded successfully!', 'success');
+      } else {
+        throw new Error('Failed to fetch repos');
+      }
+    } catch (error) {
+      showNotification('Failed to load repositories. Check your connection or token.', 'error');
+      console.error('Fetch repos error:', error);
+    }
   };
 
   const handleRepoSelect = (repo) => {
     setSelectedRepo(repo);
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      repoUrl: `https://github.com/${repo.full_name}`,
-      projectName: repo.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+      repoUrl: repo.html_url, // Use html_url from real data
+      projectName: repo.name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
     }));
   };
 
+  // Handle multiple file uploads (unchanged)
   const handleMultipleFileChange = (fileType) => (e) => {
     if (e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        [fileType]: [...prev[fileType], ...newFiles],
+        [fileType]: [...prev[fileType], ...newFiles]
       }));
     }
   };
 
+  // Remove specific file (unchanged)
   const removeFile = (fileType, index) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [fileType]: prev[fileType].filter((_, i) => i !== index),
+      [fileType]: prev[fileType].filter((_, i) => i !== index)
     }));
   };
 
+  // Handle single file upload (Postman) (unchanged)
   const handleSingleFileChange = (field) => (e) => {
     if (e.target.files.length > 0) {
-      setFormData((prev) => ({ ...prev, [field]: e.target.files[0] }));
+      setFormData(prev => ({ ...prev, [field]: e.target.files[0] }));
     }
   };
 
   const handleInputChange = (field) => (e) => {
-    const value = e.target.value.trim() === '' ? null : e.target.value;
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
   const validateGithubStep = () => {
@@ -108,7 +124,7 @@ const NewProject = () => {
   };
 
   const validateProjectForm = () => {
-    if (!formData.projectName || (typeof formData.projectName === 'string' && formData.projectName.trim() === '')) {
+    if (!formData.projectName.trim()) {
       return { valid: false, message: 'Please enter your project name' };
     }
     return { valid: true };
@@ -116,6 +132,7 @@ const NewProject = () => {
 
   const handleNextStep = () => {
     let validation;
+    
     if (currentStep === 1) {
       validation = validateGithubStep();
       if (!validation.valid) {
@@ -140,14 +157,14 @@ const NewProject = () => {
       error: 'bg-red-600',
       warning: 'bg-orange-600',
       success: 'bg-green-600',
-      info: 'bg-blue-600',
+      info: 'bg-blue-600'
     };
-
+    
     const icons = {
       error: 'fa-exclamation-circle',
       warning: 'fa-exclamation-triangle',
       success: 'fa-check-circle',
-      info: 'fa-info-circle',
+      info: 'fa-info-circle'
     };
 
     const notification = document.createElement('div');
@@ -163,75 +180,58 @@ const NewProject = () => {
     }
   };
 
-  const handleStartTesting = async () => {
-    // Get user_id from context or localStorage as fallback
-    const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
-    const userId = currentUser?.user_id || currentUser?.id;
-    
-    if (!userId) {
-      showNotification('Please log in to create a project', 'error');
-      setTimeout(() => navigate('/onboarding'), 2000);
+  const handleStartTesting = () => {
+    const frdCount = formData.frdFiles.length;
+    const userStoryCount = formData.userStoryFiles.length;
+
+    // Build summary message
+    let summaryMessage = `Project "${formData.projectName}" will be created with:\n\n`;
+    summaryMessage += `• Repository: ${selectedRepo?.full_name || 'None'}\n`;
+    summaryMessage += `• FRD Documents: ${frdCount || 'None'}\n`;
+    summaryMessage += `• User Stories: ${userStoryCount || 'None'}\n`;
+    summaryMessage += `• Postman Collection: ${formData.postmanFile ? 'Yes' : 'None'}\n\n`;
+    summaryMessage += `Continue to create project?`;
+
+    if (!window.confirm(summaryMessage)) {
       return;
     }
-    
-    const formDataToSend = new FormData();
-    formDataToSend.append('project_name', formData.projectName || '');
-    if (formData.projectDesc !== null) {
-      formDataToSend.append('project_description', formData.projectDesc);
-    }
-    if (formData.projectURL !== null) {
-      formDataToSend.append('project_url', formData.projectURL);
-    }
-    formDataToSend.append('github_repo_id', selectedRepo?.full_name);
-    formDataToSend.append('user_id', userId);
 
-    formData.frdFiles.forEach((file) => {
-      formDataToSend.append('frd', file);
+    updateProject({
+      name: formData.projectName,
+      repository: formData.repoUrl,
+      projectDesc: formData.projectDesc,
+      projectURL: formData.projectURL,
+      frdDocuments: formData.frdFiles.map(f => f.name),
+      userStories: formData.userStoryFiles.map(f => f.name),
+      postmanCollection: formData.postmanFile?.name || 'Not provided',
+      githubConnected: true,
+      githubRepo: selectedRepo?.full_name,
+      createdAt: new Date().toISOString()
     });
 
-    formData.userStoryFiles.forEach((file) => {
-      formDataToSend.append('user_story', file);
-    });
-
-    if (formData.postmanFile) {
-      formDataToSend.append('swagger_documentation', formData.postmanFile);
-    }
-
-    try {
-      const response = await fetch('http://localhost:8080/api/projects', {
-        method: 'POST',
-        body: formDataToSend,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        showNotification('Project created successfully!', 'success');
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } else {
-        const error = await response.json();
-        showNotification(error.detail || 'Failed to create project', 'error');
-      }
-    } catch (error) {
-      showNotification('An error occurred. Please try again.', 'error');
-    }
+    showNotification('Project created successfully!', 'success');
+    setTimeout(() => navigate('/dashboard'), 1500);
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   function handleSkipStep() {
     if (currentStep < 4) {
-    setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep + 1);
     } else {
-    // Optional: final submit or navigate away
+      // Optional: final submit or navigate away
     }
-    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="max-w-5xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
-        {/* Left Panel */}
+        
+        {/* Left Panel (unchanged) */}
         <div className="lg:w-2/5 bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-6 lg:p-8 flex flex-col justify-center">
           <div className="flex items-center gap-2 mb-6">
             <i className="fas fa-robot text-4xl"></i>
@@ -246,7 +246,7 @@ const NewProject = () => {
               ['fab fa-github', 'Direct GitHub integration'],
               ['fas fa-file-upload', 'Multiple document support'],
               ['fas fa-robot', '9 AI testing agents'],
-              ['fas fa-chart-line', 'Automated reports'],
+              ['fas fa-chart-line', 'Automated reports']
             ].map(([icon, text], i) => (
               <div key={i} className="flex items-center gap-2">
                 <i className={`${icon} text-lg`}></i>
@@ -259,12 +259,13 @@ const NewProject = () => {
         {/* Right Panel */}
         <div className="lg:w-3/5 p-6 lg:p-8 overflow-y-auto relative max-h-[90vh]">
           <button
-          onClick={handleSkipStep}
-          aria-label="Skip this step"
-          className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 ">
-          Skip </button>
+            onClick={handleSkipStep}
+            aria-label="Skip this step"
+            className="absolute bottom-9 right-5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 "
+          >
+            Skip 
+          </button>
 
-          {/* <button onClick={handleSkipStep} aria-label="Skip to next step" className="absolute bottom-8 right-60 w-8 h-8"> Skip </button> */}
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 z-10 transition-all"
@@ -273,33 +274,30 @@ const NewProject = () => {
           </button>
 
           <div className="max-w-md mx-auto">
-            {/* Step Progress */}
+            {/* Step Progress (unchanged) */}
             <div className="relative flex justify-between mb-8">
               <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
               <div
                 className="absolute top-5 left-0 h-0.5 bg-emerald-500 transition-all duration-500"
                 style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
               ></div>
-              {[1, 2, 3, 4].map((step) => (
+
+              {[1, 2, 3, 4].map(step => (
                 <div key={step} className="flex flex-col items-center z-10 bg-white dark:bg-gray-800 px-1">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border-3 transition-all duration-300 ${
-                      currentStep >= step
-                        ? 'bg-emerald-500 border-emerald-500 text-white'
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400'
-                    }`}
-                  >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border-3 transition-all duration-300 ${
+                    currentStep >= step
+                      ? 'bg-emerald-500 border-emerald-500 text-white'
+                      : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400'
+                  }`}>
                     {currentStep > step ? <i className="fas fa-check text-xs"></i> : step}
                   </div>
-                  <div
-                    className={`mt-1 text-xs font-semibold text-center ${
-                      currentStep === step
-                        ? 'text-indigo-600 dark:text-indigo-400'
-                        : currentStep > step
+                  <div className={`mt-1 text-xs font-semibold text-center ${
+                    currentStep === step
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                      : currentStep > step
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-gray-400'
-                    }`}
-                  >
+                  }`}>
                     {step === 1 ? 'GitHub' : step === 2 ? 'Details' : step === 3 ? 'Docs' : 'API'}
                   </div>
                 </div>
@@ -313,6 +311,7 @@ const NewProject = () => {
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
                   Connect your GitHub account and select a repository
                 </p>
+
                 {!githubConnected ? (
                   <div className="text-center py-8">
                     <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -336,24 +335,33 @@ const NewProject = () => {
                         <i className="fab fa-github text-white text-xl"></i>
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                          Connected as {githubUser.username}
-                        </p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">Connected as {githubUser.username}</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">Access granted</p>
                       </div>
                       <i className="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Select Repository <span className="text-rose-500">*</span>
                       </label>
+                      {/* New: Manual fetch button */}
+                      {repositories.length === 0 ? (
+                        <button
+                          onClick={handleFetchRepos}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm shadow-lg mb-4"
+                        >
+                          <i className="fas fa-download text-xl"></i>
+                          Load Repositories
+                        </button>
+                      ) : null}
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {repositories.map((repo) => (
                           <button
-                            key={repo.id}
+                            key={repo.full_name} // Use full_name as key (from real data)
                             onClick={() => handleRepoSelect(repo)}
                             className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                              selectedRepo?.id === repo.id
+                              selectedRepo?.full_name === repo.full_name
                                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }`}
@@ -361,13 +369,9 @@ const NewProject = () => {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <i
-                                    className={`fas fa-code-branch text-sm ${
-                                      selectedRepo?.id === repo.id
-                                        ? 'text-indigo-600 dark:text-indigo-400'
-                                        : 'text-gray-400'
-                                    }`}
-                                  ></i>
+                                  <i className={`fas fa-code-branch text-sm ${
+                                    selectedRepo?.full_name === repo.full_name ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'
+                                  }`}></i>
                                   <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                                     {repo.full_name}
                                   </p>
@@ -378,10 +382,10 @@ const NewProject = () => {
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                                  {repo.description || 'No description'}
+                                  {repo.description || 'No description'} {/* Add if API provides */}
                                 </p>
                               </div>
-                              {selectedRepo?.id === repo.id && (
+                              {selectedRepo?.full_name === repo.full_name && (
                                 <i className="fas fa-check-circle text-indigo-600 dark:text-indigo-400"></i>
                               )}
                             </div>
@@ -391,6 +395,7 @@ const NewProject = () => {
                     </div>
                   </div>
                 )}
+
                 <div className="flex justify-end mt-6">
                   <button
                     onClick={handleNextStep}
@@ -403,17 +408,21 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 2: Project Details */}
+            {/* Step 2: Project Details (unchanged) */}
             {currentStep === 2 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Project Information</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">Configure your project details</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                  Configure your project details
+                </p>
+
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 mb-4">
                   <div className="flex items-center gap-2 text-xs">
                     <i className="fab fa-github"></i>
                     <span className="font-semibold">{selectedRepo?.full_name}</span>
                   </div>
                 </div>
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -421,7 +430,7 @@ const NewProject = () => {
                     </label>
                     <input
                       type="text"
-                      value={formData.projectName || ''}
+                      value={formData.projectName}
                       onChange={handleInputChange('projectName')}
                       placeholder="My Awesome Project"
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
@@ -433,7 +442,7 @@ const NewProject = () => {
                     </label>
                     <textarea
                       rows={3}
-                      value={formData.projectDesc || ''}
+                      value={formData.projectDesc}
                       onChange={handleInputChange('projectDesc')}
                       placeholder="Brief description..."
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm resize-none"
@@ -445,13 +454,14 @@ const NewProject = () => {
                     </label>
                     <input
                       type="url"
-                      value={formData.projectURL || ''}
+                      value={formData.projectURL}
                       onChange={handleInputChange('projectURL')}
                       placeholder="https://myproject.com"
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
                     />
                   </div>
                 </div>
+
                 <div className="flex justify-between gap-3 mt-6">
                   <button
                     onClick={() => setCurrentStep(1)}
@@ -469,13 +479,14 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 3: Documents */}
+            {/* Step 3: Documents - MULTIPLE FILES (unchanged) */}
             {currentStep === 3 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Upload Documents</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
                   Upload multiple FRD and User Stories <span className="text-gray-400">(Optional)</span>
                 </p>
+
                 {/* FRD Documents */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
@@ -483,13 +494,14 @@ const NewProject = () => {
                     Functional Requirements (FRD)
                     <span className="text-xs text-gray-500">({formData.frdFiles.length} files)</span>
                   </label>
-                  <input
-                    type="file"
-                    id="frd"
-                    accept=".pdf,.doc,.docx"
+                  
+                  <input 
+                    type="file" 
+                    id="frd" 
+                    accept=".pdf,.doc,.docx" 
                     multiple
-                    onChange={handleMultipleFileChange('frdFiles')}
-                    className="hidden"
+                    onChange={handleMultipleFileChange('frdFiles')} 
+                    className="hidden" 
                   />
                   <label
                     htmlFor="frd"
@@ -499,14 +511,12 @@ const NewProject = () => {
                     <p className="text-gray-700 dark:text-gray-300 font-medium text-sm">Click to upload FRD documents</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PDF, DOC, DOCX • Multiple files allowed</p>
                   </label>
+
                   {/* Uploaded FRD Files */}
                   {formData.frdFiles.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {formData.frdFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg"
-                        >
+                        <div key={index} className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <i className="fas fa-file-pdf text-emerald-600 dark:text-emerald-400"></i>
                             <div className="flex-1 min-w-0">
@@ -534,13 +544,14 @@ const NewProject = () => {
                     User Stories
                     <span className="text-xs text-gray-500">({formData.userStoryFiles.length} files)</span>
                   </label>
-                  <input
-                    type="file"
-                    id="userStory"
-                    accept=".pdf,.doc,.docx,.txt"
+                  
+                  <input 
+                    type="file" 
+                    id="userStory" 
+                    accept=".pdf,.doc,.docx,.txt" 
                     multiple
-                    onChange={handleMultipleFileChange('userStoryFiles')}
-                    className="hidden"
+                    onChange={handleMultipleFileChange('userStoryFiles')} 
+                    className="hidden" 
                   />
                   <label
                     htmlFor="userStory"
@@ -550,14 +561,12 @@ const NewProject = () => {
                     <p className="text-gray-700 dark:text-gray-300 font-medium text-sm">Click to upload User Stories</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PDF, DOC, DOCX, TXT • Multiple files allowed</p>
                   </label>
+
                   {/* Uploaded User Story Files */}
                   {formData.userStoryFiles.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {formData.userStoryFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
-                        >
+                        <div key={index} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <i className="fas fa-file-alt text-purple-600 dark:text-purple-400"></i>
                             <div className="flex-1 min-w-0">
@@ -595,48 +604,40 @@ const NewProject = () => {
               </div>
             )}
 
-            {/* Step 4: API Configuration */}
+            {/* Step 4: API Configuration (unchanged) */}
             {currentStep === 4 && (
               <div className="space-y-4 animate-fadeIn">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">API Configuration</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                  Upload Swagger File <span className="text-gray-400">(Optional)</span>
+                  Upload Postman Collection <span className="text-gray-400">(Optional)</span>
                 </p>
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     <i className="fas fa-cube text-orange-600 dark:text-orange-400"></i>
-                    Swagger File
+                    Postman Collection
                   </label>
-                  <input
-                    type="file"
-                    id="postman"
-                    accept=".json"
-                    onChange={handleSingleFileChange('postmanFile')}
-                    className="hidden"
-                  />
+                  <input type="file" id="postman" accept=".json" onChange={handleSingleFileChange('postmanFile')} className="hidden" />
                   <label
                     htmlFor="postman"
                     className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 cursor-pointer hover:border-gray-500 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-all flex flex-col items-center justify-center text-center"
                   >
                     <i className="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1">Upload Swagger File</p>
+                    <p className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1">Upload Postman Collection</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">JSON format only</p>
                   </label>
+                  
                   {formData.postmanFile && (
                     <div className="mt-3 flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <i className="fas fa-file-code text-orange-600 dark:text-orange-400"></i>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900 dark:text-white font-medium truncate">
-                            {formData.postmanFile.name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatFileSize(formData.postmanFile.size)}
-                          </p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium truncate">{formData.postmanFile.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(formData.postmanFile.size)}</p>
                         </div>
                       </div>
                       <button
-                        onClick={() => setFormData((prev) => ({ ...prev, postmanFile: null }))}
+                        onClick={() => setFormData(prev => ({ ...prev, postmanFile: null }))}
                         className="w-8 h-8 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
                       >
                         <i className="fas fa-times text-red-600 dark:text-red-400"></i>
@@ -644,12 +645,14 @@ const NewProject = () => {
                     </div>
                   )}
                 </div>
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r-lg">
                   <p className="text-xs text-gray-700 dark:text-gray-300">
                     <i className="fas fa-info-circle text-blue-600 dark:text-blue-400 mr-1"></i>
                     You can configure API testing later from the dashboard
                   </p>
                 </div>
+
                 <div className="flex justify-between gap-3 mt-6">
                   <button
                     onClick={() => setCurrentStep(3)}
