@@ -8,6 +8,11 @@ import { smokeApi } from '../api/smokeApi';
 import { performanceApi } from '../api/performanceApi';
 import { projectApi } from '../api/projectApi';
 import { PerformancePdfGenerator } from '../utils/pdf/performancePdfGenerator';
+import { IntegrationPdfGenerator } from '../utils/pdf/integrationPdfGenerator';
+import { TestCasePdfGenerator } from '../utils/pdf/testCasePdfGenerator';
+import { E2EPdfGenerator } from '../utils/pdf/e2ePdfGenerator';
+import { RegressionPdfGenerator } from '../utils/pdf/regressionPdfGenerator';
+import { SmokePdfGenerator } from '../utils/pdf/smokePdfGenerator';
 
 const AgentHistory = ({ currentProject }) => {
   const navigate = useNavigate();
@@ -398,7 +403,7 @@ const AgentHistory = ({ currentProject }) => {
     return agentColors[agentId] || agentColors['test-case-generator'];
   };
 
-  // Download overall performance report as PDF
+  // Download overall reports as PDF (Performance, Integration, Test Case, E2E, Regression, Smoke)
   const handleDownloadOverallReport = async () => {
     try {
       // Get project ID and name
@@ -414,29 +419,138 @@ const AgentHistory = ({ currentProject }) => {
       setGeneratingPdf(true);
 
       try {
-        // Fetch performance data
-        const performanceData = await performanceApi.getProjectTestRuns(projectId);
+        // Fetch all six types of data in parallel
+        const [performanceData, integrationData, testCaseData, e2eData, regressionData, smokeData] = await Promise.allSettled([
+          performanceApi.getProjectTestRuns(projectId).catch(err => {
+            console.warn('Failed to fetch performance data:', err);
+            return null;
+          }),
+          integrationApi.getProjectTestRuns(projectId).catch(err => {
+            console.warn('Failed to fetch integration data:', err);
+            return null;
+          }),
+          testCaseApi.getProjectTestCaseGenerations(projectId).catch(err => {
+            console.warn('Failed to fetch test case data:', err);
+            return null;
+          }),
+          e2eApi.getProjectE2EReports(projectId).catch(err => {
+            console.warn('Failed to fetch E2E data:', err);
+            return null;
+          }),
+          regressionApi.getProjectRegressionTests(projectId).catch(err => {
+            console.warn('Failed to fetch regression data:', err);
+            return null;
+          }),
+          smokeApi.getProjectSmokeTests(projectId).catch(err => {
+            console.warn('Failed to fetch smoke data:', err);
+            return null;
+          })
+        ]);
 
-        // Prepare project data for PDF
-        const projectData = {
-          description: proj?.description || currentProject?.description,
-          concept: proj?.concept || currentProject?.concept,
-          technologies: proj?.technologies || currentProject?.technologies,
-          industry: proj?.industry || currentProject?.industry,
-          areaOfInterest: proj?.areaOfInterest || currentProject?.areaOfInterest
-        };
+        // Generate and download PDFs for each available report
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
 
-        // Generate and download PDF
-        PerformancePdfGenerator.generatePdf(performanceData, projectName, projectData);
+        // Performance Report
+        if (performanceData.status === 'fulfilled' && performanceData.value) {
+          try {
+            PerformancePdfGenerator.generatePdf(
+              performanceData.value, 
+              projectName, 
+              `performance_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate performance PDF:', err);
+          }
+        }
+
+        // Integration Report
+        if (integrationData.status === 'fulfilled' && integrationData.value) {
+          try {
+            IntegrationPdfGenerator.generatePdf(
+              integrationData.value, 
+              projectName, 
+              `integration_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate integration PDF:', err);
+          }
+        }
+
+        // Test Case Report
+        if (testCaseData.status === 'fulfilled' && testCaseData.value) {
+          try {
+            TestCasePdfGenerator.generatePdf(
+              testCaseData.value, 
+              projectName, 
+              `testcase_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate test case PDF:', err);
+          }
+        }
+
+        // E2E Report
+        if (e2eData.status === 'fulfilled' && e2eData.value) {
+          try {
+            E2EPdfGenerator.generatePdf(
+              e2eData.value, 
+              projectName, 
+              `e2e_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate E2E PDF:', err);
+          }
+        }
+
+        // Regression Report
+        if (regressionData.status === 'fulfilled' && regressionData.value) {
+          try {
+            RegressionPdfGenerator.generatePdf(
+              regressionData.value, 
+              projectName, 
+              `regression_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate regression PDF:', err);
+          }
+        }
+
+        // Smoke Report
+        if (smokeData.status === 'fulfilled' && smokeData.value) {
+          try {
+            SmokePdfGenerator.generatePdf(
+              smokeData.value, 
+              projectName, 
+              `smoke_report_${timestamp}.pdf`
+            );
+          } catch (err) {
+            console.error('Failed to generate smoke PDF:', err);
+          }
+        }
+
+        // Check if at least one report was generated
+        const reportsGenerated = 
+          (performanceData.status === 'fulfilled' && performanceData.value) ||
+          (integrationData.status === 'fulfilled' && integrationData.value) ||
+          (testCaseData.status === 'fulfilled' && testCaseData.value) ||
+          (e2eData.status === 'fulfilled' && e2eData.value) ||
+          (regressionData.status === 'fulfilled' && regressionData.value) ||
+          (smokeData.status === 'fulfilled' && smokeData.value);
+
+        if (!reportsGenerated) {
+          alert('No report data available to generate PDFs. Please run tests first.');
+        } else {
+          console.log('✅ All available reports generated successfully');
+        }
       } catch (error) {
-        console.error('Failed to generate PDF report:', error);
-        alert('Failed to generate PDF report. Please try again.');
+        console.error('Failed to generate PDF reports:', error);
+        alert('Failed to generate PDF reports. Please try again.');
       } finally {
         setGeneratingPdf(false);
       }
     } catch (error) {
       console.error('Error in handleDownloadOverallReport:', error);
-      alert('An error occurred while generating the report. Please try again.');
+      alert('An error occurred while generating the reports. Please try again.');
       setGeneratingPdf(false);
     }
   };

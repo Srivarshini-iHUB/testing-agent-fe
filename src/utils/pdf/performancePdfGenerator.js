@@ -1,8 +1,6 @@
 import jsPDF from "jspdf";
 
-/**
- * Enhanced PDF Generator for Performance Test Reports
- */
+
 export class PerformancePdfGenerator {
   static generatePdf(performanceData, projectName = "Project", filename = null) {
     if (!performanceData || !performanceData.items?.length) {
