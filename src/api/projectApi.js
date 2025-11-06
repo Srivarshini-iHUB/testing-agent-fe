@@ -1,5 +1,19 @@
 import apiClient from './client';
 
+// Helper to normalize data to array (handles string, array, or null)
+const normalizeToArray = (data) => {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  if (typeof data === 'string') {
+    // If it's a comma-separated string, split it
+    if (data.includes(',')) {
+      return data.split(',').map(s => s.trim()).filter(s => s)
+    }
+    return [data].filter(s => s)
+  }
+  return []
+}
+
 // Map backend project shape to UI-friendly shape
 const mapProjectToUI = (p) => ({
   id: p.id,
@@ -7,8 +21,8 @@ const mapProjectToUI = (p) => ({
   name: p.project_name,
   description: p.project_description,
   repository: p.github_repo_id || '',
-  frdDocument: p.frd || '',
-  userStories: p.user_story || '',
+  frdDocument: normalizeToArray(p.frd),
+  userStories: normalizeToArray(p.user_story),
   postmanCollection: p.swagger_documentation || '',
   projectUrl: p.project_url || '',
   userId: p.user_id,

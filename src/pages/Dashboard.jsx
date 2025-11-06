@@ -245,6 +245,22 @@ const Dashboard = () => {
   const getFileNameFromUrl = (url) => {
     if (!url) return '';
     
+    // Handle arrays - take the first item or return count
+    if (Array.isArray(url)) {
+      if (url.length === 0) return '';
+      if (url.length === 1) {
+        // Recursively call with first item
+        return getFileNameFromUrl(url[0]);
+      }
+      // Multiple files - return count
+      return `${url.length} files`;
+    }
+    
+    // Ensure url is a string
+    if (typeof url !== 'string') {
+      return String(url);
+    }
+    
     try {
       // Try to decode the URL, but if it fails (already decoded), use the original
       let decodedUrl = url;
@@ -561,6 +577,18 @@ const Dashboard = () => {
                 }
                 
                 if (item.isUrl) {
+                  // Handle arrays - get first URL or show count
+                  if (Array.isArray(item.value)) {
+                    if (item.value.length === 0) {
+                      return { display: '', url: null };
+                    }
+                    if (item.value.length === 1) {
+                      return { display: getFileNameFromUrl(item.value[0]), url: item.value[0] };
+                    }
+                    // Multiple files - show count and use first URL
+                    return { display: `${item.value.length} files`, url: item.value[0] };
+                  }
+                  // Single string value
                   return { display: getFileNameFromUrl(item.value), url: item.value };
                 }
                 

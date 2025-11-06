@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useUser } from '../contexts/UserContext'
 import { projectApi } from '../api/projectApi'
 
 const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   const { project } = useUser()
+  const postmanFileInputRef = useRef(null)
   
   const [editStep, setEditStep] = useState(3)
   const [editFormData, setEditFormData] = useState({
@@ -18,21 +19,69 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     existingUserStoryFiles: []  // Track existing files
   })
 
+  // Helper function to normalize data to array (handles string, array, or null)
+  const normalizeToArray = (data) => {
+    if (!data) return []
+    if (Array.isArray(data)) return data
+    if (typeof data === 'string') {
+      // If it's a comma-separated string, split it
+      if (data.includes(',')) {
+        return data.split(',').map(s => s.trim()).filter(s => s)
+      }
+      return [data]
+    }
+    return []
+  }
+
+  // Helper function to extract filename from URL
+  const extractFilename = (url) => {
+    if (!url) return ''
+    try {
+      const urlObj = new URL(url)
+      const pathname = urlObj.pathname
+      const filename = pathname.split('/').pop()
+      return decodeURIComponent(filename || url)
+    } catch {
+      // If not a valid URL, return as is
+      return url
+    }
+  }
+
   // Initialize form data when modal opens
   useEffect(() => {
-    if (isOpen && project) {
-      setEditFormData({
-        projectName: project.name || '',
-        projectDesc: project.projectDesc || '',
-        projectURL: project.projectURL || '',
-        repoUrl: project.repository || '',
-        frdFiles: [],
-        userStoryFiles: [],
-        postmanFile: null,
-        existingFrdFiles: project.frdDocuments || [],
-        existingUserStoryFiles: project.userStories || []
-      })
-      setEditStep(1)
+    if (isOpen) {
+      // First try to get from context project, then fallback to localStorage
+      let projectData = project
+      
+      if (!projectData) {
+        try {
+          const storedProject = localStorage.getItem('project')
+          if (storedProject) {
+            projectData = JSON.parse(storedProject)
+          }
+        } catch (e) {
+          console.error('Failed to parse project from localStorage:', e)
+        }
+      }
+
+      if (projectData) {
+        // Handle both singular and plural property names
+        const frdData = projectData.frdDocuments || projectData.frdDocument || []
+        const userStoriesData = projectData.userStories || projectData.userStory || []
+        
+        setEditFormData({
+          projectName: projectData.name || projectData.projectName || '',
+          projectDesc: projectData.description || projectData.projectDesc || '',
+          projectURL: projectData.projectUrl || projectData.projectURL || '',
+          repoUrl: projectData.repository || projectData.repoUrl || '',
+          frdFiles: [],
+          userStoryFiles: [],
+          postmanFile: null,
+          existingFrdFiles: normalizeToArray(frdData),
+          existingUserStoryFiles: normalizeToArray(userStoriesData)
+        })
+        setEditStep(1)
+      }
     }
   }, [isOpen, project])
 
@@ -40,14 +89,13 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     setEditFormData(prev => ({ ...prev, [field]: e.target.value }))
   }
 
-  // Handle multiple file uploads
+  // Handle multiple file uploads - upload immediately
   const handleMultipleFileChange = (fileType) => (e) => {
     if (e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files)
-      setEditFormData(prev => ({
-        ...prev,
-        [fileType]: [...prev[fileType], ...newFiles]
-      }))
+      handleAddFile(fileType, newFiles)
+      // Reset input
+      e.target.value = ''
     }
   }
 
@@ -59,13 +107,244 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     }))
   }
 
-  // Remove existing file (already saved)
-  const removeExistingFile = (fileType, index) => {
+  // Remove existing file (already saved) - immediately update DB
+  const removeExistingFile = async (fileType, index) => {
     const existingKey = fileType === 'frdFiles' ? 'existingFrdFiles' : 'existingUserStoryFiles'
+    const fieldName = fileType === 'frdFiles' ? 'frd' : 'user_story'
+    
+    // Get project ID
+    let projectId = project?.id
+    if (!projectId) {
+      try {
+        const storedProject = localStorage.getItem('project')
+        if (storedProject) {
+          const projectData = JSON.parse(storedProject)
+          projectId = projectData.id
+        }
+      } catch (e) {
+        console.error('Failed to parse project from localStorage:', e)
+      }
+    }
+
+    if (!projectId) {
+      showNotification('Project ID not found', 'error')
+      return
+    }
+
+    // Update local state
+    const updatedFiles = editFormData[existingKey].filter((_, i) => i !== index)
     setEditFormData(prev => ({
       ...prev,
-      [existingKey]: prev[existingKey].filter((_, i) => i !== index)
+      [existingKey]: updatedFiles
     }))
+
+    try {
+      // Update DB immediately - send as FormData with JSON string
+      const formData = new FormData()
+      const arrayFieldName = fileType === 'frdFiles' ? 'frd_array' : 'user_story_array'
+      formData.append(arrayFieldName, JSON.stringify(updatedFiles))
+      
+      await projectApi.updateProject(projectId, formData)
+      
+      // Refresh project data
+      const updatedProject = await projectApi.getProject(projectId)
+      const projectDataToStore = {
+        id: updatedProject.id,
+        projectId: updatedProject.projectId,
+        name: updatedProject.name,
+        description: updatedProject.description,
+        repository: updatedProject.repository,
+        frdDocument: normalizeToArray(updatedProject.frdDocument),
+        userStories: normalizeToArray(updatedProject.userStories),
+        postmanCollection: updatedProject.postmanCollection,
+        projectUrl: updatedProject.projectUrl,
+        userId: updatedProject.userId,
+        isActive: updatedProject.isActive,
+        createdAt: updatedProject.createdAt,
+        updatedAt: updatedProject.updatedAt,
+      }
+      localStorage.setItem('project', JSON.stringify(projectDataToStore))
+      
+      showNotification('File removed successfully', 'success')
+    } catch (error) {
+      console.error('Failed to remove file:', error)
+      showNotification('Failed to remove file', 'error')
+      // Revert state on error
+      setEditFormData(prev => ({
+        ...prev,
+        [existingKey]: editFormData[existingKey]
+      }))
+    }
+  }
+
+  // Replace existing file - upload new file and update DB
+  const replaceExistingFile = async (fileType, index, newFile) => {
+    const existingKey = fileType === 'frdFiles' ? 'existingFrdFiles' : 'existingUserStoryFiles'
+    const fieldName = fileType === 'frdFiles' ? 'frd' : 'user_story'
+    const folder = fileType === 'frdFiles' ? 'frd' : 'user_stories'
+    
+    // Get project ID
+    let projectId = project?.id
+    if (!projectId) {
+      try {
+        const storedProject = localStorage.getItem('project')
+        if (storedProject) {
+          const projectData = JSON.parse(storedProject)
+          projectId = projectData.id
+        }
+      } catch (e) {
+        console.error('Failed to parse project from localStorage:', e)
+      }
+    }
+
+    if (!projectId) {
+      showNotification('Project ID not found', 'error')
+      return
+    }
+
+    try {
+      showNotification('Uploading file...', 'info')
+      
+      // Upload new file to Cloudinary via API
+      const uploadFormData = new FormData()
+      const filesKey = fileType === 'frdFiles' ? 'frd' : 'user_story'
+      uploadFormData.append(filesKey, newFile)
+
+      // Upload and get the new URL
+      await projectApi.updateProject(projectId, uploadFormData)
+      
+      // Get the updated project to get the new URL
+      const updatedProject = await projectApi.getProject(projectId)
+      const updatedFiles = normalizeToArray(
+        fileType === 'frdFiles' ? updatedProject.frdDocument : updatedProject.userStories
+      )
+      
+      // Replace the file at the index
+      const currentFiles = [...editFormData[existingKey]]
+      currentFiles[index] = updatedFiles[updatedFiles.length - 1] // Latest uploaded file
+      
+      // Update DB with the replaced array - send as FormData with JSON string
+      const updateFormData = new FormData()
+      const arrayFieldName = fileType === 'frdFiles' ? 'frd_array' : 'user_story_array'
+      updateFormData.append(arrayFieldName, JSON.stringify(currentFiles))
+      await projectApi.updateProject(projectId, updateFormData)
+      
+      // Refresh project data
+      const finalProject = await projectApi.getProject(projectId)
+      const projectDataToStore = {
+        id: finalProject.id,
+        projectId: finalProject.projectId,
+        name: finalProject.name,
+        description: finalProject.description,
+        repository: finalProject.repository,
+        frdDocument: normalizeToArray(finalProject.frdDocument),
+        userStories: normalizeToArray(finalProject.userStories),
+        postmanCollection: finalProject.postmanCollection,
+        projectUrl: finalProject.projectUrl,
+        userId: finalProject.userId,
+        isActive: finalProject.isActive,
+        createdAt: finalProject.createdAt,
+        updatedAt: finalProject.updatedAt,
+      }
+      localStorage.setItem('project', JSON.stringify(projectDataToStore))
+      
+      // Update local state
+      setEditFormData(prev => ({
+        ...prev,
+        [existingKey]: normalizeToArray(
+          fileType === 'frdFiles' ? finalProject.frdDocument : finalProject.userStories
+        )
+      }))
+      
+      showNotification('File replaced successfully', 'success')
+    } catch (error) {
+      console.error('Failed to replace file:', error)
+      showNotification('Failed to replace file', 'error')
+    }
+  }
+
+  // Handle replace file button click
+  const handleReplaceFile = (fileType, index) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = fileType === 'frdFiles' ? '.pdf,.doc,.docx' : '.pdf,.doc,.docx,.txt'
+    input.onchange = (e) => {
+      if (e.target.files.length > 0) {
+        replaceExistingFile(fileType, index, e.target.files[0])
+      }
+    }
+    input.click()
+  }
+
+  // Handle add new file - upload immediately and update DB
+  const handleAddFile = async (fileType, files) => {
+    const fieldName = fileType === 'frdFiles' ? 'frd' : 'user_story'
+    
+    // Get project ID
+    let projectId = project?.id
+    if (!projectId) {
+      try {
+        const storedProject = localStorage.getItem('project')
+        if (storedProject) {
+          const projectData = JSON.parse(storedProject)
+          projectId = projectData.id
+        }
+      } catch (e) {
+        console.error('Failed to parse project from localStorage:', e)
+      }
+    }
+
+    if (!projectId) {
+      showNotification('Project ID not found', 'error')
+      return
+    }
+
+    try {
+      showNotification('Uploading files...', 'info')
+      
+      // Upload files to Cloudinary via API
+      const formData = new FormData()
+      const filesKey = fileType === 'frdFiles' ? 'frd' : 'user_story'
+      Array.from(files).forEach(file => {
+        formData.append(filesKey, file)
+      })
+
+      await projectApi.updateProject(projectId, formData)
+      
+      // Refresh project data
+      const updatedProject = await projectApi.getProject(projectId)
+      const projectDataToStore = {
+        id: updatedProject.id,
+        projectId: updatedProject.projectId,
+        name: updatedProject.name,
+        description: updatedProject.description,
+        repository: updatedProject.repository,
+        frdDocument: normalizeToArray(updatedProject.frdDocument),
+        userStories: normalizeToArray(updatedProject.userStories),
+        postmanCollection: updatedProject.postmanCollection,
+        projectUrl: updatedProject.projectUrl,
+        userId: updatedProject.userId,
+        isActive: updatedProject.isActive,
+        createdAt: updatedProject.createdAt,
+        updatedAt: updatedProject.updatedAt,
+      }
+      localStorage.setItem('project', JSON.stringify(projectDataToStore))
+      
+      // Update local state - add to existing files
+      const existingKey = fileType === 'frdFiles' ? 'existingFrdFiles' : 'existingUserStoryFiles'
+      setEditFormData(prev => ({
+        ...prev,
+        [existingKey]: normalizeToArray(
+          fileType === 'frdFiles' ? updatedProject.frdDocument : updatedProject.userStories
+        ),
+        [fileType]: [] // Clear new files since they're now uploaded
+      }))
+      
+      showNotification('Files uploaded successfully', 'success')
+    } catch (error) {
+      console.error('Failed to upload files:', error)
+      showNotification('Failed to upload files', 'error')
+    }
   }
 
   // Handle single file upload (Postman)
@@ -117,36 +396,83 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     }
 
     try {
-      // Prepare updated data for API
-      const apiData = {
-        project_name: editFormData.projectName,
-        project_description: editFormData.projectDesc,
-        github_repo_id: editFormData.repoUrl,
-        project_url: editFormData.projectURL,
-        frd: editFormData.existingFrdFiles.join(', '), // Convert array to comma-separated string
-        user_story: editFormData.existingUserStoryFiles.join(', '), // Convert array to comma-separated string
-        swagger_documentation: editFormData.postmanFile?.name || project.postmanCollection,
+      // Get project ID - try from context project first, then localStorage
+      let projectId = project?.id
+      if (!projectId) {
+        try {
+          const storedProject = localStorage.getItem('project')
+          if (storedProject) {
+            const projectData = JSON.parse(storedProject)
+            projectId = projectData.id
+          }
+        } catch (e) {
+          console.error('Failed to parse project from localStorage:', e)
+        }
+      }
+
+      if (!projectId) {
+        showNotification('Project ID not found. Please select a project first.', 'error')
+        return
+      }
+
+      // Prepare updated data for API - convert to FormData since backend expects Form fields
+      const formData = new FormData()
+      
+      // Add text fields
+      if (editFormData.projectName) {
+        formData.append('project_name', editFormData.projectName)
+      }
+      if (editFormData.projectDesc) {
+        formData.append('project_description', editFormData.projectDesc)
+      }
+      if (editFormData.repoUrl) {
+        formData.append('github_repo_id', editFormData.repoUrl)
+      }
+      // Always send project_url (empty string will be converted to None by backend)
+      formData.append('project_url', editFormData.projectURL || '')
+      
+      // Add file arrays as JSON strings (if they exist)
+      if (editFormData.existingFrdFiles.length > 0) {
+        formData.append('frd_array', JSON.stringify(editFormData.existingFrdFiles))
+      }
+      if (editFormData.existingUserStoryFiles.length > 0) {
+        formData.append('user_story_array', JSON.stringify(editFormData.existingUserStoryFiles))
+      }
+      
+      // Add Postman/Swagger file if selected
+      if (editFormData.postmanFile) {
+        formData.append('swagger_documentation', editFormData.postmanFile)
       }
 
       // Call updateProject API
-      await projectApi.updateProject(project.id, apiData)
+      await projectApi.updateProject(projectId, formData)
 
       // Fetch updated project data
-      const updatedProject = await projectApi.getProject(project.id)
+      const updatedProject = await projectApi.getProject(projectId)
 
       // Update localStorage with the fresh project data
-      localStorage.setItem('project', JSON.stringify({
+      const projectDataToStore = {
         id: updatedProject.id,
+        projectId: updatedProject.projectId,
         name: updatedProject.name,
+        description: updatedProject.description,
         repository: updatedProject.repository,
-        frdDocument: updatedProject.frdDocument,
-        userStories: updatedProject.userStories,
+        frdDocument: normalizeToArray(updatedProject.frdDocument),
+        userStories: normalizeToArray(updatedProject.userStories),
         postmanCollection: updatedProject.postmanCollection,
-        projectURL: updatedProject.projectUrl,
-      }))
+        projectUrl: updatedProject.projectUrl,
+        userId: updatedProject.userId,
+        isActive: updatedProject.isActive,
+        createdAt: updatedProject.createdAt,
+        updatedAt: updatedProject.updatedAt,
+      }
+      localStorage.setItem('project', JSON.stringify(projectDataToStore))
 
       showNotification('Project updated successfully!', 'success')
-      onSave(updatedProject)
+      if (onSave) {
+        onSave(updatedProject)
+      }
+      onClose()
     } catch (error) {
       console.error('Failed to update project:', error)
       showNotification('Failed to update project. Please try again.', 'error')
@@ -293,21 +619,46 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                 {editFormData.existingFrdFiles.length > 0 && (
                   <div className="mb-2 space-y-2">
                     <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Existing Files:</p>
-                    {editFormData.existingFrdFiles.map((fileName, index) => (
-                      <div key={`existing-frd-${index}`} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <i className="fas fa-file-pdf text-gray-600 dark:text-gray-400 text-sm"></i>
-                          <span className="text-sm text-gray-900 dark:text-white truncate">{fileName}</span>
+                    {editFormData.existingFrdFiles.map((fileUrl, index) => {
+                      const fileName = extractFilename(fileUrl)
+                      const isUrl = fileUrl && (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'))
+                      return (
+                        <div key={`existing-frd-${index}`} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <i className="fas fa-file-pdf text-gray-600 dark:text-gray-400 text-sm"></i>
+                            {isUrl ? (
+                              <a 
+                                href={fileUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1 min-w-0"
+                                title={fileUrl}
+                              >
+                                {fileName || fileUrl}
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-900 dark:text-white truncate">{fileName || fileUrl}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            <button
+                              onClick={() => handleReplaceFile('frdFiles', index)}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                              title="Replace file"
+                            >
+                              <i className="fas fa-exchange-alt text-blue-600 dark:text-blue-400 text-sm"></i>
+                            </button>
+                            <button
+                              onClick={() => removeExistingFile('frdFiles', index)}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                              title="Delete file"
+                            >
+                              <i className="fas fa-times text-red-600 dark:text-red-400 text-sm"></i>
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => removeExistingFile('frdFiles', index)}
-                          className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
-                          title="Remove file"
-                        >
-                          <i className="fas fa-times text-red-600 dark:text-red-400 text-sm"></i>
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
                 
@@ -368,21 +719,46 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                 {editFormData.existingUserStoryFiles.length > 0 && (
                   <div className="mb-2 space-y-2">
                     <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Existing Files:</p>
-                    {editFormData.existingUserStoryFiles.map((fileName, index) => (
-                      <div key={`existing-story-${index}`} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <i className="fas fa-file-alt text-gray-600 dark:text-gray-400 text-sm"></i>
-                          <span className="text-sm text-gray-900 dark:text-white truncate">{fileName}</span>
+                    {editFormData.existingUserStoryFiles.map((fileUrl, index) => {
+                      const fileName = extractFilename(fileUrl)
+                      const isUrl = fileUrl && (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'))
+                      return (
+                        <div key={`existing-story-${index}`} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <i className="fas fa-file-alt text-gray-600 dark:text-gray-400 text-sm"></i>
+                            {isUrl ? (
+                              <a 
+                                href={fileUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1 min-w-0"
+                                title={fileUrl}
+                              >
+                                {fileName || fileUrl}
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-900 dark:text-white truncate">{fileName || fileUrl}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            <button
+                              onClick={() => handleReplaceFile('userStoryFiles', index)}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                              title="Replace file"
+                            >
+                              <i className="fas fa-exchange-alt text-blue-600 dark:text-blue-400 text-sm"></i>
+                            </button>
+                            <button
+                              onClick={() => removeExistingFile('userStoryFiles', index)}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                              title="Delete file"
+                            >
+                              <i className="fas fa-times text-red-600 dark:text-red-400 text-sm"></i>
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => removeExistingFile('userStoryFiles', index)}
-                          className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
-                          title="Remove file"
-                        >
-                          <i className="fas fa-times text-red-600 dark:text-red-400 text-sm"></i>
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
                 
@@ -459,6 +835,7 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                   Current: {project.postmanCollection || 'None'}
                 </div>
                 <input
+                  ref={postmanFileInputRef}
                   type="file"
                   id="edit-postman"
                   accept=".json"
@@ -486,7 +863,13 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                       </div>
                     </div>
                     <button
-                      onClick={() => setEditFormData(prev => ({ ...prev, postmanFile: null }))}
+                      onClick={() => {
+                        setEditFormData(prev => ({ ...prev, postmanFile: null }))
+                        // Reset the file input so the same file can be selected again
+                        if (postmanFileInputRef.current) {
+                          postmanFileInputRef.current.value = ''
+                        }
+                      }}
                       className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
                     >
                       <i className="fas fa-times text-red-600 dark:text-red-400"></i>
