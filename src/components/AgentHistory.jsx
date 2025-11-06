@@ -7,12 +7,14 @@ import { regressionApi } from '../api/regressionApi';
 import { smokeApi } from '../api/smokeApi';
 import { performanceApi } from '../api/performanceApi';
 import { projectApi } from '../api/projectApi';
+import { PerformancePdfGenerator } from '../utils/pdf/performancePdfGenerator';
 
 const AgentHistory = ({ currentProject }) => {
   const navigate = useNavigate();
   const [agentsForProject, setAgentsForProject] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Agent color configurations matching Dashboard.jsx style
   const agentColors = {
@@ -396,11 +398,47 @@ const AgentHistory = ({ currentProject }) => {
     return agentColors[agentId] || agentColors['test-case-generator'];
   };
 
-  // Placeholder function for downloading overall report
-  const handleDownloadOverallReport = () => {
-    // TODO: Implement the download overall report functionality
-    console.log('Download Overall Report clicked');
-    alert('Download Overall Report functionality will be implemented soon');
+  // Download overall performance report as PDF
+  const handleDownloadOverallReport = async () => {
+    try {
+      // Get project ID and name
+      const proj = JSON.parse(localStorage.getItem('project') || 'null');
+      const projectId = proj?.id;
+      const projectName = currentProject?.name || proj?.name || 'Project';
+
+      if (!projectId) {
+        alert('No project selected. Please select a project first.');
+        return;
+      }
+
+      setGeneratingPdf(true);
+
+      try {
+        // Fetch performance data
+        const performanceData = await performanceApi.getProjectTestRuns(projectId);
+
+        // Prepare project data for PDF
+        const projectData = {
+          description: proj?.description || currentProject?.description,
+          concept: proj?.concept || currentProject?.concept,
+          technologies: proj?.technologies || currentProject?.technologies,
+          industry: proj?.industry || currentProject?.industry,
+          areaOfInterest: proj?.areaOfInterest || currentProject?.areaOfInterest
+        };
+
+        // Generate and download PDF
+        PerformancePdfGenerator.generatePdf(performanceData, projectName, projectData);
+      } catch (error) {
+        console.error('Failed to generate PDF report:', error);
+        alert('Failed to generate PDF report. Please try again.');
+      } finally {
+        setGeneratingPdf(false);
+      }
+    } catch (error) {
+      console.error('Error in handleDownloadOverallReport:', error);
+      alert('An error occurred while generating the report. Please try again.');
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -420,10 +458,20 @@ const AgentHistory = ({ currentProject }) => {
         {agentsForProject.length > 0 && !loading && (
           <button
             onClick={handleDownloadOverallReport}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+            disabled={generatingPdf}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <i className="fas fa-download"></i>
-            <span>Download All Reports</span>
+            {generatingPdf ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <i className="fas fa-download"></i>
+                <span>Download All Reports</span>
+              </>
+            )}
           </button>
         )}
       </div>
