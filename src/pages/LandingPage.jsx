@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import UserProfile from '../components/auth/UserProfile';
+import GlareHover from '../components/GlareHover';
+import TiltedCard from '../components/TiltedCard';
+import SpotlightCard from '../components/SpotlightCard';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -193,7 +196,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="flex items-center gap-3 group cursor-pointer cursor-target">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 animate-pulse-slow">
                 <i className="fas fa-flask text-white text-lg"></i>
               </div>
@@ -202,15 +205,15 @@ const LandingPage = () => {
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
+              <a href="#features" className="cursor-target text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 Features
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
-              <a href="#agents" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
+              <a href="#agents" className="cursor-target text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 Agents
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
-              <a href="#workflow" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
+              <a href="#workflow" className="cursor-target text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-all duration-300 hover:scale-105 relative group">
                 How It Works
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 group-hover:w-full transition-all duration-300"></span>
               </a>
@@ -220,7 +223,7 @@ const LandingPage = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={toggleTheme}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                className="cursor-target p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
               >
                 <i className={`fas ${isDark ? 'fa-sun' : 'fa-moon'}`}></i>
               </button>
@@ -230,7 +233,7 @@ const LandingPage = () => {
               ) : (
                 <button
                   onClick={() => navigate('/onboarding')}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md"
+                  className="cursor-target bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md"
                 >
                   Get Started
                 </button>
@@ -292,14 +295,14 @@ const LandingPage = () => {
                 <>
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
+                    className="cursor-target group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
                   >
                     Go to Dashboard
                     <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                   </button>
                   <button
                     onClick={() => navigate('/onboarding')}
-                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
+                    className="cursor-target bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
                   >
                     <i className="fas fa-plus-circle"></i>
                     New Project
@@ -309,14 +312,14 @@ const LandingPage = () => {
                 <>
                   <button
                     onClick={() => navigate('/onboarding')}
-                    className="group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
+                    className="cursor-target group bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-2"
                   >
                     Start Testing
                     <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                   </button>
                   <button
                     onClick={() => document.getElementById('agents').scrollIntoView({ behavior: 'smooth' })}
-                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
+                    className="cursor-target bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 flex items-center gap-2"
                   >
                     <i className="fas fa-play-circle"></i>
                     Explore Agents
@@ -328,15 +331,27 @@ const LandingPage = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
               {stats.map((stat, index) => (
-                <div 
-                  key={index} 
-                  className="bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl hover:scale-105 hover:-translate-y-2 transition-all duration-300 cursor-pointer group animate-fade-in-up-delay-3"
+                <GlareHover
+                  key={index}
+                  width="100%"
+                  height="auto"
+                  background="transparent"
+                  borderRadius="12px"
+                  borderColor={isDark ? 'rgba(75, 85, 99, 0.7)' : 'rgba(229, 231, 235, 1)'}
+                  glareColor="#ffffff"
+                  glareOpacity={0.3}
+                  glareAngle={-45}
+                  glareSize={250}
+                  transitionDuration={650}
+                  className="cursor-target p-6 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group hover:scale-105 hover:-translate-y-2 duration-300 cursor-pointer animate-fade-in-up-delay-3"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <i className={`fas ${stat.icon} text-3xl text-indigo-600 dark:text-indigo-400 mb-3 group-hover:animate-bounce`}></i>
-                  {/* <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div> */}
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
-                </div>
+                  <div className="relative z-10 w-full">
+                    <i className={`fas ${stat.icon} text-3xl text-indigo-600 dark:text-indigo-400 mb-3 group-hover:animate-bounce`}></i>
+                    {/* <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div> */}
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
+                  </div>
+                </GlareHover>
               ))}
             </div>
           </div>
@@ -348,7 +363,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white dark:bg-gray-800/30">
+      <section id="features" className="py-20 bg-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -361,9 +376,19 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div
+              <GlareHover
                 key={index}
-                className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group hover:scale-105 hover:-translate-y-2 duration-300 animate-fade-in-up"
+                width="100%"
+                height="auto"
+                background="transparent"
+                borderRadius="16px"
+                borderColor={isDark ? 'rgba(75, 85, 99, 0.7)' : 'rgba(229, 231, 235, 1)'}
+                glareColor="#ffffff"
+                glareOpacity={0.3}
+                glareAngle={-45}
+                glareSize={250}
+                transitionDuration={650}
+                className="cursor-target p-8 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group hover:scale-105 hover:-translate-y-2 duration-300 animate-fade-in-up"
                 style={{ 
                   animationDelay: `${index * 100}ms`,
                   opacity: scrollY > 200 ? 1 : 0.3,
@@ -371,12 +396,14 @@ const LandingPage = () => {
                   transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               >
-                <div className={`${feature.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
-                  <i className={`fas ${feature.icon} text-2xl ${feature.color}`}></i>
+                <div className="relative z-10 w-full">
+                  <div className={`${feature.bgColor} w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300`}>
+                    <i className={`fas ${feature.icon} text-2xl ${feature.color}`}></i>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
-              </div>
+              </GlareHover>
             ))}
           </div>
         </div>
@@ -405,7 +432,7 @@ const LandingPage = () => {
                 <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-2 hover:scale-105 ${
+                    className={`cursor-target px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-2 hover:scale-105 ${
                     activeTab === tab.id
                         ? 'bg-indigo-600 text-white shadow-md scale-105'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
@@ -421,25 +448,28 @@ const LandingPage = () => {
             {/* Compact Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredAgents.map((agent, index) => (
-                <div
+                <TiltedCard
                 key={agent.id}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-2xl transition-all duration-300 group hover:scale-105 hover:-translate-y-2 cursor-pointer"
-                style={{
-                  animationDelay: `${index * 50}ms`
-                }}
+                containerHeight="auto"
+                containerWidth="100%"
+                scaleOnHover={1.03}
+                rotateAmplitude={6}
+                showMobileWarning={false}
+                showTooltip={false}
+                borderRadius="12px"
+                className="cursor-pointer"
                 >
-                <div className="p-5">
+                <div className="relative z-10 w-full h-full p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:shadow-xl group">
                     <div className="flex items-start gap-3 mb-3">
-                    <div className={`${agent.iconBg} w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 relative`}>
+                    <div className={`${agent.iconBg} w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 relative`}>
                         <i className={`fas ${agent.icon} ${agent.iconColor} text-xl`}></i>
-                        <div className="absolute inset-0 rounded-lg bg-white/20 group-hover:animate-ping opacity-0 group-hover:opacity-100"></div>
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {agent.name}
                         </h3>
                         <div className="flex items-center text-xs text-emerald-600 dark:text-emerald-400">
-                        <i className="fas fa-circle text-[6px] mr-1.5 animate-pulse"></i>
+                        <i className="fas fa-circle text-[6px] mr-1.5"></i>
                         Ready
                         </div>
                     </div>
@@ -448,14 +478,14 @@ const LandingPage = () => {
                     {agent.description}
                     </p>
                 </div>
-                </div>
+                </TiltedCard>
             ))}
             </div>
         </div>
         </section>
 
       {/* Workflow Section - Professional Timeline */}
-        <section id="workflow" className="py-20 bg-white dark:bg-gray-800/30">
+        <section id="workflow" className="py-20 bg-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -468,59 +498,44 @@ const LandingPage = () => {
 
             {/* Timeline Container */}
             <div className="relative">
-            {/* Connection Line - Desktop Only */}
-            <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 dark:from-indigo-800 dark:via-purple-800 dark:to-pink-800"></div>
-
             {/* Steps Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
                 {workflowSteps.map((step, index) => (
                 <div key={index} className="relative flex flex-col items-center">
-                    {/* Step Number Circle */}
-                    {/* <div className="relative z-10 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform"> */}
-                    {/* <span className="text-2xl font-bold text-white">{index + 1}</span> */}
-                    {/* </div> */}
+                    {/* Content Card */}
+                    <SpotlightCard 
+                    className={`cursor-target w-full h-full flex flex-col group hover:scale-105 hover:-translate-y-2 duration-300 p-6 ${
+                        isDark 
+                          ? 'border border-gray-700 bg-gray-800/50' 
+                          : 'border border-gray-200 bg-white/50'
+                    }`}
+                    spotlightColor={isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.15)'}
+                    >
+                    <div className="relative z-10 w-full h-full flex flex-col">
+                        {/* Icon */}
+                        <div className="bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 relative">
+                            <i className={`fas ${step.icon} text-2xl text-indigo-600 dark:text-indigo-400 z-10`}></i>
+                            <div className="absolute inset-0 rounded-xl bg-indigo-200/50 dark:bg-indigo-800/50 group-hover:animate-pulse"></div>
+                        </div>
 
-                    {/* Arrow Connector - Desktop Only */}
-                    {index < workflowSteps.length - 1 && (
-                    <div className="hidden lg:block absolute top-8 left-1/2 w-full">
-                        <div className="flex items-center justify-end pr-6">
-                        <i className="fas fa-arrow-right text-2xl text-indigo-300 dark:text-indigo-700"></i>
+                        {/* Title */}
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {step.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed flex-grow">
+                            {step.description}
+                        </p>
+
+                        {/* Step Indicator */}
+                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide group-hover:tracking-wider transition-all">
+                            Step {index + 1}
+                            </span>
                         </div>
                     </div>
-                    )}
-
-                    {/* Content Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-xl transition-all w-full h-full flex flex-col group hover:scale-105 hover:-translate-y-2 duration-300">
-                    {/* Icon */}
-                    <div className="bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 relative">
-                        <i className={`fas ${step.icon} text-2xl text-indigo-600 dark:text-indigo-400 z-10`}></i>
-                        <div className="absolute inset-0 rounded-xl bg-indigo-200/50 dark:bg-indigo-800/50 group-hover:animate-pulse"></div>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {step.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed flex-grow">
-                        {step.description}
-                    </p>
-
-                    {/* Step Indicator */}
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide group-hover:tracking-wider transition-all">
-                        Step {index + 1}
-                        </span>
-                    </div>
-                    </div>
-
-                    {/* Mobile Arrow - Between Cards */}
-                    {index < workflowSteps.length - 1 && (
-                    <div className="lg:hidden flex justify-center my-4">
-                        <i className="fas fa-arrow-down text-3xl text-indigo-300 dark:text-indigo-700"></i>
-                    </div>
-                    )}
+                    </SpotlightCard>
                 </div>
                 ))}
             </div>
@@ -532,7 +547,7 @@ const LandingPage = () => {
       {/* CTA Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-12 shadow-2xl relative overflow-hidden hover:shadow-indigo-500/50 transition-all duration-300">
+          <div className="cursor-target bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-12 shadow-2xl relative overflow-hidden hover:shadow-indigo-500/50 transition-all duration-300">
             <div className="relative z-10">
               <h2 className="text-4xl font-bold text-white mb-4 animate-fadeIn">
                 Ready to Revolutionize Your Testing?
@@ -545,14 +560,14 @@ const LandingPage = () => {
                 <>
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
+                    className="cursor-target bg-white text-indigo-600 dark:text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
                   >
                     Go to Dashboard
                     <i className="fas fa-chart-line"></i>
                   </button>
                   <button
                     onClick={() => navigate('/onboarding')}
-                    className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                    className="cursor-target bg-white/80 dark:bg-white/10 backdrop-blur-sm text-gray-800 dark:text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/40 dark:border-white/20 hover:bg-white dark:hover:bg-white/20 transition-all flex items-center gap-2"
                   >
                     New Project
                     <i className="fas fa-plus"></i>
@@ -562,14 +577,14 @@ const LandingPage = () => {
                 <>
                   <button
                     onClick={() => navigate('/onboarding')}
-                    className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
+                    className="cursor-target bg-white text-indigo-600 dark:text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2"
                   >
                     Start Testing Now
                     <i className="fas fa-rocket"></i>
                   </button>
                   <button
                     onClick={() => document.getElementById('agents').scrollIntoView({ behavior: 'smooth' })}
-                    className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                    className="cursor-target bg-white/80 dark:bg-white/10 backdrop-blur-sm text-gray-800 dark:text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/40 dark:border-white/20 hover:bg-white dark:hover:bg-white/20 transition-all flex items-center gap-2"
                   >
                     Learn More
                     <i className="fas fa-info-circle"></i>
@@ -600,22 +615,22 @@ const LandingPage = () => {
             <div>
               <h3 className="font-bold mb-4">Platform</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#agents" className="hover:text-white transition-colors">Agents</a></li>
-                <li><a href="#workflow" className="hover:text-white transition-colors">How It Works</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#features" className="cursor-target hover:text-white transition-colors">Features</a></li>
+                <li><a href="#agents" className="cursor-target hover:text-white transition-colors">Agents</a></li>
+                <li><a href="#workflow" className="cursor-target hover:text-white transition-colors">How It Works</a></li>
+                <li><a href="#" className="cursor-target hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-bold mb-4">Connect</h3>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                <a href="#" className="cursor-target w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
                   <i className="fab fa-github group-hover:animate-pulse"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                <a href="#" className="cursor-target w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
                   <i className="fab fa-twitter group-hover:animate-pulse"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
+                <a href="#" className="cursor-target w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-all duration-300 hover:scale-110 hover:rotate-12 group">
                   <i className="fab fa-linkedin group-hover:animate-pulse"></i>
                 </a>
               </div>
