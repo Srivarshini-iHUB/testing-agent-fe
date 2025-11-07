@@ -8,7 +8,7 @@ import { projectApi } from "../api/projectApi";
 
 const Dashboard = () => {
   const { theme, isDark, toggleTheme } = useTheme();
-  const { user, project, updateProject } = useUser();
+  const { user, project, updateProject, resetProject } = useUser();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("history");
@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(true); // Start as true to indicate initial loading
   const [projectsError, setProjectsError] = useState("");
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
 
   // Check if user is new (no projects) - only after loading is complete
   const isFirstTimeUser = !projectsLoading && projects.length === 0;
@@ -221,6 +222,49 @@ const Dashboard = () => {
     
     // Success notification
   
+  };
+
+  const handleDeleteProject = async (event, proj) => {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (deletingProjectId) return;
+
+    const confirmed = window.confirm(`Delete project "${proj?.name}"? This action cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingProjectId(proj.id);
+      await projectApi.deleteProject(proj.id);
+
+      const updatedProjects = projects.filter((p) => p.id !== proj.id);
+      setProjects(updatedProjects);
+
+      if (currentProject?.id === proj.id) {
+        const fallbackProject = updatedProjects[0] || null;
+        setCurrentProject(fallbackProject);
+
+        if (fallbackProject) {
+          updateProject({
+            id: fallbackProject.id,
+            name: fallbackProject.name,
+            repository: fallbackProject.repository,
+            frdDocument: fallbackProject.frdDocument,
+            userStories: fallbackProject.userStories,
+            postmanCollection: fallbackProject.postmanCollection,
+          });
+        } else {
+          resetProject();
+        }
+      }
+    } catch (error) {
+      const message = error?.response?.data?.detail || error?.message || 'Failed to delete project.';
+      alert(message);
+    } finally {
+      setDeletingProjectId(null);
+    }
   };
 
   const handleNewProject = () => {
@@ -452,48 +496,66 @@ const Dashboard = () => {
                   </div>
                   
                   <div className="max-h-80 overflow-y-auto">
-                    {projects.map((proj) => (
-                      <button
-                        key={proj.id}
-                        onClick={() => handleProjectSwitch(proj)}
-                        className={`w-full text-left px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border-l-4 ${
-                          currentProject?.id === proj.id ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : 'border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                currentProject?.id === proj.id ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
-                              }`}>
-                                <i className={`fas fa-folder text-sm ${
-                                  currentProject?.id === proj.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
-                                }`}></i>
+                    {projects.map((proj) => {
+                      const isActive = currentProject?.id === proj.id;
+                      return (
+                        <div
+                          key={proj.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleProjectSwitch(proj)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleProjectSwitch(proj);
+                            }
+                          }}
+                          className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border-l-4 cursor-pointer ${
+                            isActive ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : 'border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  isActive ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+                                }`}>
+                                  <i className={`fas fa-folder text-sm ${
+                                    isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                                  }`}></i>
+                                </div>
+                                <p className={`font-semibold truncate ${
+                                  isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-white'
+                                }`}>
+                                  {proj?.name}
+                                </p>
                               </div>
-                              <p className={`font-semibold truncate ${
-                                currentProject?.id === proj.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-white'
-                              }`}>
-                                {proj?.name}
-                              </p>
+                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <i className="fas fa-calendar-alt"></i>
+                                  {proj?.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : ''}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <i className="fas fa-calendar-alt"></i>
-                                {proj?.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : ''}
-                              </span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={(event) => handleDeleteProject(event, proj)}
+                              disabled={deletingProjectId === proj.id}
+                              className={`text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors ${
+                                deletingProjectId === proj.id ? 'cursor-wait opacity-75' : ''
+                              }`}
+                              aria-label={`Delete project ${proj?.name}`}
+                            >
+                              {deletingProjectId === proj.id ? (
+                                <i className="fas fa-spinner fa-spin text-sm"></i>
+                              ) : (
+                                <i className="fas fa-trash-alt text-sm"></i>
+                              )}
+                            </button>
                           </div>
-                          {currentProject?.id === proj.id && (
-                            <div className="flex flex-col items-center gap-1">
-                              <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-                                <i className="fas fa-check text-white text-xs"></i>
-                              </div>
-                              <span className="text-xs font-semibold text-green-600">Active</span>
-                            </div>
-                          )}
                         </div>
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
