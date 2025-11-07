@@ -5,7 +5,7 @@ export const authConfig = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '1009020036903-vtonch0rn6v9ciosaf4enr5kbhta5rnp.apps.googleusercontent.com',
   
   // API Base URL
-  apiBaseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  apiBaseUrl: import.meta.env.VITE_API_URL || 'https://6f890eb997db.ngrok-free.app/webhook',
   
   // Token storage key
   tokenKey: 'auth_token',

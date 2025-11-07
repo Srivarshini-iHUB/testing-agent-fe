@@ -65,6 +65,9 @@ const NewProject = () => {
     message: '',
   });
 
+  const trimmedProjectDescriptionValue =
+    typeof formData.projectDesc === 'string' ? formData.projectDesc.trim() : '';
+
   // Mock GitHub repos
   const mockGithubRepos = [
     { id: 1, name: 'ecommerce-app', full_name: 'ajay/ecommerce-app', description: 'E-commerce platform with React', private: false },
@@ -220,6 +223,12 @@ const NewProject = () => {
         message: nameCheckState.message || 'Unable to verify project name',
       };
     }
+    if (!trimmedProjectDescriptionValue) {
+      return {
+        valid: false,
+        message: 'Please enter your project description',
+      };
+    }
     return { valid: true };
   };
 
@@ -300,6 +309,12 @@ const NewProject = () => {
       return;
     }
 
+    if (!trimmedProjectDescriptionValue) {
+      showNotification('Please enter your project description before creating the project', 'error');
+      setCurrentStep(2);
+      return;
+    }
+
     try {
       const availability = await projectApi.checkProjectNameAvailability({
         userId,
@@ -323,9 +338,7 @@ const NewProject = () => {
     
     const formDataToSend = new FormData();
     formDataToSend.append('project_name', trimmedProjectName);
-    if (formData.projectDesc !== null) {
-      formDataToSend.append('project_description', formData.projectDesc);
-    }
+    formDataToSend.append('project_description', trimmedProjectDescriptionValue);
     if (formData.projectURL !== null) {
       formDataToSend.append('project_url', formData.projectURL);
     }
@@ -594,7 +607,7 @@ const NewProject = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Project Description
+                      Project Description <span className="text-rose-500">*</span>
                     </label>
                     <textarea
                       rows={3}
@@ -602,6 +615,7 @@ const NewProject = () => {
                       onChange={handleInputChange('projectDesc')}
                       placeholder="Brief description..."
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm resize-none"
+                      required
                     />
                   </div>
                   <div>
@@ -629,7 +643,8 @@ const NewProject = () => {
                     disabled={
                       nameCheckState.status === 'loading' ||
                       nameCheckState.status === 'unavailable' ||
-                      nameCheckState.exists
+                      nameCheckState.exists ||
+                      !trimmedProjectDescriptionValue
                     }
                     className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
