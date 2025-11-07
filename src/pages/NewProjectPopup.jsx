@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import { projectApi } from '../api/projectApi';
 
 const NewProject = () => {
   const { isDark } = useTheme();
@@ -10,6 +11,19 @@ const NewProject = () => {
   
   const navigate = useNavigate();
   
+  const getResolvedUser = () => {
+    if (user) return user;
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {
+        console.error('Failed to parse stored user:', e);
+      }
+    }
+    return null;
+  };
+
   // Sync user from localStorage if context user is null
   useEffect(() => {
     if (!user) {
@@ -40,6 +54,13 @@ const NewProject = () => {
     frdFiles: [],
     userStoryFiles: [],
     postmanFile: null,
+  });
+
+  const nameCheckTimeoutRef = useRef(null);
+  const [nameCheckState, setNameCheckState] = useState({
+    status: 'idle',
+    exists: false,
+    message: '',
   });
 
   // Mock GitHub repos
@@ -100,6 +121,73 @@ const NewProject = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    if (nameCheckTimeoutRef.current) {
+      clearTimeout(nameCheckTimeoutRef.current);
+      nameCheckTimeoutRef.current = null;
+    }
+
+    const trimmedName = typeof formData.projectName === 'string' ? formData.projectName.trim() : '';
+
+    if (!trimmedName) {
+      setNameCheckState({ status: 'idle', exists: false, message: '' });
+      return;
+    }
+
+    const resolvedUser = getResolvedUser();
+    const userId = resolvedUser?.user_id || resolvedUser?.id;
+
+    if (!userId) {
+      setNameCheckState({
+        status: 'error',
+        exists: false,
+        message: 'Please log in to validate project name',
+      });
+      return;
+    }
+
+    setNameCheckState({ status: 'loading', exists: false, message: '' });
+
+    let isCancelled = false;
+
+    nameCheckTimeoutRef.current = setTimeout(async () => {
+      try {
+        const result = await projectApi.checkProjectNameAvailability({
+          userId,
+          projectName: trimmedName,
+        });
+
+        if (isCancelled) return;
+
+        setNameCheckState({
+          status: result.exists ? 'unavailable' : 'available',
+          exists: Boolean(result.exists),
+          message:
+            result.message ||
+            (result.exists
+              ? 'Project name already exists for this user.'
+              : 'Project name is available.'),
+        });
+      } catch (error) {
+        if (isCancelled) return;
+        console.error('Failed to check project name availability:', error);
+        setNameCheckState({
+          status: 'error',
+          exists: false,
+          message: 'Unable to verify project name right now.',
+        });
+      }
+    }, 400);
+
+    return () => {
+      isCancelled = true;
+      if (nameCheckTimeoutRef.current) {
+        clearTimeout(nameCheckTimeoutRef.current);
+        nameCheckTimeoutRef.current = null;
+      }
+    };
+  }, [formData.projectName, user]);
+
   const validateGithubStep = () => {
     if (!githubConnected || !selectedRepo) {
       return { valid: false, message: 'Please connect GitHub and select a repository' };
@@ -110,6 +198,21 @@ const NewProject = () => {
   const validateProjectForm = () => {
     if (!formData.projectName || (typeof formData.projectName === 'string' && formData.projectName.trim() === '')) {
       return { valid: false, message: 'Please enter your project name' };
+    }
+    if (nameCheckState.status === 'loading') {
+      return { valid: false, message: 'Please wait while we verify your project name' };
+    }
+    if (nameCheckState.exists || nameCheckState.status === 'unavailable') {
+      return {
+        valid: false,
+        message: nameCheckState.message || 'Project name already exists for this user',
+      };
+    }
+    if (nameCheckState.status === 'error') {
+      return {
+        valid: false,
+        message: nameCheckState.message || 'Unable to verify project name',
+      };
     }
     return { valid: true };
   };
@@ -165,7 +268,7 @@ const NewProject = () => {
 
   const handleStartTesting = async () => {
     // Get user_id from context or localStorage as fallback
-    const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
+    const currentUser = getResolvedUser();
     const userId = currentUser?.user_id || currentUser?.id;
     
     if (!userId) {
@@ -173,9 +276,39 @@ const NewProject = () => {
       setTimeout(() => navigate('/onboarding'), 2000);
       return;
     }
+
+    const trimmedProjectName =
+      typeof formData.projectName === 'string' ? formData.projectName.trim() : '';
+
+    if (!trimmedProjectName) {
+      showNotification('Please enter your project name before creating the project', 'error');
+      setCurrentStep(2);
+      return;
+    }
+
+    try {
+      const availability = await projectApi.checkProjectNameAvailability({
+        userId,
+        projectName: trimmedProjectName,
+      });
+
+      if (availability.exists) {
+        showNotification(
+          availability.message || 'Project name already exists for this user',
+          'error'
+        );
+        setCurrentStep(2);
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to verify project name before creating project:', error);
+      showNotification('Unable to verify project name. Please try again.', 'error');
+      setCurrentStep(2);
+      return;
+    }
     
     const formDataToSend = new FormData();
-    formDataToSend.append('project_name', formData.projectName || '');
+    formDataToSend.append('project_name', trimmedProjectName);
     if (formData.projectDesc !== null) {
       formDataToSend.append('project_description', formData.projectDesc);
     }
@@ -426,6 +559,24 @@ const NewProject = () => {
                       placeholder="My Awesome Project"
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
                     />
+                    {nameCheckState.status === 'loading' && (
+                      <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">Checking availability...</p>
+                    )}
+                    {nameCheckState.status === 'unavailable' && (
+                      <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                        {nameCheckState.message || 'Project name already exists for this user.'}
+                      </p>
+                    )}
+                    {nameCheckState.status === 'available' && (
+                      <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        {nameCheckState.message || 'Project name is available.'}
+                      </p>
+                    )}
+                    {nameCheckState.status === 'error' && (
+                      <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                        {nameCheckState.message || 'Unable to verify project name right now.'}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -461,7 +612,12 @@ const NewProject = () => {
                   </button>
                   <button
                     onClick={handleNextStep}
-                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg"
+                    disabled={
+                      nameCheckState.status === 'loading' ||
+                      nameCheckState.status === 'unavailable' ||
+                      nameCheckState.exists
+                    }
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next <i className="fas fa-arrow-right"></i>
                   </button>

@@ -5,6 +5,8 @@ import { projectApi } from '../api/projectApi'
 const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   const { project } = useUser()
   const postmanFileInputRef = useRef(null)
+  const nameCheckTimeoutRef = useRef(null)
+  const initialProjectNameRef = useRef('')
   
   const [editStep, setEditStep] = useState(3)
   const [editFormData, setEditFormData] = useState({
@@ -16,7 +18,14 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     userStoryFiles: [],  // Changed to array
     postmanFile: null,
     existingFrdFiles: [],  // Track existing files
-    existingUserStoryFiles: []  // Track existing files
+    existingUserStoryFiles: [],  // Track existing files
+    existingSwaggerFile: ''
+  })
+
+  const [nameCheckState, setNameCheckState] = useState({
+    status: 'idle',
+    exists: false,
+    message: '',
   })
 
   // Helper function to normalize data to array (handles string, array, or null)
@@ -47,6 +56,70 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     }
   }
 
+  const resolveUserId = () => {
+    if (project?.userId || project?.user_id) {
+      return project.userId || project.user_id
+    }
+
+    try {
+      const storedProject = localStorage.getItem('project')
+      if (storedProject) {
+        const parsedProject = JSON.parse(storedProject)
+        if (parsedProject?.userId || parsedProject?.user_id) {
+          return parsedProject.userId || parsedProject.user_id
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse stored project for userId:', e)
+    }
+
+    try {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser)
+        return parsedUser?.user_id || parsedUser?.id || null
+      }
+    } catch (e) {
+      console.error('Failed to parse stored user for userId:', e)
+    }
+
+    return null
+  }
+
+  const persistProjectData = (updatedProject) => {
+    if (!updatedProject) return
+
+    initialProjectNameRef.current = updatedProject.name || updatedProject.projectName || ''
+
+    const normalizedFrd = normalizeToArray(updatedProject.frdDocument)
+    const normalizedUserStories = normalizeToArray(updatedProject.userStories)
+
+    const projectDataToStore = {
+      id: updatedProject.id,
+      projectId: updatedProject.projectId,
+      name: updatedProject.name,
+      description: updatedProject.description,
+      repository: updatedProject.repository,
+      frdDocument: normalizedFrd,
+      userStories: normalizedUserStories,
+      postmanCollection: updatedProject.postmanCollection,
+      projectUrl: updatedProject.projectUrl,
+      userId: updatedProject.userId,
+      isActive: updatedProject.isActive,
+      createdAt: updatedProject.createdAt,
+      updatedAt: updatedProject.updatedAt,
+    }
+
+    localStorage.setItem('project', JSON.stringify(projectDataToStore))
+
+    setEditFormData(prev => ({
+      ...prev,
+      existingFrdFiles: normalizedFrd,
+      existingUserStoryFiles: normalizedUserStories,
+      existingSwaggerFile: updatedProject.postmanCollection || '',
+    }))
+  }
+
   // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +141,10 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
         // Handle both singular and plural property names
         const frdData = projectData.frdDocuments || projectData.frdDocument || []
         const userStoriesData = projectData.userStories || projectData.userStory || []
+
+        const initialName = projectData.name || projectData.projectName || ''
+        initialProjectNameRef.current = initialName
+        setNameCheckState({ status: 'unchanged', exists: false, message: '' })
         
         setEditFormData({
           projectName: projectData.name || projectData.projectName || '',
@@ -78,7 +155,8 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
           userStoryFiles: [],
           postmanFile: null,
           existingFrdFiles: normalizeToArray(frdData),
-          existingUserStoryFiles: normalizeToArray(userStoriesData)
+          existingUserStoryFiles: normalizeToArray(userStoriesData),
+          existingSwaggerFile: projectData.postmanCollection || ''
         })
         setEditStep(1)
       }
@@ -88,6 +166,81 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   const handleInputChange = (field) => (e) => {
     setEditFormData(prev => ({ ...prev, [field]: e.target.value }))
   }
+
+  useEffect(() => {
+    if (nameCheckTimeoutRef.current) {
+      clearTimeout(nameCheckTimeoutRef.current)
+      nameCheckTimeoutRef.current = null
+    }
+
+    const trimmedName = editFormData.projectName ? editFormData.projectName.trim() : ''
+
+    if (!trimmedName) {
+      setNameCheckState({ status: 'idle', exists: false, message: '' })
+      return
+    }
+
+    const initialTrimmed = initialProjectNameRef.current
+      ? initialProjectNameRef.current.trim()
+      : ''
+
+    if (initialTrimmed && trimmedName.toLowerCase() === initialTrimmed.toLowerCase()) {
+      setNameCheckState({ status: 'unchanged', exists: false, message: '' })
+      return
+    }
+
+    const userId = resolveUserId()
+
+    if (!userId) {
+      setNameCheckState({
+        status: 'error',
+        exists: false,
+        message: 'Unable to determine user. Please refresh and try again.',
+      })
+      return
+    }
+
+    setNameCheckState({ status: 'loading', exists: false, message: '' })
+
+    let isCancelled = false
+
+    nameCheckTimeoutRef.current = setTimeout(async () => {
+      try {
+        const result = await projectApi.checkProjectNameAvailability({
+          userId,
+          projectName: trimmedName,
+        })
+
+        if (isCancelled) return
+
+        setNameCheckState({
+          status: result.exists ? 'unavailable' : 'available',
+          exists: Boolean(result.exists),
+          message:
+            result.message ||
+            (result.exists
+              ? 'Project name already exists for this user.'
+              : 'Project name is available.'),
+        })
+      } catch (error) {
+        if (isCancelled) return
+        console.error('Failed to check project name availability:', error)
+        setNameCheckState({
+          status: 'error',
+          exists: false,
+          message: 'Unable to verify project name right now.',
+        })
+      }
+    }, 400)
+
+    return () => {
+      isCancelled = true
+      if (nameCheckTimeoutRef.current) {
+        clearTimeout(nameCheckTimeoutRef.current)
+        nameCheckTimeoutRef.current = null
+      }
+    }
+  }, [editFormData.projectName, project])
 
   // Handle multiple file uploads - upload immediately
   const handleMultipleFileChange = (fileType) => (e) => {
@@ -110,8 +263,8 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   // Remove existing file (already saved) - immediately update DB
   const removeExistingFile = async (fileType, index) => {
     const existingKey = fileType === 'frdFiles' ? 'existingFrdFiles' : 'existingUserStoryFiles'
-    const fieldName = fileType === 'frdFiles' ? 'frd' : 'user_story'
-    
+    const apiFileType = fileType === 'frdFiles' ? 'frd' : 'user_story'
+
     // Get project ID
     let projectId = project?.id
     if (!projectId) {
@@ -131,40 +284,29 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
       return
     }
 
-    // Update local state
-    const updatedFiles = editFormData[existingKey].filter((_, i) => i !== index)
+    const previousFiles = [...editFormData[existingKey]]
+    const fileToRemove = previousFiles[index]
+
+    if (!fileToRemove) {
+      showNotification('File not found', 'error')
+      return
+    }
+
+    // Optimistically update local state
     setEditFormData(prev => ({
       ...prev,
-      [existingKey]: updatedFiles
+      [existingKey]: prev[existingKey].filter((_, i) => i !== index)
     }))
 
     try {
-      // Update DB immediately - send as FormData with JSON string
-      const formData = new FormData()
-      const arrayFieldName = fileType === 'frdFiles' ? 'frd_array' : 'user_story_array'
-      formData.append(arrayFieldName, JSON.stringify(updatedFiles))
-      
-      await projectApi.updateProject(projectId, formData)
-      
-      // Refresh project data
+      await projectApi.deleteProjectFile(projectId, {
+        fileUrl: fileToRemove,
+        fileType: apiFileType
+      })
+
       const updatedProject = await projectApi.getProject(projectId)
-      const projectDataToStore = {
-        id: updatedProject.id,
-        projectId: updatedProject.projectId,
-        name: updatedProject.name,
-        description: updatedProject.description,
-        repository: updatedProject.repository,
-        frdDocument: normalizeToArray(updatedProject.frdDocument),
-        userStories: normalizeToArray(updatedProject.userStories),
-        postmanCollection: updatedProject.postmanCollection,
-        projectUrl: updatedProject.projectUrl,
-        userId: updatedProject.userId,
-        isActive: updatedProject.isActive,
-        createdAt: updatedProject.createdAt,
-        updatedAt: updatedProject.updatedAt,
-      }
-      localStorage.setItem('project', JSON.stringify(projectDataToStore))
-      
+      persistProjectData(updatedProject)
+
       showNotification('File removed successfully', 'success')
     } catch (error) {
       console.error('Failed to remove file:', error)
@@ -172,7 +314,7 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
       // Revert state on error
       setEditFormData(prev => ({
         ...prev,
-        [existingKey]: editFormData[existingKey]
+        [existingKey]: previousFiles
       }))
     }
   }
@@ -231,35 +373,65 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
       
       // Refresh project data
       const finalProject = await projectApi.getProject(projectId)
-      const projectDataToStore = {
-        id: finalProject.id,
-        projectId: finalProject.projectId,
-        name: finalProject.name,
-        description: finalProject.description,
-        repository: finalProject.repository,
-        frdDocument: normalizeToArray(finalProject.frdDocument),
-        userStories: normalizeToArray(finalProject.userStories),
-        postmanCollection: finalProject.postmanCollection,
-        projectUrl: finalProject.projectUrl,
-        userId: finalProject.userId,
-        isActive: finalProject.isActive,
-        createdAt: finalProject.createdAt,
-        updatedAt: finalProject.updatedAt,
-      }
-      localStorage.setItem('project', JSON.stringify(projectDataToStore))
-      
-      // Update local state
-      setEditFormData(prev => ({
-        ...prev,
-        [existingKey]: normalizeToArray(
-          fileType === 'frdFiles' ? finalProject.frdDocument : finalProject.userStories
-        )
-      }))
+      persistProjectData(finalProject)
       
       showNotification('File replaced successfully', 'success')
     } catch (error) {
       console.error('Failed to replace file:', error)
       showNotification('Failed to replace file', 'error')
+    }
+  }
+
+  const removeSwaggerFile = async () => {
+    const previousSwaggerFile = editFormData.existingSwaggerFile
+
+    if (!previousSwaggerFile) {
+      showNotification('No Swagger file to remove', 'warning')
+      return
+    }
+
+    // Get project ID
+    let projectId = project?.id
+    if (!projectId) {
+      try {
+        const storedProject = localStorage.getItem('project')
+        if (storedProject) {
+          const projectData = JSON.parse(storedProject)
+          projectId = projectData.id
+        }
+      } catch (e) {
+        console.error('Failed to parse project from localStorage:', e)
+      }
+    }
+
+    if (!projectId) {
+      showNotification('Project ID not found', 'error')
+      return
+    }
+
+    // Optimistically update UI
+    setEditFormData(prev => ({
+      ...prev,
+      existingSwaggerFile: ''
+    }))
+
+    try {
+      await projectApi.deleteProjectFile(projectId, {
+        fileUrl: previousSwaggerFile,
+        fileType: 'swagger'
+      })
+
+      const updatedProject = await projectApi.getProject(projectId)
+      persistProjectData(updatedProject)
+
+      showNotification('Swagger file removed successfully', 'success')
+    } catch (error) {
+      console.error('Failed to remove Swagger file:', error)
+      showNotification('Failed to remove Swagger file', 'error')
+      setEditFormData(prev => ({
+        ...prev,
+        existingSwaggerFile: previousSwaggerFile
+      }))
     }
   }
 
@@ -313,31 +485,12 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
       
       // Refresh project data
       const updatedProject = await projectApi.getProject(projectId)
-      const projectDataToStore = {
-        id: updatedProject.id,
-        projectId: updatedProject.projectId,
-        name: updatedProject.name,
-        description: updatedProject.description,
-        repository: updatedProject.repository,
-        frdDocument: normalizeToArray(updatedProject.frdDocument),
-        userStories: normalizeToArray(updatedProject.userStories),
-        postmanCollection: updatedProject.postmanCollection,
-        projectUrl: updatedProject.projectUrl,
-        userId: updatedProject.userId,
-        isActive: updatedProject.isActive,
-        createdAt: updatedProject.createdAt,
-        updatedAt: updatedProject.updatedAt,
-      }
-      localStorage.setItem('project', JSON.stringify(projectDataToStore))
-      
-      // Update local state - add to existing files
-      const existingKey = fileType === 'frdFiles' ? 'existingFrdFiles' : 'existingUserStoryFiles'
+      persistProjectData(updatedProject)
+
+      // Clear new files since they're now uploaded
       setEditFormData(prev => ({
         ...prev,
-        [existingKey]: normalizeToArray(
-          fileType === 'frdFiles' ? updatedProject.frdDocument : updatedProject.userStories
-        ),
-        [fileType]: [] // Clear new files since they're now uploaded
+        [fileType]: []
       }))
       
       showNotification('Files uploaded successfully', 'success')
@@ -450,23 +603,8 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
       // Fetch updated project data
       const updatedProject = await projectApi.getProject(projectId)
 
-      // Update localStorage with the fresh project data
-      const projectDataToStore = {
-        id: updatedProject.id,
-        projectId: updatedProject.projectId,
-        name: updatedProject.name,
-        description: updatedProject.description,
-        repository: updatedProject.repository,
-        frdDocument: normalizeToArray(updatedProject.frdDocument),
-        userStories: normalizeToArray(updatedProject.userStories),
-        postmanCollection: updatedProject.postmanCollection,
-        projectUrl: updatedProject.projectUrl,
-        userId: updatedProject.userId,
-        isActive: updatedProject.isActive,
-        createdAt: updatedProject.createdAt,
-        updatedAt: updatedProject.updatedAt,
-      }
-      localStorage.setItem('project', JSON.stringify(projectDataToStore))
+      // Update local state/localStorage with the fresh project data
+      persistProjectData(updatedProject)
 
       showNotification('Project updated successfully!', 'success')
       if (onSave) {
@@ -556,6 +694,24 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                   onChange={handleInputChange('projectName')}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
                 />
+                {nameCheckState.status === 'loading' && (
+                  <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">Checking availability...</p>
+                )}
+                {nameCheckState.status === 'unavailable' && (
+                  <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                    {nameCheckState.message || 'Project name already exists for this user.'}
+                  </p>
+                )}
+                {nameCheckState.status === 'available' && (
+                  <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                    {nameCheckState.message || 'Project name is available.'}
+                  </p>
+                )}
+                {nameCheckState.status === 'error' && (
+                  <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                    {nameCheckState.message || 'Unable to verify project name right now.'}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -593,7 +749,12 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
               </div>
               <button
                 onClick={() => setEditStep(2)}
-                className="w-full mt-4 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 text-sm shadow-md"
+                disabled={
+                  nameCheckState.status === 'loading' ||
+                  nameCheckState.status === 'unavailable' ||
+                  nameCheckState.exists
+                }
+                className="w-full mt-4 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next <i className="fas fa-arrow-right ml-1"></i>
               </button>
@@ -831,9 +992,33 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
                   <i className="fas fa-cube text-orange-600 dark:text-orange-400"></i>
                   Swagger File
                 </label>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  Current: {project.postmanCollection || 'None'}
-                </div>
+                {editFormData.existingSwaggerFile ? (
+                  <div className="mb-2 flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <i className="fas fa-file-code text-gray-600 dark:text-gray-400"></i>
+                      <a
+                        href={editFormData.existingSwaggerFile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1 min-w-0"
+                        title={editFormData.existingSwaggerFile}
+                      >
+                        {extractFilename(editFormData.existingSwaggerFile)}
+                      </a>
+                    </div>
+                    <button
+                      onClick={removeSwaggerFile}
+                      className="w-7 h-7 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                      title="Remove Swagger file"
+                    >
+                      <i className="fas fa-times text-red-600 dark:text-red-400 text-sm"></i>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Current: None
+                  </div>
+                )}
                 <input
                   ref={postmanFileInputRef}
                   type="file"

@@ -70,6 +70,34 @@ export const projectApi = {
     return mapProjectToUI(res.data);
   },
 
+  async deleteProjectFile(projectId, { fileUrl, fileType }) {
+    const res = await apiClient.delete(
+      `/api/projects/${encodeURIComponent(projectId)}/delete-file`,
+      {
+        data: {
+          file_url: fileUrl,
+          file_type: fileType,
+        },
+      }
+    );
+    return res.data;
+  },
+
+  async checkProjectNameAvailability({ userId, projectName }) {
+    if (!userId || !projectName) {
+      throw new Error('userId and projectName are required');
+    }
+
+    const res = await apiClient.get('/api/projects/check-name', {
+      params: {
+        user_id: userId,
+        project_name: projectName,
+      },
+    });
+
+    return res.data;
+  },
+
   async deleteProject(projectId) {
     await apiClient.delete(`/api/projects/${encodeURIComponent(projectId)}`);
   },
