@@ -242,6 +242,14 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
     }
   }, [editFormData.projectName, project])
 
+  useEffect(() => {
+    if (!isOpen && nameCheckTimeoutRef.current) {
+      clearTimeout(nameCheckTimeoutRef.current)
+      nameCheckTimeoutRef.current = null
+      setNameCheckState({ status: 'idle', exists: false, message: '' })
+    }
+  }, [isOpen])
+
   // Handle multiple file uploads - upload immediately
   const handleMultipleFileChange = (fileType) => (e) => {
     if (e.target.files.length > 0) {
@@ -542,9 +550,27 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   }
 
   const handleSave = async () => {
+    const trimmedProjectName = editFormData.projectName ? editFormData.projectName.trim() : ''
+    const trimmedRepoUrl = editFormData.repoUrl ? editFormData.repoUrl.trim() : ''
+
     // Validate required fields
-    if (!editFormData.projectName.trim() || !editFormData.repoUrl.trim()) {
+    if (!trimmedProjectName || !trimmedRepoUrl) {
       showNotification('Please fill in all required fields', 'error')
+      return
+    }
+
+    if (nameCheckState.status === 'loading') {
+      showNotification('Please wait while we verify your project name', 'info')
+      return
+    }
+
+    if (nameCheckState.exists || nameCheckState.status === 'unavailable') {
+      showNotification(nameCheckState.message || 'Project name already exists for this user', 'error')
+      return
+    }
+
+    if (nameCheckState.status === 'error') {
+      showNotification(nameCheckState.message || 'Unable to verify project name right now.', 'error')
       return
     }
 
@@ -568,18 +594,50 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
         return
       }
 
+      const userId = resolveUserId()
+
+      if (!userId) {
+        showNotification('Unable to determine user. Please refresh and try again.', 'error')
+        return
+      }
+
+      const initialTrimmed = initialProjectNameRef.current
+        ? initialProjectNameRef.current.trim()
+        : ''
+
+      if (trimmedProjectName.toLowerCase() !== initialTrimmed.toLowerCase()) {
+        try {
+          const availability = await projectApi.checkProjectNameAvailability({
+            userId,
+            projectName: trimmedProjectName,
+          })
+
+          if (availability.exists) {
+            showNotification(
+              availability.message || 'Project name already exists for this user',
+              'error'
+            )
+            return
+          }
+        } catch (error) {
+          console.error('Failed to verify project name before saving project:', error)
+          showNotification('Unable to verify project name. Please try again.', 'error')
+          return
+        }
+      }
+
       // Prepare updated data for API - convert to FormData since backend expects Form fields
       const formData = new FormData()
       
       // Add text fields
-      if (editFormData.projectName) {
-        formData.append('project_name', editFormData.projectName)
+      if (trimmedProjectName) {
+        formData.append('project_name', trimmedProjectName)
       }
       if (editFormData.projectDesc) {
         formData.append('project_description', editFormData.projectDesc)
       }
-      if (editFormData.repoUrl) {
-        formData.append('github_repo_id', editFormData.repoUrl)
+      if (trimmedRepoUrl) {
+        formData.append('github_repo_id', trimmedRepoUrl)
       }
       // Always send project_url (empty string will be converted to None by backend)
       formData.append('project_url', editFormData.projectURL || '')
