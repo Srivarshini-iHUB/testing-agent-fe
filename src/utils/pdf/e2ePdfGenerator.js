@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 export class E2EPdfGenerator {
   static generatePdf(e2eData, projectName = "Project", filename = null) {
@@ -17,7 +18,11 @@ export class E2EPdfGenerator {
     }
 
     if (!reports || reports.length === 0) {
-      alert("No E2E test data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No E2E test data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -247,7 +252,11 @@ export class E2EPdfGenerator {
       console.log("✅ E2E PDF report generated successfully");
     } catch (err) {
       console.error("❌ E2E PDF generation failed:", err);
-      alert("Failed to generate E2E PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate E2E PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }

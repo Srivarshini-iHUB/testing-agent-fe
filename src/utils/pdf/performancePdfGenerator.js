@@ -1,10 +1,15 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 
 export class PerformancePdfGenerator {
   static generatePdf(performanceData, projectName = "Project", filename = null) {
     if (!performanceData || !performanceData.items?.length) {
-      alert("No performance test data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No performance test data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -201,7 +206,11 @@ export class PerformancePdfGenerator {
       console.log("✅ Enhanced PDF report generated successfully");
     } catch (err) {
       console.error("❌ PDF generation failed:", err);
-      alert("Failed to generate PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }

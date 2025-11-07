@@ -13,9 +13,11 @@ import { TestCasePdfGenerator } from '../utils/pdf/testCasePdfGenerator';
 import { E2EPdfGenerator } from '../utils/pdf/e2ePdfGenerator';
 import { RegressionPdfGenerator } from '../utils/pdf/regressionPdfGenerator';
 import { SmokePdfGenerator } from '../utils/pdf/smokePdfGenerator';
+import { useDialog } from '../contexts/DialogContext';
 
 const AgentHistory = ({ currentProject }) => {
   const navigate = useNavigate();
+  const { alert: showDialogAlert } = useDialog();
   const [agentsForProject, setAgentsForProject] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -412,7 +414,11 @@ const AgentHistory = ({ currentProject }) => {
       const projectName = currentProject?.name || proj?.name || 'Project';
 
       if (!projectId) {
-        alert('No project selected. Please select a project first.');
+        showDialogAlert({
+          title: 'No project selected',
+          message: 'Please select a project before downloading reports.',
+          variant: 'warning',
+        });
         return;
       }
 
@@ -538,19 +544,31 @@ const AgentHistory = ({ currentProject }) => {
           (smokeData.status === 'fulfilled' && smokeData.value);
 
         if (!reportsGenerated) {
-          alert('No report data available to generate PDFs. Please run tests first.');
+          showDialogAlert({
+            title: 'Nothing to export',
+            message: 'No report data available to generate PDFs. Please run tests first.',
+            variant: 'info',
+          });
         } else {
           console.log('✅ All available reports generated successfully');
         }
       } catch (error) {
         console.error('Failed to generate PDF reports:', error);
-        alert('Failed to generate PDF reports. Please try again.');
+        showDialogAlert({
+          title: 'Export failed',
+          message: 'Failed to generate PDF reports. Please try again.',
+          variant: 'danger',
+        });
       } finally {
         setGeneratingPdf(false);
       }
     } catch (error) {
       console.error('Error in handleDownloadOverallReport:', error);
-      alert('An error occurred while generating the reports. Please try again.');
+      showDialogAlert({
+        title: 'Unexpected error',
+        message: 'An error occurred while generating the reports. Please try again.',
+        variant: 'danger',
+      });
       setGeneratingPdf(false);
     }
   };

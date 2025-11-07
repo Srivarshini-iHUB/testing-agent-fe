@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import { useDialog } from '../contexts/DialogContext';
 import LandingPage from '../pages/LandingPage';
 import Dashboard from '../pages/Dashboard';
 import Onboarding from '../pages/Onboarding';
@@ -21,6 +22,7 @@ const Header = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, project, logout } = useUser();
   const navigate = useNavigate();
+  const { confirm } = useDialog();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
 
@@ -36,11 +38,19 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      logout();
-      localStorage.clear();
-      navigate('/');
-    }
+    confirm({
+      title: 'Logout?',
+      message: 'You will be signed out of your current session.',
+      confirmText: 'Logout',
+      cancelText: 'Stay logged in',
+      variant: 'warning',
+    }).then((shouldLogout) => {
+      if (shouldLogout) {
+        logout();
+        localStorage.clear();
+        navigate('/');
+      }
+    });
   };
 
   return (

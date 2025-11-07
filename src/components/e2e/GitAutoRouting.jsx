@@ -1,6 +1,7 @@
 // src/components/e2e/GitAutoRouting.jsx
 import { useState } from 'react';
 import TestCasesPreviewModal from './TestCasesPreviewModal';
+import { useDialog } from '../../contexts/DialogContext';
 
 const GitAutoRouting = ({
   loading,
@@ -36,6 +37,7 @@ const GitAutoRouting = ({
   dockerRunning
 }) => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const { alert: showDialogAlert } = useDialog();
 
   return (
     <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
@@ -203,7 +205,11 @@ const GitAutoRouting = ({
               <h3 className="font-bold text-red-600 dark:text-red-400 mb-2">No Test Cases Available</h3>
               <p className="text-sm text-red-700 dark:text-red-300 mb-4">Preview cannot be shown—ingest test cases into MongoDB (use sample insert script) or check project_id.</p>
               <button
-                onClick={() => alert('Run: python insert_sample_testcases.py\nThen re-extract.')}
+                onClick={() => showDialogAlert({
+                  title: 'Sample data required',
+                  message: 'Run: python insert_sample_testcases.py\nThen re-extract.',
+                  variant: 'info',
+                })}
                 className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all shadow-md flex items-center gap-2 mx-auto"
               >
                 <i className="fas fa-info-circle"></i>

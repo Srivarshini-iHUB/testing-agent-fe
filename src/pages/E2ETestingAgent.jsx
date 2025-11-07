@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDialog } from '../contexts/DialogContext';
 import { authConfig } from '../config/auth';
 import E2EHeader from '../components/e2e/E2EHeader';
 import E2EConfigPanel from '../components/e2e/E2EConfigPanel';
@@ -13,6 +14,7 @@ const E2ETestingAgent = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
+  const { alert: showDialogAlert } = useDialog();
 
   // Tab state - Check if URL hash is #history to open history tab
   const [activeTab, setActiveTab] = useState(() => {
@@ -96,13 +98,24 @@ const E2ETestingAgent = () => {
     if (file && (file.type === 'text/csv' || file.type.includes('spreadsheet') || file.type.includes('excel'))) {
       setUploadedFiles(file);
     } else {
-      alert('Please upload a valid CSV, XLSX, or XLS file');
+      showDialogAlert({
+        title: 'Unsupported file',
+        message: 'Please upload a valid CSV, XLSX, or XLS file.',
+        variant: 'warning',
+      });
     }
   };
 
   // --- Manual / Old AI Flow (unchanged) ---
   const setupPlaywright = () => {
-    if (!projectPath) return alert("Enter folder path");
+    if (!projectPath) {
+      showDialogAlert({
+        title: 'Folder path required',
+        message: 'Enter folder path before setting up Playwright.',
+        variant: 'warning',
+      });
+      return;
+    }
     setTestResults(null);
     setPlaywrightSetup(true);
     const evtSource = new EventSource(
@@ -137,7 +150,11 @@ const E2ETestingAgent = () => {
 
   const generateTestScript = async () => {
     if (!uploadedFiles || !applicationUrl) {
-      alert('Please upload CSV file and provide application URL');
+      showDialogAlert({
+        title: 'Missing information',
+        message: 'Please upload a CSV file and provide the application URL before generating scripts.',
+        variant: 'warning',
+      });
       return;
     }
     if (selectedFlow === 'agent') {
@@ -152,7 +169,11 @@ const E2ETestingAgent = () => {
       const projectId = proj?.id;
       
       if (!projectId) {
-        alert('Project ID not found in localStorage. Please select a project first.');
+        showDialogAlert({
+          title: 'Project not found',
+          message: 'Project ID not found in localStorage. Please select a project first.',
+          variant: 'danger',
+        });
         return;
       }
 
@@ -260,7 +281,11 @@ const E2ETestingAgent = () => {
 
   const fetchRouteFiles = async () => {
     if (!selectedRepo || !selectedBranch) {
-      alert('Select repo and branch first');
+      showDialogAlert({
+        title: 'Select repository',
+        message: 'Please choose a repository and branch first.',
+        variant: 'warning',
+      });
       return;
     }
     setLoading(true);
@@ -276,7 +301,11 @@ const E2ETestingAgent = () => {
       setRouteFiles(data.files || []);
     } catch (err) {
       console.error(err);
-      alert('Error fetching route files: ' + err.message);
+      showDialogAlert({
+        title: 'Failed to fetch route files',
+        message: 'Error fetching route files: ' + err.message,
+        variant: 'danger',
+      });
     } finally {
       setLoading(false);
     }
@@ -284,7 +313,11 @@ const E2ETestingAgent = () => {
 
   const extractAndMapTestCases = async () => {
     if (!selectedRepo || !selectedBranch || selectedFiles.length === 0) {
-      alert('Select repo, branch, and at least one file');
+      showDialogAlert({
+        title: 'Missing selections',
+        message: 'Select a repository, branch, and at least one file.',
+        variant: 'warning',
+      });
       return;
     }
     
@@ -293,7 +326,11 @@ const E2ETestingAgent = () => {
     const projectIdFromStorage = proj?.id;
     
     if (!projectIdFromStorage) {
-      alert('Project ID not found in localStorage. Please select a project first.');
+      showDialogAlert({
+        title: 'Project not found',
+        message: 'Project ID not found in localStorage. Please select a project first.',
+        variant: 'danger',
+      });
       return;
     }
     
@@ -328,7 +365,11 @@ const E2ETestingAgent = () => {
       setTestCasesPreview(editableTestCases);
     } catch (err) {
       console.error(err);
-      alert('Error extracting routes and mapping: ' + err.message);
+      showDialogAlert({
+        title: 'Mapping failed',
+        message: 'Error extracting routes and mapping: ' + err.message,
+        variant: 'danger',
+      });
     } finally {
       setLoading(false);
     }
@@ -342,7 +383,11 @@ const E2ETestingAgent = () => {
 
   const generateScriptFromMapping = async () => {
     if (testCasesPreview.length === 0) {
-      alert('No mapped test cases available. Extract routes first.');
+      showDialogAlert({
+        title: 'No test cases mapped',
+        message: 'No mapped test cases available. Extract routes first.',
+        variant: 'info',
+      });
       return;
     }
     
@@ -351,7 +396,11 @@ const E2ETestingAgent = () => {
     const projectIdFromStorage = proj?.id;
     
     if (!projectIdFromStorage) {
-      alert('Project ID not found in localStorage. Please select a project first.');
+      showDialogAlert({
+        title: 'Project not found',
+        message: 'Project ID not found in localStorage. Please select a project first.',
+        variant: 'danger',
+      });
       return;
     }
     
@@ -396,7 +445,11 @@ const E2ETestingAgent = () => {
       });
     } catch (err) {
       console.error(err);
-      alert('Error generating script: ' + err.message);
+      showDialogAlert({
+        title: 'Script generation failed',
+        message: 'Error generating script: ' + err.message,
+        variant: 'danger',
+      });
       setOutput("Error: " + err.message);
     } finally {
       setLoading(false);
@@ -438,7 +491,11 @@ const E2ETestingAgent = () => {
 
   const handleRunWithDocker = async () => {
     if (!output) {
-      alert("Please generate a test script first");
+      showDialogAlert({
+        title: 'Script required',
+        message: 'Please generate a test script first.',
+        variant: 'warning',
+      });
       return;
     }
     setDockerRunning(true);
@@ -526,7 +583,11 @@ const E2ETestingAgent = () => {
 
   const downloadScript = () => {
     if (!output) {
-      alert('No script generated yet');
+      showDialogAlert({
+        title: 'No script generated',
+        message: 'Generate a script before downloading.',
+        variant: 'info',
+      });
       return;
     }
     handleDownload();
@@ -534,7 +595,11 @@ const E2ETestingAgent = () => {
 
   const downloadReport = () => {
     if (!testResults || !testResults.reportUrl) {
-      alert('Report not available yet');
+      showDialogAlert({
+        title: 'Report unavailable',
+        message: 'No report available yet. Run the tests to generate one.',
+        variant: 'info',
+      });
       return;
     }
     window.open(testResults.reportUrl, '_blank', 'noopener,noreferrer');
@@ -601,7 +666,11 @@ const E2ETestingAgent = () => {
       setReportData(data);
     } catch (error) {
       console.error('Error fetching report data:', error);
-      alert('Failed to load report data: ' + error.message);
+      showDialogAlert({
+        title: 'Failed to load report',
+        message: 'Failed to load report data: ' + error.message,
+        variant: 'danger',
+      });
     } finally {
       setReportLoading(false);
     }

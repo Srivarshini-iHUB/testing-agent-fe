@@ -1,9 +1,14 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 export class RegressionPdfGenerator {
   static generatePdf(regressionData, projectName = "Project", filename = null) {
     if (!regressionData || !regressionData.regression_test) {
-      alert("No regression test data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No regression test data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -11,7 +16,11 @@ export class RegressionPdfGenerator {
     const runs = testData.regression_runs || [];
 
     if (runs.length === 0) {
-      alert("No regression test runs available to generate PDF report");
+      dialog.alert({
+        title: "No runs found",
+        message: "No regression test runs available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -197,7 +206,11 @@ export class RegressionPdfGenerator {
       console.log("✅ Regression PDF report generated successfully");
     } catch (err) {
       console.error("❌ Regression PDF generation failed:", err);
-      alert("Failed to generate Regression PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate Regression PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import { projectApi } from '../api/projectApi';
+import { useDialog } from '../contexts/DialogContext';
 
 const NewProject = () => {
   const { isDark } = useTheme();
   const { updateProject, user, setUser } = useUser();
+  const { confirm, alert: showDialogAlert } = useDialog();
   console.log(user,'user');
   
   const navigate = useNavigate();
@@ -72,7 +74,11 @@ const NewProject = () => {
   ];
 
   const handleGithubConnect = () => {
-    alert('Redirecting to GitHub for authentication...');
+    showDialogAlert({
+      title: 'Redirecting',
+      message: 'Redirecting to GitHub for authentication...',
+      variant: 'info',
+    });
     setTimeout(() => {
       setGithubConnected(true);
       setGithubUser({
@@ -261,9 +267,17 @@ const NewProject = () => {
   };
 
   const handleClose = () => {
-    if (window.confirm('Discard changes and go back to dashboard?')) {
-      navigate('/dashboard');
-    }
+    confirm({
+      title: 'Discard project setup?',
+      message: 'Your progress will be lost. Do you want to return to the dashboard?',
+      confirmText: 'Discard',
+      cancelText: 'Stay here',
+      variant: 'warning',
+    }).then((shouldLeave) => {
+      if (shouldLeave) {
+        navigate('/dashboard');
+      }
+    });
   };
 
   const handleStartTesting = async () => {

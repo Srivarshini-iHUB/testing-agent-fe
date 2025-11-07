@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { authConfig } from '../../config/auth';
+import { useDialog } from '../../contexts/DialogContext';
 
 const GoogleSignInDebug = () => {
   const { signInWithGoogle, isLoading } = useUser();
   const [debugInfo, setDebugInfo] = useState({});
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const { alert: showDialogAlert } = useDialog();
 
   useEffect(() => {
     // Check configuration
@@ -24,10 +26,18 @@ const GoogleSignInDebug = () => {
     try {
       const result = await signInWithGoogle();
       console.log('Sign-in result:', result);
-      alert(result.success ? 'Sign-in successful!' : `Sign-in failed: ${result.error}`);
+      showDialogAlert({
+        title: result.success ? 'Sign-in successful' : 'Sign-in failed',
+        message: result.success ? 'Sign-in successful!' : `Sign-in failed: ${result.error}`,
+        variant: result.success ? 'success' : 'danger',
+      });
     } catch (error) {
       console.error('Sign-in error:', error);
-      alert(`Sign-in error: ${error.message}`);
+      showDialogAlert({
+        title: 'Sign-in error',
+        message: `Sign-in error: ${error.message}`,
+        variant: 'danger',
+      });
     } finally {
       setIsSigningIn(false);
     }
@@ -35,9 +45,17 @@ const GoogleSignInDebug = () => {
 
   const testGoogleScript = () => {
     if (window.google) {
-      alert('Google Identity Services is loaded!');
+      showDialogAlert({
+        title: 'Google script loaded',
+        message: 'Google Identity Services is loaded!',
+        variant: 'success',
+      });
     } else {
-      alert('Google Identity Services is not loaded. Check console for errors.');
+      showDialogAlert({
+        title: 'Google script missing',
+        message: 'Google Identity Services is not loaded. Check console for errors.',
+        variant: 'warning',
+      });
     }
   };
 
@@ -49,9 +67,17 @@ const GoogleSignInDebug = () => {
           'Content-Type': 'application/json'
         }
       });
-      alert(`Backend connection test: ${response.status} ${response.statusText}`);
+      showDialogAlert({
+        title: 'Backend connection',
+        message: `Backend connection test: ${response.status} ${response.statusText}`,
+        variant: response.ok ? 'success' : 'warning',
+      });
     } catch (error) {
-      alert(`Backend connection failed: ${error.message}`);
+      showDialogAlert({
+        title: 'Backend connection failed',
+        message: `Backend connection failed: ${error.message}`,
+        variant: 'danger',
+      });
     }
   };
 

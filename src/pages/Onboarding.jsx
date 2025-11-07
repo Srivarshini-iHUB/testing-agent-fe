@@ -6,11 +6,13 @@ import GoogleSignIn from '../components/auth/GoogleSignIn'
 import GoogleSignInDebug from '../components/auth/GoogleSignInDebug'
 import ConfigDebug from '../components/auth/ConfigDebug'
 import { projectApi } from '../api/projectApi'
+import { useDialog } from '../contexts/DialogContext'
 
 const Onboarding = () => {
   const { isDark } = useTheme()
   const { updateUser, signInWithGoogle, isAuthenticated, isLoading } = useUser()
   const navigate = useNavigate()
+  const { alert: showDialogAlert } = useDialog()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -51,7 +53,11 @@ const Onboarding = () => {
   const handleGoogleLoginError = (error) => {
     console.error('Google sign-in error:', error);
     setIsSigningIn(false);
-    alert(`Google sign-in failed: ${error}`);
+    showDialogAlert({
+      title: 'Sign-in failed',
+      message: `Google sign-in failed: ${error}`,
+      variant: 'danger',
+    });
   }
 
   // Redirect authenticated users: if they have projects -> dashboard, else -> new project
@@ -84,7 +90,11 @@ const Onboarding = () => {
     e.preventDefault()
     
     if (!formData.email || !formData.password) {
-      alert('Please fill in all required fields')
+      showDialogAlert({
+        title: 'Missing information',
+        message: 'Please fill in all required fields.',
+        variant: 'warning',
+      })
       return
     }
 
@@ -97,7 +107,11 @@ const Onboarding = () => {
       provider: 'email'
     })
 
-    alert('Logged in successfully!')
+    showDialogAlert({
+      title: 'Welcome back',
+      message: 'Logged in successfully!',
+      variant: 'success',
+    })
     setTimeout(() => {
       navigate('/NewProjectPopup')
     }, 1000)

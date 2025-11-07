@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ExcelFormatter } from '../utils/excelFormatter';
+import { useDialog } from '../contexts/DialogContext';
 
 export const useDownload = () => {
   const [downloading, setDownloading] = useState(false);
+  const { alert: showDialogAlert } = useDialog();
 
   /**
    * Download test cases as Excel (Frontend generation)
@@ -21,7 +23,11 @@ export const useDownload = () => {
       console.log('✅ Excel downloaded successfully');
     } catch (error) {
       console.error('❌ Excel download failed:', error);
-      alert('Failed to download Excel file. Please try again.');
+      showDialogAlert({
+        title: 'Download failed',
+        message: 'Failed to download Excel file. Please try again.',
+        variant: 'danger',
+      });
     } finally {
       setDownloading(false);
     }
@@ -42,7 +48,11 @@ export const useDownload = () => {
       console.log('✅ Detailed Excel downloaded successfully');
     } catch (error) {
       console.error('❌ Detailed Excel download failed:', error);
-      alert('Failed to download detailed Excel file. Please try again.');
+      showDialogAlert({
+        title: 'Download failed',
+        message: 'Failed to download detailed Excel file. Please try again.',
+        variant: 'danger',
+      });
     } finally {
       setDownloading(false);
     }
@@ -73,7 +83,11 @@ export const useDownload = () => {
       console.log('✅ JSON downloaded successfully');
     } catch (error) {
       console.error('❌ JSON download failed:', error);
-      alert('Failed to download JSON file. Please try again.');
+      showDialogAlert({
+        title: 'Download failed',
+        message: 'Failed to download JSON file. Please try again.',
+        variant: 'danger',
+      });
     }
   };
 

@@ -1,9 +1,14 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 export class TestCasePdfGenerator {
   static generatePdf(testCaseData, projectName = "Project", filename = null) {
     if (!testCaseData || !Array.isArray(testCaseData) || testCaseData.length === 0) {
-      alert("No test case data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No test case data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -302,7 +307,11 @@ export class TestCasePdfGenerator {
       console.log("✅ Enhanced Test Case PDF report generated successfully");
     } catch (err) {
       console.error("❌ Test Case PDF generation failed:", err);
-      alert("Failed to generate Test Case PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate Test Case PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }

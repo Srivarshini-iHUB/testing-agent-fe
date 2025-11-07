@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useUser } from '../contexts/UserContext'
 import { projectApi } from '../api/projectApi'
+import { useDialog } from '../contexts/DialogContext'
 
 const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   const { project } = useUser()
+  const { confirm } = useDialog()
   const postmanFileInputRef = useRef(null)
   const nameCheckTimeoutRef = useRef(null)
   const initialProjectNameRef = useRef('')
@@ -544,9 +546,17 @@ const EditProjectModal = ({ isOpen, onClose, onSave }) => {
   }
 
   const handleClose = () => {
-    if (window.confirm('Discard changes and close?')) {
-      onClose()
-    }
+    confirm({
+      title: 'Discard changes?',
+      message: 'Your unsaved edits will be lost. Do you still want to close?',
+      confirmText: 'Discard',
+      cancelText: 'Keep editing',
+      variant: 'warning',
+    }).then((shouldClose) => {
+      if (shouldClose) {
+        onClose()
+      }
+    })
   }
 
   const handleSave = async () => {

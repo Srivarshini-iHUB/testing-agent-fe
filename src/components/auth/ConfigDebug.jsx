@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { authConfig } from '../../config/auth';
+import { useDialog } from '../../contexts/DialogContext';
 
 const ConfigDebug = () => {
   const [config, setConfig] = useState({});
   const [backendStatus, setBackendStatus] = useState('checking...');
+  const { alert: showDialogAlert } = useDialog();
 
   useEffect(() => {
     // Check configuration
@@ -40,17 +42,29 @@ const ConfigDebug = () => {
 
   const testGoogleScript = () => {
     if (window.google) {
-      alert('✅ Google Identity Services is loaded!');
+      showDialogAlert({
+        title: 'Google script loaded',
+        message: '✅ Google Identity Services is loaded!',
+        variant: 'success',
+      });
       console.log('Google object:', window.google);
     } else {
-      alert('❌ Google Identity Services is not loaded. Check console for errors.');
+      showDialogAlert({
+        title: 'Google script missing',
+        message: '❌ Google Identity Services is not loaded. Check console for errors.',
+        variant: 'warning',
+      });
     }
   };
 
   const testGoogleAuth = async () => {
     try {
       if (!window.google) {
-        alert('❌ Google Identity Services not loaded');
+        showDialogAlert({
+          title: 'Google script missing',
+          message: '❌ Google Identity Services not loaded',
+          variant: 'warning',
+        });
         return;
       }
 
@@ -59,14 +73,26 @@ const ConfigDebug = () => {
         client_id: authConfig.googleClientId,
         callback: (response) => {
           console.log('Google callback test:', response);
-          alert('✅ Google OAuth callback working!');
+          showDialogAlert({
+            title: 'OAuth callback working',
+            message: '✅ Google OAuth callback working!',
+            variant: 'success',
+          });
         },
         auto_select: false
       });
 
-      alert('✅ Google initialization successful!');
+      showDialogAlert({
+        title: 'Initialization successful',
+        message: '✅ Google initialization successful!',
+        variant: 'success',
+      });
     } catch (error) {
-      alert(`❌ Google auth test failed: ${error.message}`);
+      showDialogAlert({
+        title: 'Google auth test failed',
+        message: `❌ Google auth test failed: ${error.message}`,
+        variant: 'danger',
+      });
     }
   };
 

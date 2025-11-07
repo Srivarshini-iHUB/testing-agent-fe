@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDialog } from '../../contexts/DialogContext';
 
 const E2EResults = ({
   selectedFlow,
@@ -14,13 +15,18 @@ const E2EResults = ({
   downloadJSON,
   downloadMarkdown
 }) => {
+  const { alert: showDialogAlert } = useDialog();
   const handleViewReport = () => {
     if (testResults && testResults.reportUrl) {
       const reportUrl = testResults.reportUrl;
       // Fetch and display the report data in the UI
       fetchReportData(reportUrl);
     } else {
-      alert('Report URL not available yet. Please wait for the test execution to complete.');
+      showDialogAlert({
+        title: 'Report not ready',
+        message: 'Report URL not available yet. Please wait for the test execution to complete.',
+        variant: 'info',
+      });
     }
   };
 

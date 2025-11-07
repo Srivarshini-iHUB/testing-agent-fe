@@ -5,6 +5,7 @@ import { useUser } from "../contexts/UserContext";
 import EditProjectModal from "../components/EditProjectModal";
 import AgentHistory from "../components/AgentHistory";
 import { projectApi } from "../api/projectApi";
+import { useDialog } from "../contexts/DialogContext";
 
 const Dashboard = () => {
   const { theme, isDark, toggleTheme } = useTheme();
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [projectsLoading, setProjectsLoading] = useState(true); // Start as true to indicate initial loading
   const [projectsError, setProjectsError] = useState("");
   const [deletingProjectId, setDeletingProjectId] = useState(null);
+  const { confirm, alert: showDialogAlert } = useDialog();
 
   // Check if user is new (no projects) - only after loading is complete
   const isFirstTimeUser = !projectsLoading && projects.length === 0;
@@ -230,7 +232,13 @@ const Dashboard = () => {
 
     if (deletingProjectId) return;
 
-    const confirmed = window.confirm(`Delete project "${proj?.name}"? This action cannot be undone.`);
+    const confirmed = await confirm({
+      title: "Delete project",
+      message: `Delete project "${proj?.name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -260,8 +268,12 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      const message = error?.response?.data?.detail || error?.message || 'Failed to delete project.';
-      alert(message);
+      const message = error?.response?.data?.detail || error?.message || "Failed to delete project.";
+      showDialogAlert({
+        title: "Deletion failed",
+        message,
+        variant: "danger",
+      });
     } finally {
       setDeletingProjectId(null);
     }
@@ -274,7 +286,11 @@ const Dashboard = () => {
   const handleSaveProject = (updatedData) => {
     setCurrentProject(currentProject ? { ...currentProject, ...updatedData } : updatedData);
     updateProject(updatedData);
-    alert("Project configuration updated successfully!");
+    showDialogAlert({
+      title: "Project updated",
+      message: "Project configuration updated successfully!",
+      variant: "success",
+    });
     setShowEditModal(false);
   };
 

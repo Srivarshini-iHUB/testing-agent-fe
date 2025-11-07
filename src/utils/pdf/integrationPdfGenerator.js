@@ -1,9 +1,14 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 export class IntegrationPdfGenerator {
   static generatePdf(integrationData, projectName = "Project", filename = null) {
     if (!integrationData || !integrationData.test_runs?.length) {
-      alert("No integration test data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No integration test data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -206,7 +211,11 @@ export class IntegrationPdfGenerator {
       console.log("✅ Integration PDF report generated successfully");
     } catch (err) {
       console.error("❌ Integration PDF generation failed:", err);
-      alert("Failed to generate Integration PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate Integration PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }

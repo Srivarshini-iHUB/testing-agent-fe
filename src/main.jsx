@@ -4,12 +4,15 @@ import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { UserProvider } from './contexts/UserContext'
+import { DialogProvider } from './contexts/DialogContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
       <UserProvider>
-        <App />
+        <DialogProvider>
+          <App />
+        </DialogProvider>
       </UserProvider>
     </ThemeProvider>
   </StrictMode>,

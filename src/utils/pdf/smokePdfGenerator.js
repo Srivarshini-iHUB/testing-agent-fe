@@ -1,9 +1,14 @@
 import jsPDF from "jspdf";
+import { dialog } from "../dialogService";
 
 export class SmokePdfGenerator {
   static generatePdf(smokeData, projectName = "Project", filename = null) {
     if (!smokeData || !Array.isArray(smokeData) || smokeData.length === 0) {
-      alert("No smoke test data available to generate PDF report");
+      dialog.alert({
+        title: "No data available",
+        message: "No smoke test data available to generate PDF report.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -305,7 +310,11 @@ export class SmokePdfGenerator {
       console.log("✅ Smoke PDF report generated successfully");
     } catch (err) {
       console.error("❌ Smoke PDF generation failed:", err);
-      alert("Failed to generate Smoke PDF report. Please try again.");
+      dialog.alert({
+        title: "Export failed",
+        message: "Failed to generate Smoke PDF report. Please try again.",
+        variant: "danger",
+      });
     }
   }
 }
