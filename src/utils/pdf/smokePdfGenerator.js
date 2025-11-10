@@ -3,8 +3,10 @@ import { dialog } from "../dialogService";
 
 export class SmokePdfGenerator {
   static generatePdf(smokeData, projectName = "Project", filename = null) {
-    if (!smokeData || !Array.isArray(smokeData) || smokeData.length === 0) {
-      dialog.alert({
+    const runs = Array.isArray(smokeData) ? smokeData : [];
+
+    if (!runs.length) {
+     dialog.alert({
         title: "No data available",
         message: "No smoke test data available to generate PDF report.",
         variant: "warning",
@@ -16,291 +18,528 @@ export class SmokePdfGenerator {
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
+      const margin = 18;
       const contentWidth = pageWidth - 2 * margin;
-      const accentColor = { r: 249, g: 115, b: 22 }; // Orange
-      let y = 25;
+      const accentColor = { r: 249, g: 115, b: 22 };
+      const accentSoft = { r: 253, g: 146, b: 34 };
+      const neutralText = [55, 65, 81];
+      const successColor = [34, 197, 94];
+      const warningColor = [251, 191, 36];
+      const dangerColor = [248, 113, 113];
+      let y = 28;
 
-      // Helper: Section title
-      const sectionTitle = (title) => {
-        doc.setFontSize(14);
+      const formatDate = (value) => {
+        if (!value) return "Not provided";
+        try {
+          const parsed = new Date(value);
+          if (Number.isNaN(parsed.getTime())) {
+            return String(value);
+          }
+          return parsed.toLocaleString();
+        } catch (error) {
+          return String(value);
+        }
+      };
+
+      const formatPercent = (part, whole) => {
+        if (!whole) return "0%";
+        return `${((part / whole) * 100).toFixed(1)}%`;
+      };
+
+      const truncate = (value, length = 220) => {
+        if (typeof value !== "string") return value;
+        if (value.length <= length) return value;
+        return `${value.slice(0, length)}…`;
+      };
+
+      const statusColor = (context) => {
+        if (!context) return warningColor;
+        const { passed = 0, failed = 0 } = context;
+        if (failed > 0) return dangerColor;
+        if (passed > 0) return successColor;
+        return warningColor;
+      };
+
+      const checkPage = (extra = 40) => {
+        if (y + extra > pageHeight - 18) {
+          doc.addPage();
+          drawPageDecorations();
+          y = 32;
+        }
+      };
+
+      const drawPageDecorations = () => {
+        doc.setDrawColor(255, 237, 213);
+        doc.setLineWidth(0.2);
+        doc.line(margin, 20, pageWidth - margin, 20);
+      };
+
+      const sectionTitle = (title, subtitle = null) => {
+        checkPage(subtitle ? 36 : 28);
+        doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-        doc.text(title, margin, y);
-        y += 6;
-        doc.setDrawColor(200);
-        doc.line(margin, y, pageWidth - margin, y);
-        y += 6;
-      };
+        doc.text(title.toUpperCase(), margin, y);
+        y += 7;
 
-      // Helper: Add wrapped text
-      const addText = (text, size = 10, bold = false, color = [0, 0, 0]) => {
-        doc.setFontSize(size);
-        doc.setFont("helvetica", bold ? "bold" : "normal");
-        doc.setTextColor(...color);
-        const lines = doc.splitTextToSize(text, contentWidth);
-        doc.text(lines, margin, y);
-        y += lines.length * 5 + 2;
-      };
-
-      // Helper: New page check
-      const checkPage = (extra = 30) => {
-        if (y + extra > pageHeight - 20) {
-          doc.addPage();
-          y = 25;
-        }
-      };
-
-      // === HEADER ===
-      doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
-      doc.rect(0, 0, pageWidth, 25, "F");
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      doc.text("Smoke Test Report", margin, 17);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Project: ${projectName}`, pageWidth - margin - 60, 10);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin - 60, 17);
-
-      // === SUMMARY ===
-      y = 40;
-      sectionTitle("Summary");
-
-      const totalRuns = smokeData.length;
-      const totalTests = smokeData.reduce((sum, test) => sum + (test.total_tests || 0), 0);
-      const totalPassed = smokeData.reduce((sum, test) => sum + (test.passed || 0), 0);
-      const totalFailed = smokeData.reduce((sum, test) => sum + (test.failed || 0), 0);
-      const totalSkipped = smokeData.reduce((sum, test) => sum + (test.skipped || 0), 0);
-
-      doc.setFillColor(245, 247, 250);
-      doc.rect(margin, y - 3, contentWidth, 30, "F");
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Total Runs: ${totalRuns}`, margin + 5, y + 5);
-      doc.text(`Total Tests: ${totalTests}`, margin + 60, y + 5);
-      doc.text(`Passed: ${totalPassed}`, margin + 5, y + 12);
-      doc.text(`Failed: ${totalFailed}`, margin + 60, y + 12);
-      if (totalSkipped > 0) {
-        doc.text(`Skipped: ${totalSkipped}`, margin + 5, y + 19);
-      }
-      y += 35;
-
-      // === DETAILED RESULTS ===
-      sectionTitle("Test Runs");
-
-      smokeData.forEach((test, idx) => {
-        checkPage(80);
-        const testId = test.id || `test_${idx}`;
-        
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Run #${idx + 1}`, margin, y);
-        y += 6;
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`ID: ${testId}`, margin, y);
-        y += 5;
-
-        const created = test.created_at ? new Date(test.created_at).toLocaleString() : "N/A";
-        const updated = test.updated_at ? new Date(test.updated_at).toLocaleString() : "N/A";
-        doc.text(`Created: ${created}`, margin, y);
-        y += 5;
-        doc.text(`Updated: ${updated}`, margin, y);
-        y += 5;
-
-        if (test.test_suite_name) {
-          doc.text(`Test Suite: ${test.test_suite_name}`, margin, y);
-          y += 5;
-        }
-
-        if (test.test_environment) {
-          doc.text(`Environment: ${test.test_environment}`, margin, y);
-          y += 5;
-        }
-
-        // Test Statistics
-        doc.setFont("helvetica", "bold");
-        doc.text("Test Statistics:", margin, y);
-        y += 5;
-        doc.setFont("helvetica", "normal");
-        doc.text(`Passed: ${test.passed || 0}`, margin + 5, y);
-        doc.text(`Failed: ${test.failed || 0}`, margin + 50, y);
-        doc.text(`Total: ${test.total_tests || 0}`, margin + 95, y);
-        y += 5;
-        if (test.skipped > 0) {
-          doc.text(`Skipped: ${test.skipped || 0}`, margin + 5, y);
-          y += 5;
-        }
-
-        // Test Execution Summary
-        if (test.duration || test.exit_code || test.test_executed_by || test.build_number) {
-          checkPage(25);
-          doc.setFont("helvetica", "bold");
-          doc.text("Execution Summary:", margin, y);
-          y += 5;
-          doc.setFont("helvetica", "normal");
-          if (test.duration) {
-            doc.text(`Duration: ${test.duration}`, margin + 5, y);
-            y += 5;
-          }
-          if (test.exit_code !== undefined) {
-            doc.text(`Exit Code: ${test.exit_code}`, margin + 5, y);
-            y += 5;
-          }
-          if (test.test_executed_by) {
-            doc.text(`Executed By: ${test.test_executed_by}`, margin + 5, y);
-            y += 5;
-          }
-          if (test.build_number) {
-            doc.text(`Build Number: ${test.build_number}`, margin + 5, y);
-            y += 5;
-          }
-          if (test.report_url) {
-            doc.text(`Report URL: ${test.report_url}`, margin + 5, y);
-            y += 5;
-          }
-          if (test.comments) {
-            const commentLines = doc.splitTextToSize(test.comments, contentWidth - 10);
-            doc.text(`Comments: ${commentLines[0]}`, margin + 5, y);
-            y += commentLines.length * 5 + 2;
-          }
-        }
-
-        // Test Script
-        if (test.test_results?.script) {
-          checkPage(30);
-          doc.setFontSize(11);
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-          doc.text("Test Script:", margin + 5, y);
-          y += 6;
+        if (subtitle) {
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          const scriptPreview = test.test_results.script.length > 300 
-            ? test.test_results.script.substring(0, 300) + "..."
-            : test.test_results.script;
-          const scriptLines = doc.splitTextToSize(scriptPreview, contentWidth - 30);
-          doc.text(scriptLines, margin + 10, y);
-          y += scriptLines.length * 4 + 3;
+          doc.setTextColor(100, 116, 139);
+          const lines = doc.splitTextToSize(subtitle, contentWidth);
+          doc.text(lines, margin, y);
+          y += lines.length * 4.5 + 2;
         }
 
-        // Test Summary
-        if (test.test_results?.summary) {
-          checkPage(20);
-          doc.setFontSize(11);
+        doc.setDrawColor(accentSoft.r, accentSoft.g, accentSoft.b);
+        doc.setLineWidth(0.6);
+        doc.line(margin, y, margin + 35, y);
+        doc.setDrawColor(255, 228, 196);
+        doc.setLineWidth(0.2);
+        doc.line(margin + 35, y, pageWidth - margin, y);
+        y += 8;
+      };
+
+      const drawIntroParagraph = () => {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...neutralText);
+        const intro =
+          "Rapid assessment of release readiness generated by the Testing Agent. Review smoke execution outcomes, environment coverage, and failure artifacts.";
+        const lines = doc.splitTextToSize(intro, contentWidth);
+        checkPage(lines.length * 5 + 12);
+        doc.text(lines, margin, y);
+        y += lines.length * 5 + 6;
+      };
+
+      const renderSummaryCards = (cards) => {
+        const cardsPerRow = 2;
+        const gap = 8;
+        const cardWidth = (contentWidth - gap) / cardsPerRow;
+        const cardHeight = 44;
+        let columnIndex = 0;
+        let rowTop = y;
+
+        cards.forEach((card, index) => {
+          if (columnIndex === 0) {
+            checkPage(cardHeight + 14);
+            rowTop = y;
+          }
+
+          const x = margin + columnIndex * (cardWidth + gap);
+          doc.setFillColor(255, 247, 237);
+          doc.roundedRect(x, rowTop, cardWidth, cardHeight, 4, 4, "F");
+          doc.setDrawColor(254, 215, 170);
+          doc.roundedRect(x, rowTop, cardWidth, cardHeight, 4, 4, "S");
+
+          doc.setFillColor(accentSoft.r, accentSoft.g, accentSoft.b);
+          doc.circle(x + 6, rowTop + 10, 2, "F");
+
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-          doc.text("Test Summary:", margin + 5, y);
-          y += 6;
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          const summary = test.test_results.summary;
-          doc.text(`Total: ${summary.total || test.total_tests || 0}`, margin + 10, y);
-          y += 5;
-          doc.text(`Passed: ${summary.passed || test.passed || 0}`, margin + 10, y);
-          y += 5;
-          doc.text(`Failed: ${summary.failed || test.failed || 0}`, margin + 10, y);
-          y += 5;
-          if (summary.skipped !== undefined || test.skipped) {
-            doc.text(`Skipped: ${summary.skipped || test.skipped || 0}`, margin + 10, y);
-            y += 5;
+          doc.setFontSize(8);
+          doc.setTextColor(accentSoft.r, accentSoft.g, accentSoft.b);
+          doc.text(card.label.toUpperCase(), x + 12, rowTop + 11);
+
+          doc.setFontSize(13);
+          doc.setTextColor(194, 65, 12);
+          doc.text(String(card.value), x + 12, rowTop + 21);
+
+          if (card.helper) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(71, 85, 105);
+            const helperLines = doc.splitTextToSize(card.helper, cardWidth - 24);
+            doc.text(helperLines, x + 12, rowTop + 30);
+          }
+
+          columnIndex += 1;
+
+          if (columnIndex === cardsPerRow || index === cards.length - 1) {
+            y = rowTop + cardHeight + 8;
+            columnIndex = 0;
+          }
+        });
+      };
+
+      const renderRunBlock = (run, idx) => {
+        const paddingX = 12;
+        const paddingY = 12;
+        const innerWidth = contentWidth - paddingX * 2;
+        const blockEntries = [];
+        const resolveLineHeight = (size) => Math.max(4.2, size * 0.46);
+
+        const createGroup = (text, options = {}) => {
+          const {
+            size = 9,
+            bold = false,
+            color = neutralText,
+            indent = 0,
+            spacing = 2,
+          } = options;
+
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(size);
+          const availableWidth = innerWidth - indent;
+          const lines = doc.splitTextToSize(String(text), availableWidth);
+          const lineHeight = resolveLineHeight(size);
+          const height = lines.length * lineHeight;
+          return {
+            lines,
+            size,
+            bold,
+            color,
+            indent,
+            lineHeight,
+            height,
+            spacing,
+          };
+        };
+
+        const pushIfContent = (text, options) => {
+          if (!text) return;
+          blockEntries.push(createGroup(text, options));
+        };
+
+        const runId = run?.id || run?.run_id || `smoke_${idx + 1}`;
+        const total = run?.total_tests || run?.test_results?.summary?.total || 0;
+        const passed = run?.passed || run?.test_results?.summary?.passed || 0;
+        const failed = run?.failed || run?.test_results?.summary?.failed || 0;
+        const skipped = run?.skipped || run?.test_results?.summary?.skipped || 0;
+
+        blockEntries.push(
+          createGroup(`Smoke Run #${idx + 1}`, {
+            size: 12,
+            bold: true,
+            color: [194, 65, 12],
+            spacing: 3,
+          })
+        );
+        blockEntries.push(
+          createGroup(`Identifier: ${runId}`, {
+            size: 9,
+            color: [75, 85, 99],
+            spacing: 1.5,
+          })
+        );
+
+        blockEntries.push(
+          createGroup(
+            `Created • ${formatDate(run?.created_at)}    |    Updated • ${formatDate(run?.updated_at)}`,
+            {
+              size: 9,
+              color: [45, 55, 72],
+              spacing: 1.5,
+            }
+          )
+        );
+
+        const coverageBits = [
+          run?.test_suite_name ? `Suite ${run.test_suite_name}` : null,
+          run?.test_environment ? `Env ${run.test_environment}` : null,
+          run?.build_number ? `Build ${run.build_number}` : null,
+          run?.test_executed_by ? `By ${run.test_executed_by}` : null,
+        ]
+          .filter(Boolean)
+          .join("    |    ");
+        pushIfContent(coverageBits, {
+          size: 8,
+          color: [100, 116, 139],
+          spacing: 2,
+        });
+
+        const metricsLine = [
+          `Total ${total}`,
+          `Passed ${passed}`,
+          `Failed ${failed}`,
+          skipped ? `Skipped ${skipped}` : null,
+          `Pass Rate ${formatPercent(passed, total)}`,
+        ]
+          .filter(Boolean)
+          .join("    •    ");
+        blockEntries.push(
+          createGroup(metricsLine, {
+            size: 8.5,
+            color: [217, 119, 6],
+            spacing: 2,
+          })
+        );
+
+        if (run?.duration || run?.exit_code !== undefined || run?.report_url) {
+          const executionBits = [];
+          if (run?.duration) executionBits.push(`Duration ${run.duration}`);
+          if (run?.exit_code !== undefined) executionBits.push(`Exit ${run.exit_code}`);
+          if (run?.report_url) executionBits.push(`Report ${run.report_url}`);
+          blockEntries.push(
+            createGroup(executionBits.join("    |    "), {
+              size: 8,
+              color: [107, 114, 128],
+              spacing: 1.5,
+            })
+          );
+        }
+
+        if (run?.comments) {
+          blockEntries.push(
+            createGroup(truncate(run.comments, 220), {
+              size: 8,
+              color: [120, 133, 154],
+              spacing: 2,
+            })
+          );
+        }
+
+        if (run?.test_results?.summary) {
+          const summary = run.test_results.summary;
+          blockEntries.push(
+            createGroup("Execution Summary", {
+              size: 9,
+              bold: true,
+              color: [30, 41, 59],
+              spacing: 3,
+            })
+          );
+          blockEntries.push(
+            createGroup(
+              `Total ${summary.total || total} • Pass ${summary.passed || passed} • Fail ${summary.failed || failed} • Skip ${summary.skipped || skipped}`,
+              {
+                size: 8,
+                color: successColor,
+                indent: 4,
+                spacing: 2,
+              }
+            )
+          );
+        }
+
+        if (Array.isArray(run?.test_results?.input_test_cases) && run.test_results.input_test_cases.length) {
+          blockEntries.push(
+            createGroup("Sample Test Cases", {
+              size: 9,
+              bold: true,
+              color: [30, 41, 59],
+              spacing: 3,
+            })
+          );
+
+          run.test_results.input_test_cases.slice(0, 4).forEach((testCase, index) => {
+            const name =
+              testCase?.Scenario ||
+              testCase?.Name ||
+              testCase?.["Test Type"] ||
+              `Test Case ${index + 1}`;
+            blockEntries.push(
+              createGroup(`${index + 1}. ${name}`, {
+                size: 8.5,
+                color: [45, 55, 72],
+                indent: 4,
+                spacing: 1.5,
+              })
+            );
+
+            if (testCase?.["Scenario Description"]) {
+              blockEntries.push(
+                createGroup(truncate(testCase["Scenario Description"], 180), {
+                  size: 7.8,
+                  color: [107, 114, 128],
+                  indent: 8,
+                  spacing: 1.5,
+                })
+              );
+            }
+
+            if (testCase?.["Expected Result"]) {
+              blockEntries.push(
+                createGroup(`Expected: ${truncate(testCase["Expected Result"], 160)}`, {
+                  size: 7.8,
+                  color: [148, 163, 184],
+                  indent: 8,
+                  spacing: 1.5,
+                })
+              );
+            }
+          });
+
+          if (run.test_results.input_test_cases.length > 4) {
+            blockEntries.push(
+              createGroup(
+                `…plus ${run.test_results.input_test_cases.length - 4} additional case${
+                  run.test_results.input_test_cases.length - 4 === 1 ? "" : "s"
+                } captured`,
+                {
+                  size: 8,
+                  color: [148, 163, 184],
+                  indent: 4,
+                  spacing: 1.5,
+                }
+              )
+            );
           }
         }
 
-        // Input Test Cases
-        if (test.test_results?.input_test_cases && test.test_results.input_test_cases.length > 0) {
-          checkPage(30);
-          doc.setFontSize(11);
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-          doc.text(`Input Test Cases (${test.test_results.input_test_cases.length}):`, margin + 5, y);
-          y += 6;
+        if (run?.test_results?.execution_logs) {
+          blockEntries.push(
+            createGroup("Execution Logs", {
+              size: 9,
+              bold: true,
+              color: [194, 65, 12],
+              spacing: 3,
+            })
+          );
 
-          test.test_results.input_test_cases.forEach((tc, tcIdx) => {
-            checkPage(25);
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            const tcName = tc['Scenario'] || tc['Test Type'] || `Test Case ${tcIdx + 1}`;
-            doc.text(`${tcIdx + 1}. ${tcName}`, margin + 10, y);
-            y += 5;
+          blockEntries.push(
+            createGroup(truncate(run.test_results.execution_logs, 320), {
+              size: 7.6,
+              color: [107, 114, 128],
+              indent: 4,
+              spacing: 2,
+            })
+          );
+        }
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            if (tc['Scenario Description']) {
-              const descLines = doc.splitTextToSize(tc['Scenario Description'], contentWidth - 30);
-              doc.text(`Description: ${descLines[0]}`, margin + 15, y);
-              y += descLines.length * 4 + 2;
-            }
-            if (tc['Steps to Execute']) {
-              const stepsPreview = tc['Steps to Execute'].length > 150 
-                ? tc['Steps to Execute'].substring(0, 150) + "..."
-                : tc['Steps to Execute'];
-              const stepsLines = doc.splitTextToSize(stepsPreview, contentWidth - 30);
-              doc.text(`Steps: ${stepsLines[0]}`, margin + 15, y);
-              y += stepsLines.length * 4 + 2;
-            }
-            if (tc['Test Data']) {
-              doc.text(`Test Data: ${tc['Test Data']}`, margin + 15, y);
-              y += 5;
-            }
-            if (tc['Expected Result']) {
-              const resultLines = doc.splitTextToSize(tc['Expected Result'], contentWidth - 30);
-              doc.text(`Expected: ${resultLines[0]}`, margin + 15, y);
-              y += resultLines.length * 4 + 2;
-            }
+        const totalContentHeight = blockEntries.reduce(
+          (sum, entry) => sum + entry.height + entry.spacing,
+          0
+        ) - (blockEntries.length
+          ? blockEntries[blockEntries.length - 1].spacing
+          : 0);
+
+        const blockHeight = paddingY * 2 + totalContentHeight;
+        checkPage(blockHeight + 10);
+
+        const blockTop = y;
+        doc.setFillColor(255, 249, 241);
+        doc.roundedRect(margin, blockTop, contentWidth, blockHeight, 6, 6, "F");
+        doc.setDrawColor(254, 215, 170);
+        doc.roundedRect(margin, blockTop, contentWidth, blockHeight, 6, 6, "S");
+        doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
+        doc.roundedRect(margin, blockTop, 4, blockHeight, 6, 0, "F");
+
+        const badgeColor = statusColor({ passed, failed });
+        doc.setFillColor(...badgeColor);
+        doc.roundedRect(pageWidth - margin - 34, blockTop + 8, 28, 8, 3, 3, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        const badgeLabel = failed > 0 ? "FAILED" : passed > 0 ? "PASSED" : "RUN";
+        doc.text(badgeLabel, pageWidth - margin - 20, blockTop + 14, {
+          align: "center",
+        });
+
+        let cursorY = blockTop + paddingY + 4;
+        blockEntries.forEach((entry, entryIndex) => {
+          doc.setFont("helvetica", entry.bold ? "bold" : "normal");
+          doc.setFontSize(entry.size);
+          doc.setTextColor(...entry.color);
+
+          const baseX = margin + paddingX + entry.indent;
+          entry.lines.forEach((line) => {
+            doc.text(line, baseX, cursorY);
+            cursorY += entry.lineHeight;
           });
-        }
 
-        // Execution Logs
-        if (test.test_results?.execution_logs) {
-          checkPage(25);
-          doc.setFontSize(11);
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-          doc.text("Execution Logs:", margin + 5, y);
-          y += 6;
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          const logsPreview = test.test_results.execution_logs.length > 400 
-            ? test.test_results.execution_logs.substring(0, 400) + "..."
-            : test.test_results.execution_logs;
-          const logsLines = doc.splitTextToSize(logsPreview, contentWidth - 30);
-          doc.text(logsLines, margin + 10, y);
-          y += logsLines.length * 3 + 3;
-        }
+          if (entryIndex !== blockEntries.length - 1) {
+            cursorY += entry.spacing;
+          }
+        });
 
-        y += 8;
+        y = blockTop + blockHeight + 10;
+      };
+
+      const drawHeader = () => {
+        doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
+        doc.rect(0, 0, pageWidth, 46, "F");
+        doc.setFillColor(234, 88, 12);
+        doc.circle(pageWidth - 30, -12, 52, "F");
+        doc.setFillColor(253, 186, 116);
+        doc.circle(pageWidth - 68, 12, 34, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(21);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Testing Agent", margin, 22);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.text("Smoke Readiness Report", margin, 32);
+
+        doc.setFontSize(9);
+        doc.text(`Project: ${projectName}`, pageWidth - margin - 66, 18);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin - 66, 26);
+
+        drawPageDecorations();
+        y = 56;
+      };
+
+      drawHeader();
+      sectionTitle("Executive Summary", "Quick health check of critical functionality ahead of deeper testing.");
+      drawIntroParagraph();
+
+      const totalRuns = runs.length;
+      const totals = runs.reduce(
+        (acc, run) => {
+          acc.tests += run?.total_tests || run?.test_results?.summary?.total || 0;
+          acc.passed += run?.passed || run?.test_results?.summary?.passed || 0;
+          acc.failed += run?.failed || run?.test_results?.summary?.failed || 0;
+          acc.skipped += run?.skipped || run?.test_results?.summary?.skipped || 0;
+          return acc;
+        },
+        { tests: 0, passed: 0, failed: 0, skipped: 0 }
+      );
+      const environments = new Set(
+        runs
+          .map((run) => run?.test_environment)
+          .filter((value) => typeof value === "string" && value.length)
+      );
+      const passRate = totals.tests ? `${((totals.passed / totals.tests) * 100).toFixed(1)}%` : "0%";
+      const lastRun = runs
+        .map((run) => run?.updated_at || run?.created_at)
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+
+      renderSummaryCards([
+        {
+          label: "Total Runs",
+          value: totalRuns,
+          helper: `Environments covered: ${environments.size || "N/A"}`,
+        },
+        {
+          label: "Total Test Cases",
+          value: totals.tests,
+          helper: `Pass ${totals.passed} • Fail ${totals.failed} • Skip ${totals.skipped}`,
+        },
+        {
+          label: "Overall Pass Rate",
+          value: passRate,
+          helper: totals.failed ? `${totals.failed} failures require triage` : "No failures detected",
+        },
+        {
+          label: "Last Execution",
+          value: lastRun ? lastRun.toLocaleString() : "Timestamp unavailable",
+          helper: runs[0]?.report_url ? `Latest report: ${runs[0].report_url}` : "No report link provided",
+        },
+      ]);
+
+      sectionTitle(
+        "Run Breakdown",
+        "Detailed look at individual smoke executions, configurations, and highlighted cases."
+      );
+
+      runs.forEach((run, idx) => {
+        renderRunBlock(run, idx);
       });
 
-      // === FOOTER ===
       const totalPages = doc.internal.pages.length - 1;
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(120, 120, 120);
-        doc.text(
-          `Page ${i} of ${totalPages}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: "center" }
-        );
-        doc.text(
-          "Generated by Smoke Test Suite",
-          margin,
-          pageHeight - 10
-        );
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, {
+          align: "center",
+        });
+        doc.text("Generated by Testing Agent", margin, pageHeight - 10);
       }
 
-      // Save PDF
       if (!filename) {
         const ts = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
         filename = `smoke_report_${ts}.pdf`;

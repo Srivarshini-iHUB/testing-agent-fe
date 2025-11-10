@@ -3,12 +3,12 @@ import { dialog } from "../dialogService";
 
 export class IntegrationPdfGenerator {
   static generatePdf(integrationData, projectName = "Project", filename = null) {
-    if (!integrationData || !integrationData.test_runs?.length) {
-      dialog.alert({
-        title: "No data available",
-        message: "No integration test data available to generate PDF report.",
-        variant: "warning",
-      });
+    const testRuns = Array.isArray(integrationData?.test_runs)
+      ? integrationData.test_runs
+      : [];
+
+    if (!testRuns.length) {
+      alert("No integration test data available to generate PDF report");
       return;
     }
 
@@ -16,192 +16,482 @@ export class IntegrationPdfGenerator {
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
+      const margin = 18;
       const contentWidth = pageWidth - 2 * margin;
-      const accentColor = { r: 20, g: 184, b: 166 }; // Teal
-      let y = 25;
+      const accentColor = { r: 20, g: 184, b: 166 };
+      const accentSoft = { r: 45, g: 212, b: 191 };
+      const neutralText = [55, 65, 81];
+      const highlightText = [15, 118, 110];
+      let y = 28;
 
-      // Helper: Section title
-      const sectionTitle = (title) => {
-        doc.setFontSize(14);
+      const formatDate = (value) => {
+        if (!value) return "Not provided";
+        try {
+          const parsed = new Date(value);
+          if (Number.isNaN(parsed.getTime())) {
+            return String(value);
+          }
+          return parsed.toLocaleString();
+        } catch (error) {
+          return String(value);
+        }
+      };
+
+      const truncate = (value, length = 220) => {
+        if (typeof value !== "string") return value;
+        if (value.length <= length) return value;
+        return `${value.slice(0, length)}…`;
+      };
+
+      const checkPage = (extra = 40) => {
+        if (y + extra > pageHeight - 18) {
+          doc.addPage();
+          drawPageDecorations();
+          y = 32;
+        }
+      };
+
+      const drawPageDecorations = () => {
+        doc.setDrawColor(236, 239, 244);
+        doc.setLineWidth(0.2);
+        doc.line(margin, 20, pageWidth - margin, 20);
+      };
+
+      const sectionTitle = (title, subtitle = null) => {
+        checkPage(subtitle ? 36 : 28);
+        doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-        doc.text(title, margin, y);
-        y += 6;
-        doc.setDrawColor(200);
-        doc.line(margin, y, pageWidth - margin, y);
-        y += 6;
-      };
+        doc.text(title.toUpperCase(), margin, y);
+        y += 7;
 
-      // Helper: Add wrapped text
-      const addText = (text, size = 10, bold = false, color = [0, 0, 0]) => {
-        doc.setFontSize(size);
-        doc.setFont("helvetica", bold ? "bold" : "normal");
-        doc.setTextColor(...color);
-        const lines = doc.splitTextToSize(text, contentWidth);
-        doc.text(lines, margin, y);
-        y += lines.length * 5 + 2;
-      };
-
-      // Helper: New page check
-      const checkPage = (extra = 30) => {
-        if (y + extra > pageHeight - 20) {
-          doc.addPage();
-          y = 25;
+        if (subtitle) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          const lines = doc.splitTextToSize(subtitle, contentWidth);
+          doc.text(lines, margin, y);
+          y += lines.length * 4.5 + 2;
         }
+
+        doc.setDrawColor(accentSoft.r, accentSoft.g, accentSoft.b);
+        doc.setLineWidth(0.6);
+        doc.line(margin, y, margin + 35, y);
+        doc.setDrawColor(228, 233, 243);
+        doc.setLineWidth(0.2);
+        doc.line(margin + 35, y, pageWidth - margin, y);
+        y += 8;
       };
 
-      // === HEADER ===
-      doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
-      doc.rect(0, 0, pageWidth, 25, "F");
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      doc.text("Integration Test Report", margin, 17);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Project: ${projectName}`, pageWidth - margin - 60, 10);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin - 60, 17);
-
-      // === SUMMARY ===
-      y = 40;
-      sectionTitle("Summary");
-
-      const totalRuns = integrationData.total_test_runs || integrationData.test_runs.length;
-      const totalScenarios = integrationData.total_scenarios || 
-        integrationData.test_runs.reduce((sum, run) => sum + (run.scenarios?.length || 0), 0);
-
-      doc.setFillColor(245, 247, 250);
-      doc.rect(margin, y - 3, contentWidth, 20, "F");
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Total Test Runs: ${totalRuns}`, margin + 5, y + 5);
-      doc.text(`Total Scenarios: ${totalScenarios}`, margin + 80, y + 5);
-      y += 25;
-
-      // === DETAILED RESULTS ===
-      sectionTitle("Test Runs");
-
-      integrationData.test_runs.forEach((run, idx) => {
-        checkPage(50);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Test Run ${idx + 1}: ${run.doc_id}`, margin, y);
-        y += 6;
-
+      const drawIntroParagraph = () => {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        const created = run.created_at ? new Date(run.created_at).toLocaleString() : "N/A";
-        const updated = run.updated_at ? new Date(run.updated_at).toLocaleString() : "N/A";
-        doc.text(`Created: ${created}`, margin, y);
-        y += 5;
-        doc.text(`Updated: ${updated}`, margin, y);
-        y += 5;
-        doc.text(`Test Run Count: ${run.testrun_count || 0}`, margin, y);
-        y += 8;
+        doc.setTextColor(...neutralText);
+        const intro =
+          "Integration coverage overview generated by the Testing Agent. Inspect cross-service scenarios, triggered flows, and observed execution metadata.";
+        const lines = doc.splitTextToSize(intro, contentWidth);
+        checkPage(lines.length * 5 + 12);
+        doc.text(lines, margin, y);
+        y += lines.length * 5 + 6;
+      };
 
-        // Scenarios
-        if (run.scenarios && run.scenarios.length > 0) {
-          doc.setFontSize(11);
+      const renderSummaryCards = (cards) => {
+        const cardsPerRow = 2;
+        const gap = 8;
+        const cardWidth = (contentWidth - gap) / cardsPerRow;
+        const cardHeight = 44;
+        let columnIndex = 0;
+        let rowTop = y;
+
+        cards.forEach((card, index) => {
+          if (columnIndex === 0) {
+            checkPage(cardHeight + 14);
+            rowTop = y;
+          }
+
+          const x = margin + columnIndex * (cardWidth + gap);
+          doc.setFillColor(241, 253, 250);
+          doc.roundedRect(x, rowTop, cardWidth, cardHeight, 4, 4, "F");
+          doc.setDrawColor(209, 250, 229);
+          doc.roundedRect(x, rowTop, cardWidth, cardHeight, 4, 4, "S");
+
+          doc.setFillColor(accentSoft.r, accentSoft.g, accentSoft.b);
+          doc.circle(x + 6, rowTop + 10, 2, "F");
+
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(accentColor.r, accentColor.g, accentColor.b);
-          doc.text("Scenarios:", margin + 5, y);
-          y += 6;
+          doc.setFontSize(8);
+          doc.setTextColor(accentSoft.r, accentSoft.g, accentSoft.b);
+          doc.text(card.label.toUpperCase(), x + 12, rowTop + 11);
 
-          run.scenarios.forEach((scenario, sIdx) => {
-            checkPage(40);
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            doc.text(`${sIdx + 1}. ${scenario.scenario_name}`, margin + 10, y);
-            y += 5;
+          doc.setFontSize(13);
+          doc.setTextColor(13, 148, 136);
+          doc.text(String(card.value), x + 12, rowTop + 21);
 
+          if (card.helper) {
             doc.setFont("helvetica", "normal");
-            const scUpdated = scenario.updated_at || run.updated_at;
-            if (scUpdated) {
-              doc.text(`Updated: ${new Date(scUpdated).toLocaleString()}`, margin + 15, y);
-              y += 5;
-            }
+            doc.setFontSize(8);
+            doc.setTextColor(51, 65, 85);
+            const helperLines = doc.splitTextToSize(card.helper, cardWidth - 24);
+            doc.text(helperLines, x + 12, rowTop + 30);
+          }
 
-            // Flow Names
-            if (scenario.flow_names && scenario.flow_names.length > 0) {
-              doc.setFont("helvetica", "bold");
-              doc.text("Flow Names:", margin + 15, y);
-              y += 5;
-              doc.setFont("helvetica", "normal");
-              scenario.flow_names.forEach((flow, fIdx) => {
-                doc.text(`  • ${flow}`, margin + 20, y);
-                y += 4;
-              });
-            }
+          columnIndex += 1;
 
-            // Test Script Preview (truncated if too long)
-            if (scenario.test_script) {
-              checkPage(20);
-              doc.setFont("helvetica", "bold");
-              doc.text("Test Script:", margin + 15, y);
-              y += 5;
-              doc.setFont("helvetica", "normal");
-              const scriptPreview = scenario.test_script.length > 200 
-                ? scenario.test_script.substring(0, 200) + "..."
-                : scenario.test_script;
-              const scriptLines = doc.splitTextToSize(scriptPreview, contentWidth - 30);
-              doc.text(scriptLines, margin + 20, y);
-              y += scriptLines.length * 4 + 3;
-            }
+          if (columnIndex === cardsPerRow || index === cards.length - 1) {
+            y = rowTop + cardHeight + 8;
+            columnIndex = 0;
+          }
+        });
+      };
 
-            // Report Summary
-            if (scenario.report) {
-              checkPage(15);
-              doc.setFont("helvetica", "bold");
-              doc.text("Report Summary:", margin + 15, y);
-              y += 5;
-              doc.setFont("helvetica", "normal");
-              const reportStr = JSON.stringify(scenario.report, null, 2);
-              const reportPreview = reportStr.length > 300 
-                ? reportStr.substring(0, 300) + "..."
-                : reportStr;
-              const reportLines = doc.splitTextToSize(reportPreview, contentWidth - 30);
-              doc.text(reportLines, margin + 20, y);
-              y += reportLines.length * 4 + 3;
-            }
+      const renderRunBlock = (run, idx) => {
+        const runId = run?.doc_id || run?._id || `integration_${idx + 1}`;
+        const paddingX = 12;
+        const paddingY = 12;
+        const innerWidth = contentWidth - paddingX * 2;
+        const blockEntries = [];
+        const resolveLineHeight = (size) => Math.max(4.2, size * 0.46);
 
-            y += 5;
+        const createGroup = (text, options = {}) => {
+          const {
+            size = 9,
+            bold = false,
+            color = neutralText,
+            indent = 0,
+            spacing = 2,
+          } = options;
+
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(size);
+          const availableWidth = innerWidth - indent;
+          const lines = doc.splitTextToSize(String(text), availableWidth);
+          const lineHeight = resolveLineHeight(size);
+          const height = lines.length * lineHeight;
+          return {
+            lines,
+            size,
+            bold,
+            color,
+            indent,
+            lineHeight,
+            height,
+            spacing,
+          };
+        };
+
+        const pushIfContent = (text, options) => {
+          if (!text) return;
+          blockEntries.push(createGroup(text, options));
+        };
+
+        blockEntries.push(
+          createGroup(`Integration Run #${idx + 1}`, {
+            size: 12,
+            bold: true,
+            color: [13, 148, 136],
+            spacing: 3.5,
+          })
+        );
+        blockEntries.push(
+          createGroup(`Identifier: ${runId}`, {
+            size: 9,
+            color: [75, 85, 99],
+            spacing: 1.5,
+          })
+        );
+
+        const timelineBits = [];
+        timelineBits.push(`Created • ${formatDate(run?.created_at)}`);
+        timelineBits.push(`Updated • ${formatDate(run?.updated_at)}`);
+        if (run?.testrun_count !== undefined) {
+          timelineBits.push(`Executions • ${run.testrun_count}`);
+        }
+        blockEntries.push(
+          createGroup(timelineBits.join("    |    "), {
+            size: 9,
+            color: [45, 55, 72],
+            spacing: 1.5,
+          })
+        );
+
+        if (run?.owner) {
+          pushIfContent(`Owner: ${run.owner}`, {
+            size: 8.5,
+            color: [15, 118, 110],
+            spacing: 1.5,
           });
-        } else {
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "italic");
-          doc.setTextColor(120, 120, 120);
-          doc.text("No scenarios available", margin + 10, y);
-          y += 5;
+        }
+        if (run?.environment) {
+          pushIfContent(`Environment: ${run.environment}`, {
+            size: 8.5,
+            color: [45, 55, 72],
+            spacing: 1.5,
+          });
         }
 
-        y += 8;
+        const scenarios = Array.isArray(run?.scenarios) ? run.scenarios : [];
+        const totalScenarios = scenarios.length;
+        const flowCount = scenarios.reduce(
+          (sum, scenario) => sum + (Array.isArray(scenario?.flow_names) ? scenario.flow_names.length : 0),
+          0
+        );
+        blockEntries.push(
+          createGroup(`Scenarios ${totalScenarios}    •    Flows ${flowCount}`, {
+            size: 9,
+            color: highlightText,
+            spacing: 2,
+          })
+        );
+
+        if (run?.notes) {
+          pushIfContent(truncate(run.notes, 260), {
+            size: 8,
+            color: [100, 116, 139],
+            spacing: 2.5,
+          });
+        }
+
+        if (scenarios.length) {
+          blockEntries.push(
+            createGroup("Scenario Highlights", {
+              size: 9,
+              bold: true,
+              color: [30, 41, 59],
+              spacing: 3,
+            })
+          );
+
+          scenarios.slice(0, 5).forEach((scenario, index) => {
+            const name = scenario?.scenario_name || scenario?.name || `Scenario ${index + 1}`;
+            const status = scenario?.status || scenario?.result;
+            const statusLabel = status ? `Status: ${status}` : null;
+            const descriptor = [statusLabel, scenario?.last_run_id ? `Run ID: ${scenario.last_run_id}` : null]
+              .filter(Boolean)
+              .join(" · ");
+
+            blockEntries.push(
+              createGroup(`${index + 1}. ${name}`, {
+                size: 9,
+                color: [45, 55, 72],
+                indent: 4,
+                spacing: 1.5,
+              })
+            );
+
+            if (descriptor) {
+              blockEntries.push(
+                createGroup(descriptor, {
+                  size: 8,
+                  color: [71, 85, 105],
+                  indent: 8,
+                  spacing: 1.5,
+                })
+              );
+            }
+
+            const flows = Array.isArray(scenario?.flow_names)
+              ? scenario.flow_names.filter(Boolean)
+              : [];
+            if (flows.length) {
+              blockEntries.push(
+                createGroup(`Flows: ${flows.join(", ")}`, {
+                  size: 8,
+                  color: highlightText,
+                  indent: 8,
+                  spacing: 1.5,
+                })
+              );
+            }
+
+            if (scenario?.test_script) {
+              blockEntries.push(
+                createGroup(truncate(scenario.test_script, 280), {
+                  size: 7.8,
+                  color: [107, 114, 128],
+                  indent: 8,
+                  spacing: 1.5,
+                })
+              );
+            }
+
+            if (scenario?.report) {
+              const reportPreview = truncate(
+                typeof scenario.report === "string"
+                  ? scenario.report
+                  : JSON.stringify(scenario.report, null, 2),
+                260
+              );
+              blockEntries.push(
+                createGroup(`Report: ${reportPreview}`, {
+                  size: 7.8,
+                  color: [148, 163, 184],
+                  indent: 8,
+                  spacing: 2,
+                })
+              );
+            }
+          });
+
+          if (scenarios.length > 5) {
+            blockEntries.push(
+              createGroup(
+                `…plus ${scenarios.length - 5} additional scenario${
+                  scenarios.length - 5 === 1 ? "" : "s"
+                } tracked`,
+                {
+                  size: 8,
+                  color: [148, 163, 184],
+                  indent: 4,
+                  spacing: 1.5,
+                }
+              )
+            );
+          }
+        } else {
+          blockEntries.push(
+            createGroup("No scenarios were captured for this run.", {
+              size: 8.5,
+              color: [148, 163, 184],
+              spacing: 1.5,
+            })
+          );
+        }
+
+        const totalContentHeight = blockEntries.reduce(
+          (sum, entry) => sum + entry.height + entry.spacing,
+          0
+        ) - (blockEntries.length
+          ? blockEntries[blockEntries.length - 1].spacing
+          : 0);
+
+        const blockHeight = paddingY * 2 + totalContentHeight;
+        checkPage(blockHeight + 10);
+
+        const blockTop = y;
+        doc.setFillColor(250, 253, 252);
+        doc.roundedRect(margin, blockTop, contentWidth, blockHeight, 6, 6, "F");
+        doc.setDrawColor(210, 250, 230);
+        doc.roundedRect(margin, blockTop, contentWidth, blockHeight, 6, 6, "S");
+        doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
+        doc.roundedRect(margin, blockTop, 4, blockHeight, 6, 0, "F");
+
+        let cursorY = blockTop + paddingY + 4;
+        blockEntries.forEach((entry, entryIndex) => {
+          doc.setFont("helvetica", entry.bold ? "bold" : "normal");
+          doc.setFontSize(entry.size);
+          doc.setTextColor(...entry.color);
+
+          const baseX = margin + paddingX + entry.indent;
+          entry.lines.forEach((line) => {
+            doc.text(line, baseX, cursorY);
+            cursorY += entry.lineHeight;
+          });
+
+          if (entryIndex !== blockEntries.length - 1) {
+            cursorY += entry.spacing;
+          }
+        });
+
+        y = blockTop + blockHeight + 10;
+      };
+
+      const drawHeader = () => {
+        doc.setFillColor(accentColor.r, accentColor.g, accentColor.b);
+        doc.rect(0, 0, pageWidth, 46, "F");
+        doc.setFillColor(15, 118, 110);
+        doc.circle(pageWidth - 30, -12, 52, "F");
+        doc.setFillColor(110, 231, 183);
+        doc.circle(pageWidth - 68, 12, 34, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(21);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Testing Agent", margin, 22);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.text("Integration Testing Insights", margin, 32);
+
+        doc.setFontSize(9);
+        doc.text(`Project: ${projectName}`, pageWidth - margin - 66, 18);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin - 66, 26);
+
+        drawPageDecorations();
+        y = 56;
+      };
+
+      drawHeader();
+      sectionTitle("Executive Summary", "Cross-service testing runs and scenario execution insights captured by the testing agent.");
+      drawIntroParagraph();
+
+      const totalRuns = integrationData?.total_test_runs || testRuns.length;
+      const totalScenarios = integrationData?.total_scenarios || testRuns.reduce(
+        (sum, run) => sum + (Array.isArray(run?.scenarios) ? run.scenarios.length : 0),
+        0
+      );
+      const avgScenariosPerRun = totalRuns
+        ? (totalScenarios / totalRuns).toFixed(1)
+        : "0";
+      const distinctServices = (() => {
+        const services = new Set();
+        testRuns.forEach((run) => {
+          run?.scenarios?.forEach((scenario) => {
+            if (Array.isArray(scenario?.flow_names)) {
+              scenario.flow_names.forEach((flow) => services.add(flow));
+            }
+          });
+        });
+        return services.size;
+      })();
+      const lastRun = testRuns
+        .map((run) => run?.updated_at || run?.created_at)
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+
+      renderSummaryCards([
+        {
+          label: "Total Runs",
+          value: totalRuns,
+          helper: "Integration executions observed in this report.",
+        },
+        {
+          label: "Total Scenarios",
+          value: totalScenarios,
+          helper: "Composed across all collected runs.",
+        },
+        {
+          label: "Avg Scenarios / Run",
+          value: avgScenariosPerRun,
+          helper: `Distinct Flows referenced: ${distinctServices}`,
+        },
+        {
+          label: "Most Recent Run",
+          value: lastRun ? lastRun.toLocaleString() : "Timestamp unavailable",
+          helper: "Pulled from run metadata (updated or created).",
+        },
+      ]);
+
+      sectionTitle(
+        "Run Breakdown",
+        "Detailed review of each integration run with scenario highlights, flow coverage, and supporting evidence."
+      );
+
+      testRuns.forEach((run, idx) => {
+        renderRunBlock(run, idx);
       });
 
-      // === FOOTER ===
       const totalPages = doc.internal.pages.length - 1;
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(120, 120, 120);
-        doc.text(
-          `Page ${i} of ${totalPages}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: "center" }
-        );
-        doc.text(
-          "Generated by Integration Test Suite",
-          margin,
-          pageHeight - 10
-        );
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, {
+          align: "center",
+        });
+        doc.text("Generated by Testing Agent", margin, pageHeight - 10);
       }
 
-      // Save PDF
       if (!filename) {
         const ts = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
         filename = `integration_report_${ts}.pdf`;
