@@ -1,38 +1,41 @@
+// src/components/GithubRepoSelector.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function GitRepoBranchPicker() {
+  // ----- state (plain JS) -----
   const [repos, setRepos] = useState([]);
   const [branches, setBranches] = useState([]);
   const [commits, setCommits] = useState([]);
   const [files, setFiles] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedCommit, setSelectedCommit] = useState("");
+  const [selectedCommit, setSelectedCommit] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [jestCode, setJestCode] = useState("");
-  const [jestOutput, setJestOutput] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
+  const [jestReport, setJestReport] = useState(null);
+  const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Load repos
+  /* ------------------------------------------------------------------ */
+  /*  Load repos on mount (token already in localStorage)               */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const username = localStorage.getItem("github_user");
     const token = localStorage.getItem("github_token");
-    if (username && token) fetchRepos(username, token);
+    if (token) fetchRepos(token);
   }, []);
 
-  const fetchRepos = async (username, token) => {
+  const fetchRepos = async (token) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/auth/github/repos`, {
+      const { data } = await axios.get(`${API_URL}/auth/github/repos`, {
         headers: { Authorization: `token ${token}` },
       });
-      if (res.data.ok) setRepos(res.data.repos);
-    } catch (err) {
-      console.error("Failed to fetch repos:", err);
+      if (data.ok) setRepos(data.repos);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -40,16 +43,16 @@ export default function GitRepoBranchPicker() {
 
   const fetchBranches = async (repo) => {
     const token = localStorage.getItem("github_token");
-    if (!repo || !token) return;
+    if (!token) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/auth/github/branches`, {
+      const { data } = await axios.get(`${API_URL}/auth/github/branches`, {
         params: { repo },
         headers: { Authorization: `token ${token}` },
       });
-      if (res.data.ok) setBranches(res.data.branches);
-    } catch (err) {
-      console.error("Failed to fetch branches:", err);
+      if (data.ok) setBranches(data.branches);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -57,15 +60,15 @@ export default function GitRepoBranchPicker() {
 
   const fetchCommits = async (repo, branch) => {
     const token = localStorage.getItem("github_token");
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/auth/github/commits`, {
+      const { data } = await axios.get(`${API_URL}/auth/github/commits`, {
         params: { repo, branch },
         headers: { Authorization: `token ${token}` },
       });
-      if (res.data.ok) setCommits(res.data.commits);
-    } catch (err) {
-      console.error("Failed to fetch commits:", err);
+      if (data.ok) setCommits(data.commits);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -73,115 +76,86 @@ export default function GitRepoBranchPicker() {
 
   const fetchFiles = async (commitSha) => {
     const token = localStorage.getItem("github_token");
-    if (!selectedRepo || !commitSha) return;
+    if (!selectedRepo) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/auth/github/files`, {
+      const { data } = await axios.get(`${API_URL}/auth/github/files`, {
         params: { repo: selectedRepo, commit_sha: commitSha },
         headers: { Authorization: `token ${token}` },
       });
-      if (res.data.ok) setFiles(res.data.files);
-    } catch (err) {
-      console.error("Failed to fetch files:", err);
+      if (data.ok) setFiles(data.files);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
-  const runTestsInDocker = async () => {
-  const token = localStorage.getItem("github_token");
-  const [owner, repoName] = selectedRepo.split("/");
 
-  const formData = new FormData();
-  formData.append("owner", owner);
-  formData.append("repo", repoName);
-  formData.append("path", selectedFile);
-  formData.append("ref", selectedCommit.sha);
-  formData.append("run_jest", "true"); // Tell backend to run Jest
+  /* ------------------------------------------------------------------ */
+  /*  Click a file → generate + run Jest in ONE call                     */
+  /* ------------------------------------------------------------------ */
+  const handleFileClick = async (file) => {
+    setSelectedFile(file.filename);
+    setStatus("Generating Jest tests …");
 
-  try {
-    setLoading(true);
-    setStatusMessage("Running Jest in Docker...");
+    const token = localStorage.getItem("github_token");
+    const parts = selectedRepo.split("/");
+    const owner = parts[0];
+    const repo = parts[1];
 
-    const res = await fetch(`${API_URL}/unit-test/run-jest`, {
-      method: "POST",
-      headers: {
-        Authorization: `token ${token}`,
-      },
-      body: formData,
-    });
+    const form = new FormData();
+    form.append("owner", owner);
+    form.append("repo", repo);
+    form.append("path", file.filename);
+    form.append("ref", selectedCommit.sha);
+    form.append("run_jest", "true");
 
-    if (!res.ok) throw new Error(await res.text());
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/unit-test/run-jest`, {
+        method: "POST",
+        headers: { Authorization: `token ${token}` },
+        body: form,
+      });
+      const payload = await res.json();
 
-    const data = await res.json();
-    setStatusMessage("Jest completed! Fetching report...");
+      if (!payload.ok) {
+        throw new Error(payload.detail || "unknown error");
+      }
 
-    // Poll for report
-    pollForResults(selectedFile, selectedCommit.sha);
-
-  } catch (err) {
-    setStatusMessage(`Error: ${err.message}`);
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
-
-const generateAndRunTests = async (file) => {
-  const token = localStorage.getItem("github_token");
-  const [owner, repoName] = selectedRepo.split("/"); // Use selectedRepo
-
-  const formData = new FormData();
-  formData.append("owner", owner);
-  formData.append("repo", repoName);
-  formData.append("path", file.filename);
-  formData.append("ref", selectedCommit.sha); // Use selectedCommit.sha
-
-  try {
-    setStatusMessage("Generating Jest tests...");
-    const res = await fetch(`${API_URL}/unit-test/generate-jest`, {
-      method: "POST",
-      headers: {
-        Authorization: `token ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err || "Failed to generate tests");
+      // `jest_code` is not returned by the endpoint any more
+      setJestCode(payload.jest_code || "");
+      setJestReport(payload.json_report);
+      setStatus("Tests finished");
+    } catch (e) {
+      setStatus(`Error: ${e.message}`);
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const data = await res.json();
-    setJestCode(data.jest_code);
-    setStatusMessage("Jest tests generated! Running...");
-    
-    // Optional: poll for results
-    pollForResults(file.filename, selectedCommit.sha);
-
-  } catch (err) {
-    setStatusMessage(`Error: ${err.message}`);
-    console.error(err);
-  }
-};
-
+  /* ------------------------------------------------------------------ */
+  /*  UI                                                               */
+  /* ------------------------------------------------------------------ */
   return (
-    <div className="p-4 border rounded-md bg-gray-50 space-y-4">
-      <h3 className="font-semibold text-lg">📂 Git Repository</h3>
+    <div className="p-4 border rounded-md bg-gray-50 space-y-4 max-w-4xl mx-auto">
+      <h3 className="font-semibold text-lg">Git Repository Picker</h3>
 
-      {/* Repos */}
+      {/* ── REPOS ── */}
       <select
         className="border p-2 rounded w-full"
         value={selectedRepo}
         onChange={(e) => {
-          const repo = e.target.value;
-          setSelectedRepo(repo);
+          const v = e.target.value;
+          setSelectedRepo(v);
           setBranches([]);
           setCommits([]);
           setFiles([]);
-          fetchBranches(repo);
+          if (v) fetchBranches(v);
         }}
       >
-        <option value="">Select Repository</option>
+        <option value="">Select Repo</option>
         {repos.map((r) => (
           <option key={r.full_name} value={r.full_name}>
             {r.full_name}
@@ -189,15 +163,15 @@ const generateAndRunTests = async (file) => {
         ))}
       </select>
 
-      {/* Branches */}
+      {/* ── BRANCHES ── */}
       {branches.length > 0 && (
         <select
           className="border p-2 rounded w-full"
           value={selectedBranch}
           onChange={(e) => {
-            const branch = e.target.value;
-            setSelectedBranch(branch);
-            fetchCommits(selectedRepo, branch);
+            const b = e.target.value;
+            setSelectedBranch(b);
+            fetchCommits(selectedRepo, b);
           }}
         >
           <option value="">Select Branch</option>
@@ -209,26 +183,26 @@ const generateAndRunTests = async (file) => {
         </select>
       )}
 
-      {/* Commits */}
+      {/* ── COMMITS ── */}
       {commits.length > 0 && (
         <div className="border-t pt-3">
-          <h4 className="font-semibold mb-2">🕒 Commits</h4>
-          <ul className="space-y-1">
+          <h4 className="font-semibold mb-2">Commits (last 5)</h4>
+          <ul className="space-y-1 max-h-48 overflow-y-auto">
             {commits.map((c) => (
               <li key={c.sha}>
                 <button
-                  className={`text-left w-full px-2 py-1 rounded ${selectedCommit === c.sha
+                  className={`text-left w-full px-2 py-1 rounded ${
+                    selectedCommit && selectedCommit.sha === c.sha
                       ? "bg-blue-100"
                       : "hover:bg-gray-100"
-                    }`}
+                  }`}
                   onClick={() => {
                     setSelectedCommit(c);
                     setFiles([]);
                     fetchFiles(c.sha);
                   }}
                 >
-                  <strong>{c.message}</strong> — {c.author} (
-                  {new Date(c.date).toLocaleString()})
+                  <strong>{c.message.split("\n")[0]}</strong> — {c.author}
                 </button>
               </li>
             ))}
@@ -236,24 +210,18 @@ const generateAndRunTests = async (file) => {
         </div>
       )}
 
-      {/* Files */}
+      {/* ── CHANGED FILES ── */}
       {files.length > 0 && (
         <div className="border-t pt-3">
-          <h4 className="font-semibold mb-2">Changed Files</h4>
+          <h4 className="font-semibold mb-2">JS/TS files changed</h4>
           <ul className="space-y-1">
             {files.map((f) => (
               <li key={f.filename}>
                 <button
-                  className={`text-left w-full px-2 py-1 rounded text-sm ${selectedFile === f.filename
-                      ? "bg-blue-100 text-blue-800"
-                      : "hover:bg-gray-100"
-                    }`}
-                  onClick={() => {
-                    setSelectedFile(f.filename);
-                    if (!jestCode) {
-                      generateAndRunTests(f);
-                    }
-                  }}
+                  className={`text-left w-full px-2 py-1 rounded text-sm ${
+                    selectedFile === f.filename ? "bg-blue-100" : "hover:bg-gray-100"
+                  }`}
+                  onClick={() => handleFileClick(f)}
                 >
                   {f.filename}
                 </button>
@@ -262,40 +230,79 @@ const generateAndRunTests = async (file) => {
           </ul>
         </div>
       )}
-      {/* Results */}
-      {statusMessage && (
-        <p className="text-sm text-gray-700 italic mt-2">{statusMessage}</p>
-      )}
 
+      {/* ── STATUS ── */}
+      {status && <p className="text-sm italic">{status}</p>}
+
+      {/* ── JEST CODE (optional) ── */}
       {jestCode && (
-        <div className="mt-3">
-          <h4 className="font-semibold text-lg mb-1">🧪 Generated Jest Code</h4>
-          <pre className="bg-black text-green-400 p-3 rounded overflow-x-auto text-sm whitespace-pre-wrap">
+        <div className="mt-4">
+          <h4 className="font-semibold mb-1">Generated Jest</h4>
+          <pre className="bg-black text-green-400 p-3 rounded overflow-x-auto text-xs">
             {jestCode}
           </pre>
         </div>
       )}
 
-      {jestCode && !jestOutput && (
-  <div className="mt-4">
-    <button
-      onClick={() => runTestsInDocker()}
-      disabled={loading}
-      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-    >
-      {loading ? "Running..." : "Run with Docker"}
-    </button>
-  </div>
-)}
+      {/* ── TEST RESULT ── */}
+      {jestReport && (
+        <div className="mt-4 border-t pt-3">
+          <h4 className="font-semibold mb-2">Test Result</h4>
 
-      {jestOutput && (
-        <div className="mt-3">
-          <h4 className="font-semibold text-lg mb-1">📊 Jest Test Output</h4>
-          <pre className="bg-gray-900 text-white p-3 rounded overflow-x-auto text-sm whitespace-pre-wrap">
-            {jestOutput}
-          </pre>
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+            <div className="p-2 bg-green-100 rounded">
+              <div className="text-2xl font-bold text-green-700">
+                {(jestReport.numPassedTests !== undefined ? jestReport.numPassedTests : 0)}
+              </div>
+              <div className="text-xs">Passed</div>
+            </div>
+            <div className="p-2 bg-red-100 rounded">
+              <div className="text-2xl font-bold text-red-700">
+                {(jestReport.numFailedTests !== undefined ? jestReport.numFailedTests : 0)}
+              </div>
+              <div className="text-xs">Failed</div>
+            </div>
+            <div className="p-2 bg-blue-100 rounded">
+              <div className="text-2xl font-bold text-blue-700">
+                {(jestReport.numTotalTests !== undefined ? jestReport.numTotalTests : 0)}
+              </div>
+              <div className="text-xs">Total</div>
+            </div>
+          </div>
+
+          {/* Individual assertions */}
+          {jestReport.testResults &&
+            jestReport.testResults.map((suite, i) => (
+              <details key={i} className="mb-2">
+                <summary className="cursor-pointer font-medium">
+                  {suite.name} ({suite.assertionResults.length} tests)
+                </summary>
+                <ul className="ml-4 mt-1 space-y-1">
+                  {suite.assertionResults.map((a, j) => (
+                    <li
+                      key={j}
+                      className={`text-sm p-1 rounded ${
+                        a.status === "passed"
+                          ? "bg-green-50 text-green-800"
+                          : "bg-red-50 text-red-800"
+                      }`}
+                    >
+                      {a.status === "passed" ? "Pass" : "Fail"} {a.title}
+                      {a.failureMessages && a.failureMessages.length > 0 && (
+                        <pre className="mt-1 text-xs whitespace-pre-wrap">
+                          {a.failureMessages.join("\n")}
+                        </pre>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
         </div>
       )}
+
+      {loading && <p className="text-gray-500">Loading…</p>}
     </div>
   );
-}
+} 
