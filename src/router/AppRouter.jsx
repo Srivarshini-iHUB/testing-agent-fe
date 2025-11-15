@@ -153,7 +153,7 @@ const Header = () => {
                       </div>
                     </button>
 
-                    <button
+                    {/* <button
                       onClick={() => {
                         setShowUserMenu(false);
                         navigate('/profile');
@@ -167,9 +167,9 @@ const Header = () => {
                         <p className="font-medium text-sm text-gray-800 dark:text-white">My Profile</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">View and edit profile</p>
                       </div>
-                    </button>
+                    </button> */}
 
-                    <button
+                    {/* <button
                       onClick={() => {
                         setShowUserMenu(false);
                         navigate('/settings');
@@ -183,9 +183,9 @@ const Header = () => {
                         <p className="font-medium text-sm text-gray-800 dark:text-white">Settings</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">Account preferences</p>
                       </div>
-                    </button>
+                    </button> */}
 
-                    <button
+                    {/* <button
                       onClick={() => {
                         setShowUserMenu(false);
                         navigate('/help');
@@ -199,7 +199,7 @@ const Header = () => {
                         <p className="font-medium text-sm text-gray-800 dark:text-white">Help & Support</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">Documentation & FAQs</p>
                       </div>
-                    </button>
+                    </button> */}
                   </div>
 
                   {/* Logout Button */}
