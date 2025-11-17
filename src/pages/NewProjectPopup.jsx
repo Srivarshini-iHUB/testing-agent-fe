@@ -365,15 +365,43 @@ const NewProject = () => {
 
       if (response.ok) {
         const result = await response.json();
+        // Try to extract created project from common response shapes
+        const created = result.project || result || {};
+
+        // Update project in context so dashboard can preselect / show it
+        try {
+          updateProject({
+            id: created.id || created.project_id || created.projectId || null,
+            name: created.name || created.project_name || trimmedProjectName,
+            repository:
+              created.repository ||
+              created.github_repo_id ||
+              created.repo ||
+              selectedRepo?.full_name ||
+              null,
+            frdDocument: created.frdDocument || created.frd_document || null,
+            userStories: created.userStories || created.user_stories || null,
+            postmanCollection:
+              created.postmanCollection || created.postman_collection || null,
+          });
+        } catch (ctxErr) {
+          console.error('Failed to update project context:', ctxErr);
+        }
+
         showNotification('Project created successfully!', 'success');
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } else {
-        const error = await response.json();
-        showNotification(error.detail || 'Failed to create project', 'error');
-      }
-    } catch (error) {
-      showNotification('An error occurred. Please try again.', 'error');
-    }
+        // Navigate to dashboard and reload so Dashboard re-fetches projects
+        setTimeout(() => {
+          navigate('/dashboard');
+          // Force a reload to guarantee fresh project list from API
+          window.location.reload();
+        }, 800);
+       } else {
+         const error = await response.json();
+         showNotification(error.detail || 'Failed to create project', 'error');
+       }
+     } catch (error) {
+       showNotification('An error occurred. Please try again.', 'error');
+     }
   };
 
   const formatFileSize = (bytes) => {

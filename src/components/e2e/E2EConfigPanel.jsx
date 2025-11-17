@@ -33,11 +33,32 @@ const E2EConfigPanel = ({
   setupInstructions
 }) => {
   const [scriptCopied, setScriptCopied] = useState(false);
+  const [urlError, setUrlError] = useState('');
 
   const flows = [
     { id: 'manual', name: 'Manual Setup', icon: 'fa-hand-pointer', description: 'Playwright configuration and CSV upload' },
     { id: 'agent', name: 'AI Agent', icon: 'fa-robot', description: 'Automated test generation and execution' }
   ];
+
+  const validateUrl = (url) => {
+    if (!url) {
+      setUrlError('');
+      return true;
+    }
+    try {
+      new URL(url);
+      setUrlError('');
+      return true;
+    } catch {
+      setUrlError('Please enter a valid URL (e.g., https://example.com)');
+      return false;
+    }
+  };
+
+  const handleUrlChange = (e) => {
+    setApplicationUrl(e.target.value);
+    validateUrl(e.target.value);
+  };
 
   const handleCopyScript = () => {
     navigator.clipboard.writeText(appsScriptCode);
@@ -153,17 +174,27 @@ const E2EConfigPanel = ({
                 <input
                   type="url"
                   value={applicationUrl}
-                  onChange={(e) => setApplicationUrl(e.target.value)}
+                  onChange={handleUrlChange}
                   placeholder="https://your-app.com"
-                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white"
+                  className={`w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 dark:text-white ${
+                    urlError
+                      ? 'border-rose-500 dark:border-rose-500 focus:ring-rose-500'
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'
+                  }`}
                 />
               </div>
+              {urlError && (
+                <p className="text-xs text-rose-500 dark:text-rose-400 mt-1 flex items-center gap-1">
+                  <i className="fas fa-exclamation-circle"></i>
+                  {urlError}
+                </p>
+              )}
             </div>
 
             {/* Generate Button */}
             <button
               onClick={generateTestScript}
-              disabled={loading || !uploadedFiles || !applicationUrl}
+              disabled={loading || !uploadedFiles || !applicationUrl || !!urlError}
               className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 rounded-xl font-bold shadow-lg disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -263,18 +294,28 @@ const E2EConfigPanel = ({
                 <input
                   type="url"
                   value={applicationUrl}
-                  onChange={(e) => setApplicationUrl(e.target.value)}
+                  onChange={handleUrlChange}
                   placeholder="https://your-app.com"
-                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white"
+                  className={`w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900/50 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 dark:text-white ${
+                    urlError
+                      ? 'border-rose-500 dark:border-rose-500 focus:ring-rose-500'
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'
+                  }`}
                 />
               </div>
+              {urlError && (
+                <p className="text-xs text-rose-500 dark:text-rose-400 mt-1 flex items-center gap-1">
+                  <i className="fas fa-exclamation-circle"></i>
+                  {urlError}
+                </p>
+              )}
             </div>
 
             {/* Action Buttons */}
             <div className="grid gap-3 md:grid-cols-2">
               <button
                 onClick={generateTestScript}
-                disabled={!uploadedFiles || !applicationUrl || agentRunning}
+                disabled={!uploadedFiles || !applicationUrl || agentRunning || !!urlError}
                 className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {agentRunning ? (
@@ -312,82 +353,123 @@ const E2EConfigPanel = ({
       )}
 
       {/* Generated Script Display */}
-      {output && (
+      {runCommand && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <i className="fab fa-python text-blue-500"></i>
-                Generated Python Test Script
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all"
-                >
-                  <i className="fas fa-download"></i>
-                  Download
-                </button>
-                {selectedFlow === 'agent' && (
+          {output ? (
+            <>
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i className="fab fa-python text-blue-500"></i>
+                    Generated Python Test Script
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDownload}
+                      className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all"
+                    >
+                      <i className="fas fa-download"></i>
+                      Download
+                    </button>
+                    {selectedFlow === 'agent' && (
+                      <button
+                        onClick={handleRunWithDocker}
+                        disabled={dockerRunning}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white px-4 py-2 rounded-lg transition-all"
+                      >
+                        {dockerRunning ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin"></i>
+                            Running...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fab fa-docker"></i>
+                            Run Docker
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 custom-scrollbar">
+                  {output}
+                </pre>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <i className="fas fa-terminal text-emerald-600 dark:text-emerald-400"></i>
+                  Run Command
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={runCommand}
+                    readOnly
+                    className="flex-1 bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
+                  />
                   <button
-                    onClick={handleRunWithDocker}
-                    disabled={dockerRunning}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white px-4 py-2 rounded-lg transition-all"
+                    onClick={copyToClipboard}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-semibold ${
+                      copySuccess
+                        ? "bg-emerald-600 hover:bg-emerald-500"
+                        : "bg-indigo-600 hover:bg-indigo-500"
+                    } text-white`}
                   >
-                    {dockerRunning ? (
+                    {copySuccess ? (
                       <>
-                        <i className="fas fa-spinner fa-spin"></i>
-                        Running...
+                        <i className="fas fa-check"></i>
+                        Copied!
                       </>
                     ) : (
                       <>
-                        <i className="fab fa-docker"></i>
-                        Run Docker
+                        <i className="fas fa-copy"></i>
+                        Copy
                       </>
                     )}
                   </button>
-                )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="bg-rose-50 dark:bg-rose-900/20 backdrop-blur-sm rounded-2xl p-6 border border-rose-200 dark:border-rose-800 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                  <i className="fas fa-exclamation-triangle text-rose-600"></i>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-rose-700 dark:text-rose-300 mb-1">No script was generated</h4>
+                  <p className="text-sm text-rose-700 dark:text-rose-200 mb-3">
+                    The generation run completed but no script output was produced. This can happen if the uploaded data is empty, the application URL is unreachable, or the agent failed to detect testable flows.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={generateTestScript}
+                      disabled={loading || !uploadedFiles || !applicationUrl}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-400 text-white rounded-lg font-semibold"
+                    >
+                      Retry Generate
+                    </button>
+                    <button
+                      onClick={copyToClipboard}
+                      disabled={!runCommand}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-500 text-white rounded-lg font-semibold"
+                    >
+                      <i className="fas fa-copy mr-2"></i>
+                      Copy Run Command
+                    </button>
+                    <button
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold"
+                    >
+                      Check Inputs
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-auto text-sm font-mono max-h-96 custom-scrollbar">
-              {output}
-            </pre>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <i className="fas fa-terminal text-emerald-600 dark:text-emerald-400"></i>
-              Run Command
-            </h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={runCommand}
-                readOnly
-                className="flex-1 bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-mono text-sm focus:outline-none"
-              />
-              <button
-                onClick={copyToClipboard}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-semibold ${
-                  copySuccess
-                    ? "bg-emerald-600 hover:bg-emerald-500"
-                    : "bg-indigo-600 hover:bg-indigo-500"
-                } text-white`}
-              >
-                {copySuccess ? (
-                  <>
-                    <i className="fas fa-check"></i>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-copy"></i>
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 

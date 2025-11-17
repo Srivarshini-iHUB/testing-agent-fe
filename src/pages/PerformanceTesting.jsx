@@ -4,6 +4,61 @@ import { useTheme } from '../contexts/ThemeContext';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { performanceApi } from '../api/performanceApi';
 
+const TargetUrlInput = ({ url, onChange, disabled }) => {
+  const [urlError, setUrlError] = useState('');
+
+  const validateUrl = (inputUrl) => {
+    if (!inputUrl) {
+      setUrlError('');
+      return true;
+    }
+    
+    try {
+      new URL(inputUrl);
+      setUrlError('');
+      return true;
+    } catch {
+      setUrlError('Please enter a valid URL (e.g., https://api.example.com/endpoint)');
+      return false;
+    }
+  };
+
+  const handleUrlChange = (e) => {
+    const value = e.target.value;
+    onChange(value);
+    validateUrl(value);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        Target URL <span className="text-rose-500 dark:text-rose-400">*</span>
+      </label>
+      <div className="relative">
+        <i className="fas fa-link absolute left-4 top-3.5 text-gray-400"></i>
+        <input
+          type="url"
+          placeholder="https://api.example.com/endpoint"
+          value={url}
+          onChange={handleUrlChange}
+          className={`w-full pl-12 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border rounded-lg text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+            urlError
+              ? 'border-rose-500 dark:border-rose-500 focus:ring-rose-500'
+              : 'border-gray-300 dark:border-gray-600 focus:ring-rose-500 focus:border-transparent'
+          }`}
+          disabled={disabled}
+        />
+      </div>
+      {urlError && (
+        <p className="text-rose-500 dark:text-rose-400 text-xs mt-2 flex items-center gap-1">
+          <i className="fas fa-exclamation-circle"></i>
+          {urlError}
+        </p>
+      )}
+    </div>
+  );
+};
+
 const PerformanceTesting = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -418,19 +473,11 @@ const PerformanceTesting = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Target URL <span className="text-rose-500 dark:text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://api.example.com/endpoint"
-                  value={config.url}
-                  onChange={(e) => setConfig({ ...config, url: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:focus:ring-rose-400"
-                  disabled={isRunning}
-                />
-              </div>
+              <TargetUrlInput 
+                url={config.url}
+                onChange={(value) => setConfig({ ...config, url: value })}
+                disabled={isRunning}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

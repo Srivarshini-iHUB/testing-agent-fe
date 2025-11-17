@@ -40,6 +40,22 @@ function SmokeTesting() {
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const [historyReport, setHistoryReport] = useState(null);
   const [project, setProject] = useState(null);
+  const [urlError, setUrlError] = useState("");
+
+  // Validate that projectUrl is a proper http(s) URL
+  const validateUrl = (value) => {
+    if (!value) return "Please enter a project URL.";
+    const trimmed = value.trim();
+    try {
+      const u = new URL(trimmed);
+      if (!['http:', 'https:'].includes(u.protocol)) {
+        return "URL must start with http:// or https://";
+      }
+      return "";
+    } catch (e) {
+      return "Invalid URL format.";
+    }
+  };
   
   // Load project from localStorage
   useEffect(() => {
@@ -144,14 +160,17 @@ function SmokeTesting() {
   // Generate Smoke Tests
   const handleGenerateTests = async (e) => {
     e.preventDefault();
+    // Validate URL before proceeding
+    const urlValidationMsg = validateUrl(projectUrl);
+    if (urlValidationMsg) {
+      setGenerateError(urlValidationMsg);
+      setUrlError(urlValidationMsg);
+      toast.error(urlValidationMsg);
+      return;
+    }
     if (!testCasesFile) {
       setGenerateError("Please select a test cases file.");
       toast.error("Please select a test cases file.");
-      return;
-    }
-    if (!projectUrl) {
-      setGenerateError("Please enter a project URL.");
-      toast.error("Please enter a project URL.");
       return;
     }
     setIsGenerating(true);
@@ -389,11 +408,28 @@ function SmokeTesting() {
                   <input
                     type="url"
                     value={projectUrl}
-                    onChange={(e) => setProjectUrl(e.target.value)}
+                    onChange={(e) => {
+                      setProjectUrl(e.target.value);
+                      if (urlError) setUrlError("");
+                      if (generateError) setGenerateError("");
+                    }}
+                    onBlur={(e) => {
+                      const msg = validateUrl(e.target.value);
+                      setUrlError(msg);
+                      if (msg) setGenerateError(msg);
+                    }}
                     placeholder="https://your-deployed-app.com"
                     required
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-orange-500 focus:outline-none"
+                    pattern="https?://.+"
+                    title="Enter a valid URL starting with http:// or https://"
+                    autoComplete="url"
+                    className={`w-full bg-gray-50 dark:bg-gray-900/50 border ${urlError ? 'border-rose-500 dark:border-rose-400' : 'border-gray-300 dark:border-gray-600'} rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-orange-500 focus:outline-none`}
                   />
+                  {urlError && (
+                    <p className="mt-2 text-xs text-rose-700 dark:text-rose-300">
+                      <i className="fas fa-exclamation-circle mr-1"></i>{urlError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Test Cases File */}
